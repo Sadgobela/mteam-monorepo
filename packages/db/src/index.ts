@@ -17,6 +17,7 @@ export {
   reviewListing,
   verifyListing,
 } from "./admin";
+export { getBroker, listBrokers, type Broker } from "./brokers";
 export { getFavoriteIds, listFavorites, toggleFavorite } from "./favorites";
 export { createLead } from "./leads";
 export { deleteSession, getSessionUser, requestLoginCode, verifyLoginCode } from "./auth";

@@ -70,6 +70,12 @@ export function ListingCard({
             </span>
           )}
         </div>
+        {listing.agent?.name && (
+          <span className="cbroker">
+            <i aria-hidden="true">{listing.agent.name.slice(0, 1)}</i>
+            {listing.agent.name}
+          </span>
+        )}
         <div className="cfoot meta">
           <span>
             {listing.address}, {listing.district}

@@ -90,8 +90,14 @@ describe("promoteUser", () => {
   it.each(["AGENT", "ADMIN"])("makes %s a broker record too", async (role) => {
     const client = fake();
     await promoteUser(client as unknown as PrismaClient, "+995", role);
-    expect(client.user.update).toHaveBeenCalledWith({ where: { phone: "+995" }, data: { role } });
+    expect(client.user.update).toHaveBeenCalledWith({ where: { phone: "+995" }, data: { role, name: undefined } });
     expect(client.agent.upsert).toHaveBeenCalledWith({ where: { userId: "u1" }, update: {}, create: { userId: "u1" } });
+  });
+
+  it("can set the name shown on the broker's profile", async () => {
+    const client = fake();
+    await promoteUser(client as unknown as PrismaClient, "+995", "AGENT", "Nino");
+    expect(client.user.update).toHaveBeenCalledWith({ where: { phone: "+995" }, data: { role: "AGENT", name: "Nino" } });
   });
 
   it("creates no broker record for an ordinary user", async () => {

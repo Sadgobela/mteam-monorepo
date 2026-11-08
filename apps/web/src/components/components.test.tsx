@@ -99,6 +99,11 @@ describe("ListingCard", () => {
     expect(screen.getByRole("heading", { name: "იყიდება 3 ოთახიანი ბინა" })).toBeInTheDocument();
   });
 
+  it("names the broker when there is one", () => {
+    render(<ListingCard listing={fixtureListings[0]} locale="en" t={t} />);
+    expect(screen.getByText(fixtureListings[0].agent?.name as string)).toBeInTheDocument();
+  });
+
   it("shows how many photos there are", () => {
     render(<ListingCard listing={{ ...fixtureListings[0], images: ["https://cdn/a.jpg", "https://cdn/b.jpg"] }} locale="en" t={t} />);
     expect(screen.getByText("2 photos")).toBeInTheDocument();

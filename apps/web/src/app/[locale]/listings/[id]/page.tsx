@@ -1,4 +1,5 @@
 import Image from "next/image";
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getListing } from "@mteam/db";
 import { formatDay, formatPrice, getDictionary } from "@mteam/shared";
@@ -85,7 +86,7 @@ export default async function ListingPage({
                   {listing.agent.name.slice(0, 1)}
                 </span>
                 <div>
-                  <b>{listing.agent.name}</b>
+                  <Link href={`/${locale}/brokers/${listing.agent.id}`}><b>{listing.agent.name}</b></Link>
                   <div className="meta">
                     {t.listing.broker} · {listing.agent.branch}
                   </div>
