@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
+import { searchListings } from "@mteam/db";
 import { renderToStaticMarkup } from "react-dom/server";
 import { fixtureListings } from "@/test-fixtures";
 
@@ -39,10 +40,38 @@ describe("layout", () => {
 
 describe("home page", () => {
   it("shows the hero and featured listings", async () => {
-    render(await HomePage({ params: p({ locale: "en" }) }));
+    render(await HomePage({ params: p({ locale: "en" }), searchParams: p({}) }));
+    expect(screen.getByRole("heading", { level: 2 })).toHaveTextContent("mTeam picks");
     expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("Find a home");
     expect(screen.getAllByRole("link", { name: /m²/ })).toHaveLength(fixtureListings.length);
     expect(screen.getByText("57")).toBeInTheDocument();
+  });
+});
+
+describe("home page search", () => {
+  it("passes the URL filters to the query and reflects them in the form", async () => {
+    render(await HomePage({ params: p({ locale: "en" }), searchParams: p({ deal: "rent", rooms: "2", bogus: "x" }) }));
+    expect(searchListings).toHaveBeenLastCalledWith({ deal: "rent", rooms: 2 });
+    expect(screen.getByRole("heading", { level: 2 })).toHaveTextContent("Search results");
+    expect(screen.getByLabelText("Deal")).toHaveValue("rent");
+  });
+
+  it("resets the form when the filters change without a page reload", async () => {
+    const { rerender } = render(await HomePage({ params: p({ locale: "en" }), searchParams: p({ deal: "rent" }) }));
+    rerender(await HomePage({ params: p({ locale: "en" }), searchParams: p({ deal: "sale" }) }));
+    expect(screen.getByLabelText("Deal")).toHaveValue("sale");
+  });
+
+  it("treats only invalid filters as an unfiltered home page", async () => {
+    render(await HomePage({ params: p({ locale: "en" }), searchParams: p({ type: "projects" }) }));
+    expect(screen.getByRole("heading", { level: 2 })).toHaveTextContent("mTeam picks");
+  });
+
+  it("says so when nothing matches", async () => {
+    vi.mocked(searchListings).mockResolvedValueOnce([]);
+    render(await HomePage({ params: p({ locale: "en" }), searchParams: p({ city: "batumi" }) }));
+    expect(screen.getByText("No listings match these filters.")).toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: /m²/ })).toBeNull();
   });
 });
 
