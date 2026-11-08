@@ -5,8 +5,8 @@ Real estate listings platform for mTeam (Tbilisi, Batumi, Dubai). pnpm + Turbore
 **Read `docs/PROJECT_BRIEF.md` first**: company, goals, scope and agreed decisions.
 
 - `apps/web`: Next.js 15 App Router, routes under `src/app/[locale]` (ka default, en, ru). Middleware adds the locale prefix.
-- `packages/shared`: types, i18n dictionaries (all three languages must have the same keys), sample listings used until the DB is wired.
-- `packages/db`: Prisma schema.
+- `packages/shared`: types, i18n dictionaries (all three languages must have the same keys).
+- `packages/db`: Prisma schema, migrations, demo seed and listing queries. Pages call these queries, never Prisma directly.
 
 Rules:
 - 100% test coverage (lines, branches, functions, statements) is enforced by Vitest thresholds in CI. Every change ships with tests; do not lower thresholds or add coverage ignores.

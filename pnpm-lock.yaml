@@ -17,6 +17,9 @@ importers:
 
   apps/web:
     dependencies:
+      '@mteam/db':
+        specifier: workspace:*
+        version: link:../../packages/db
       '@mteam/shared':
         specifier: workspace:*
         version: link:../../packages/shared

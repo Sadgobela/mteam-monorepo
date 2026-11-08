@@ -1,7 +1,10 @@
 import { notFound } from "next/navigation";
-import { formatPrice, getDictionary, getListing } from "@mteam/shared";
+import { getListing } from "@mteam/db";
+import { formatPrice, getDictionary } from "@mteam/shared";
 import { Header } from "@/components/Header";
 import { resolveLocale } from "@/lib/locale";
+
+export const dynamic = "force-dynamic";
 
 export default async function ListingPage({
   params,
@@ -10,7 +13,7 @@ export default async function ListingPage({
 }) {
   const { locale: raw, id } = await params;
   const locale = resolveLocale(raw);
-  const listing = getListing(Number(id));
+  const listing = await getListing(id);
   if (!listing) notFound();
   const t = getDictionary(locale);
   const perSqm = Math.round(listing.price / listing.area);

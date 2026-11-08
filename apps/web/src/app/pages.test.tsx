@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 import { renderToStaticMarkup } from "react-dom/server";
-import { sampleListings } from "@mteam/shared";
+import { fixtureListings } from "@/test-fixtures";
 
 vi.mock("next/navigation", () => ({
   notFound: () => {
@@ -9,9 +9,18 @@ vi.mock("next/navigation", () => ({
   },
 }));
 
+vi.mock("@mteam/db", async () => {
+  const { fixtureListings: listings } = await import("@/test-fixtures");
+  return {
+    getFeaturedListings: async () => listings,
+    countActiveListings: async () => 57,
+    getListing: async (id: string) => listings.find((l) => String(l.id) === id),
+  };
+});
+
 import LocaleLayout, { generateStaticParams, metadata } from "./[locale]/layout";
-import HomePage from "./[locale]/page";
-import ListingPage from "./[locale]/listings/[id]/page";
+import HomePage, { dynamic as homeRendering } from "./[locale]/page";
+import ListingPage, { dynamic as listingRendering } from "./[locale]/listings/[id]/page";
 
 const p = <T,>(v: T) => Promise.resolve(v);
 
@@ -32,7 +41,14 @@ describe("home page", () => {
   it("shows the hero and featured listings", async () => {
     render(await HomePage({ params: p({ locale: "en" }) }));
     expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("Find a home");
-    expect(screen.getAllByRole("link", { name: /m²/ })).toHaveLength(sampleListings.length);
+    expect(screen.getAllByRole("link", { name: /m²/ })).toHaveLength(fixtureListings.length);
+    expect(screen.getByText("57")).toBeInTheDocument();
+  });
+});
+
+describe("rendering", () => {
+  it("renders database pages per request, so the build needs no database", () => {
+    expect([homeRendering, listingRendering]).toEqual(["force-dynamic", "force-dynamic"]);
   });
 });
 
