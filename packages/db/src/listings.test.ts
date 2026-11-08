@@ -6,7 +6,7 @@ const prisma = vi.hoisted(() => ({
 
 vi.mock("./client", () => ({ db: () => prisma }));
 
-import { countActiveListings, createListing, getListing, searchListings } from "./index";
+import { countActiveListings, countListings, createListing, getListing, searchListings } from "./index";
 
 const fullRow = {
   id: 20418,
@@ -130,19 +130,46 @@ describe("searchListings", () => {
     return prisma.listing.findMany.mock.calls[0][0].where;
   };
 
-  it("returns a bounded, newest-first page of published listings", async () => {
+  it("returns a bounded page of published listings, verified first", async () => {
     prisma.listing.findMany.mockResolvedValue([fullRow, bareRow]);
     expect((await searchListings()).map((l) => l.id)).toEqual([20418, 20421]);
     expect(prisma.listing.findMany.mock.calls[0][0]).toMatchObject({
       where: { status: "ACTIVE" },
-      orderBy: { id: "desc" },
+      orderBy: [{ verified: "desc" }, { id: "desc" }],
+      skip: 0,
       take: 24,
     });
   });
 
   it("applies no filter beyond published when none is given", async () => {
     const where = await whereFor({});
-    expect(JSON.parse(JSON.stringify(where))).toEqual({ status: "ACTIVE" });
+    expect(JSON.parse(JSON.stringify(where))).toEqual({ status: "ACTIVE", priceUsd: {} });
+  });
+
+  it.each([
+    ["asc", [{ priceUsd: "asc" }, { id: "desc" }]],
+    ["desc", [{ priceUsd: "desc" }, { id: "desc" }]],
+  ] as const)("sorts by normalized price %s", async (sort, orderBy) => {
+    prisma.listing.findMany.mockResolvedValue([]);
+    await searchListings({}, { sort });
+    expect(prisma.listing.findMany.mock.calls[0][0].orderBy).toEqual(orderBy);
+  });
+
+  it("pages through results and honours a custom limit", async () => {
+    prisma.listing.findMany.mockResolvedValue([]);
+    await searchListings({}, { page: 3 });
+    expect(prisma.listing.findMany.mock.calls[0][0]).toMatchObject({ skip: 48, take: 24 });
+    await searchListings({}, { limit: 4 });
+    expect(prisma.listing.findMany.mock.calls[1][0]).toMatchObject({ skip: 0, take: 4 });
+  });
+
+  it("filters to verified listings", async () => {
+    expect((await whereFor({ verified: true })).verified).toBe(true);
+  });
+
+  it("matches text across location and title, case-insensitively", async () => {
+    const match = { contains: "vake", mode: "insensitive" };
+    expect((await whereFor({ q: "vake" })).OR).toEqual([{ district: match }, { address: match }, { city: match }, { title: match }]);
   });
 
   it("translates deal, type and city to stored values and stays published-only", async () => {
@@ -162,28 +189,10 @@ describe("searchListings", () => {
     expect((await whereFor({ rooms: 4 })).rooms).toEqual({ gte: 4 });
   });
 
-  it("converts USD price bounds into each currency", async () => {
-    expect((await whereFor({ priceMin: 1000, priceMax: 2000 })).OR).toEqual([
-      { currency: "USD", price: { gte: 1000, lte: 2000 } },
-      { currency: "GEL", price: { gte: 2700, lte: 5400 } },
-      { currency: "AED", price: { gte: 3673, lte: 7345 } },
-    ]);
-  });
-
-  it("supports a one-sided price range, including a minimum of zero", async () => {
-    const min = (await whereFor({ priceMin: 0 })).OR;
-    expect(min).toEqual([
-      { currency: "USD", price: { gte: 0, lte: undefined } },
-      { currency: "GEL", price: { gte: 0, lte: undefined } },
-      { currency: "AED", price: { gte: 0, lte: undefined } },
-    ]);
+  it("filters on the normalized USD price, one-sided or both", async () => {
+    expect((await whereFor({ priceMin: 1000, priceMax: 2000 })).priceUsd).toEqual({ gte: 1000, lte: 2000 });
     prisma.listing.findMany.mockClear();
-    const max = (await whereFor({ priceMax: 500 })).OR;
-    expect(max).toEqual([
-      { currency: "USD", price: { gte: undefined, lte: 500 } },
-      { currency: "GEL", price: { gte: undefined, lte: 1350 } },
-      { currency: "AED", price: { gte: undefined, lte: 1836 } },
-    ]);
+    expect((await whereFor({ priceMin: 0 })).priceUsd).toEqual({ gte: 0, lte: undefined });
   });
 });
 
@@ -207,6 +216,7 @@ describe("createListing", () => {
     expect(await createListing("u1", draft, ["https://cdn/a.jpg", "https://cdn/b.jpg"])).toBe(7);
     expect(prisma.listing.create.mock.calls[0][0].data).toEqual({
       ...draft,
+      priceUsd: 333,
       deal: "RENT",
       type: "HOUSE",
       city: "ბათუმი",
@@ -220,6 +230,20 @@ describe("createListing", () => {
         ],
       },
     });
+  });
+});
+
+describe("countListings", () => {
+  it("counts with the same filters as the search", async () => {
+    prisma.listing.count.mockResolvedValue(3);
+    expect(await countListings({ deal: "sale", verified: true })).toBe(3);
+    expect(prisma.listing.count.mock.calls[0][0].where).toMatchObject({ status: "ACTIVE", deal: "SALE", verified: true });
+  });
+
+  it("counts everything published by default", async () => {
+    prisma.listing.count.mockResolvedValue(9);
+    expect(await countListings()).toBe(9);
+    expect(prisma.listing.count.mock.calls[0][0].where).toMatchObject({ status: "ACTIVE" });
   });
 });
 

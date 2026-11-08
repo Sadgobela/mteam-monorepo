@@ -2,18 +2,18 @@ import type { DealType as DbDealType, Prisma, PropertyType as DbPropertyType } f
 import {
   cityNames,
   roomOptions,
-  type Currency,
   type DealType,
   type Listing,
   type ListingDraft,
   type ListingFilters,
+  priceInUsd,
   type PropertyType,
+  type SortOrder,
 } from "@mteam/shared";
 import { z } from "zod";
 import { db } from "./client";
 
-// ponytail: one page of results; add pagination when a search can match more than this.
-const SEARCH_LIMIT = 24;
+export const PAGE_SIZE = 24;
 const POSTGRES_INT_MAX = 2147483647;
 
 const deals: Record<DbDealType, DealType> = { SALE: "sale", RENT: "rent", DAILY: "daily" };
@@ -30,8 +30,6 @@ const dbPropertyTypes: Record<PropertyType, DbPropertyType> = {
   commercial: "COMMERCIAL",
   land: "LAND",
 };
-// ponytail: fixed rates. AED is pegged to USD; GEL drifts, so replace this with a stored daily rate if price filters need to be exact.
-const unitsPerUsd: Record<Currency, number> = { USD: 1, GEL: 2.7, AED: 3.6725 };
 const tones = ["violet", "sand", "steel", "rose"] as const;
 
 /** Only what a public page may show: the owner and the broker's email stay out. */
@@ -83,41 +81,54 @@ function toListing(row: ListingRow): Listing {
   };
 }
 
-/** Price bounds are in USD; each listing is compared in its own currency. */
-function priceClauses({ priceMin, priceMax }: ListingFilters): Prisma.ListingWhereInput[] | undefined {
-  if (priceMin === undefined && priceMax === undefined) return undefined;
-  return (Object.keys(unitsPerUsd) as Currency[]).map((currency) => {
-    const rate = unitsPerUsd[currency];
-    return {
-      currency,
-      price: {
-        gte: priceMin === undefined ? undefined : Math.round(priceMin * rate),
-        lte: priceMax === undefined ? undefined : Math.round(priceMax * rate),
-      },
-    };
-  });
-}
-
 function roomsClause(rooms: number | undefined): Prisma.IntNullableFilter | number | undefined {
   return rooms === roomOptions[roomOptions.length - 1] ? { gte: rooms } : rooms;
 }
 
-/** Newest published listings matching the filters. No filters means all of them. */
-export async function searchListings(filters: ListingFilters = {}): Promise<Listing[]> {
+function textClause(q: string | undefined): Prisma.ListingWhereInput[] | undefined {
+  if (q === undefined) return undefined;
+  const match = { contains: q, mode: "insensitive" } as const;
+  return [{ district: match }, { address: match }, { city: match }, { title: match }];
+}
+
+function whereFor(filters: ListingFilters): Prisma.ListingWhereInput {
+  return {
+    status: "ACTIVE",
+    deal: filters.deal && dbDeals[filters.deal],
+    type: filters.type && dbPropertyTypes[filters.type],
+    city: filters.city && cityNames[filters.city],
+    rooms: roomsClause(filters.rooms),
+    verified: filters.verified,
+    priceUsd: { gte: filters.priceMin, lte: filters.priceMax },
+    OR: textClause(filters.q),
+  };
+}
+
+const orderings: Record<SortOrder, Prisma.ListingOrderByWithRelationInput[]> = {
+  // Verified first is mTeam's default: trust leads, not paid placement.
+  new: [{ verified: "desc" }, { id: "desc" }],
+  asc: [{ priceUsd: "asc" }, { id: "desc" }],
+  desc: [{ priceUsd: "desc" }, { id: "desc" }],
+};
+
+/** One page of published listings matching the filters. No filters means all of them. */
+export async function searchListings(
+  filters: ListingFilters = {},
+  { sort = "new", page = 1, limit = PAGE_SIZE }: { sort?: SortOrder; page?: number; limit?: number } = {},
+): Promise<Listing[]> {
   const rows = await db().listing.findMany({
-    where: {
-      status: "ACTIVE",
-      deal: filters.deal && dbDeals[filters.deal],
-      type: filters.type && dbPropertyTypes[filters.type],
-      city: filters.city && cityNames[filters.city],
-      rooms: roomsClause(filters.rooms),
-      OR: priceClauses(filters),
-    },
+    where: whereFor(filters),
     include: publicInclude,
-    orderBy: { id: "desc" },
-    take: SEARCH_LIMIT,
+    orderBy: orderings[sort],
+    skip: (page - 1) * limit,
+    take: limit,
   });
   return rows.map(toListing);
+}
+
+/** How many published listings match the filters, across all pages. */
+export function countListings(filters: ListingFilters = {}): Promise<number> {
+  return db().listing.count({ where: whereFor(filters) });
 }
 
 export function countActiveListings(): Promise<number> {
@@ -137,6 +148,7 @@ export async function createListing(ownerId: string, draft: ListingDraft, imageU
   const { id } = await db().listing.create({
     data: {
       ...draft,
+      priceUsd: priceInUsd(draft.price, draft.currency),
       deal: dbDeals[draft.deal],
       type: dbPropertyTypes[draft.type],
       city: cityNames[draft.city],

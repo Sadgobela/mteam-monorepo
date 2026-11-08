@@ -112,6 +112,7 @@ model Listing {
   lat         Float?
   lng         Float?
   price       Int
+  priceUsd    Int           // price at fixed rates, so mixed currencies can be filtered and sorted
   currency    Currency      @default(USD)
   area        Float         // m²
   rooms       Int?
@@ -130,7 +131,7 @@ model Listing {
   updatedAt   DateTime      @updatedAt
 
   @@index([status, deal, city])
-  @@index([price])
+  @@index([priceUsd])
 }
 
 model ListingImage {
