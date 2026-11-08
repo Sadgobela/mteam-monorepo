@@ -1,5 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { defaultLocale, isLocale } from "@mteam/shared";
+import { defaultLocale, isLocale } from "@mteam/shared/i18n";
 
 /** Sends paths without a language prefix to the default (Georgian) version. */
 export function middleware(request: NextRequest) {
