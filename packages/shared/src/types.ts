@@ -28,6 +28,8 @@ export interface Listing {
   /** Checked on site by an mTeam broker. */
   verified: boolean;
   agent?: Agent;
+  /** Public photo URLs in display order. */
+  images: string[];
   /** Placeholder gradient until real photos are uploaded. */
   tone: "violet" | "sand" | "steel" | "rose";
   updatedAt: string;

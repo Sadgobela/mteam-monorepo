@@ -57,7 +57,28 @@ model User {
   agent     Agent?
   listings  Listing[]
   favorites Favorite[]
+  sessions  Session[]
   createdAt DateTime  @default(now())
+}
+
+// One pending SMS code per phone. Only a hash of the code is stored.
+model LoginCode {
+  phone     String   @id
+  codeHash  String
+  attempts  Int      @default(0)
+  sentAt    DateTime
+  expiresAt DateTime
+}
+
+// Only a hash of the token is stored, so a database leak does not expose sessions.
+model Session {
+  tokenHash String   @id
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([userId])
 }
 
 model Branch {
