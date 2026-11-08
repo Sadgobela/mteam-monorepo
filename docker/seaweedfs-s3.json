@@ -1,0 +1,10 @@
+{
+  "identities": [
+    { "name": "anonymous", "actions": ["Read:mteam-photos"] },
+    {
+      "name": "mteam",
+      "credentials": [{ "accessKey": "mteam-local", "secretKey": "mteam-local-secret" }],
+      "actions": ["Admin", "Read", "Write", "List"]
+    }
+  ]
+}

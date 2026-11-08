@@ -11,5 +11,32 @@ services:
     volumes:
       - pgdata:/var/lib/postgresql/data
 
+  # S3-compatible photo storage for local work. Production will use Cloudflare R2.
+  storage:
+    image: chrislusf/seaweedfs:4.53
+    command: server -dir=/data -s3 -s3.config=/etc/seaweedfs/s3.json
+    ports:
+      - "127.0.0.1:8333:8333"
+    volumes:
+      - storagedata:/data
+      - ./docker/seaweedfs-s3.json:/etc/seaweedfs/s3.json:ro
+
+  storage-init:
+    image: chrislusf/seaweedfs:4.53
+    depends_on:
+      - storage
+    entrypoint:
+      - sh
+      - -c
+      - |
+        for i in $$(seq 1 30); do
+          echo "s3.bucket.list" | weed shell -master=storage:9333 2>&1 | grep -q mteam-photos && exit 0
+          echo "s3.bucket.create -name mteam-photos" | weed shell -master=storage:9333 >/dev/null 2>&1
+          sleep 2
+        done
+        echo "timed out creating the bucket"
+        exit 1
+
 volumes:
   pgdata:
+  storagedata:
