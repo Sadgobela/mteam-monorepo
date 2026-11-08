@@ -5,6 +5,7 @@ import {
   type Currency,
   type DealType,
   type Listing,
+  type ListingDraft,
   type ListingFilters,
   type PropertyType,
 } from "@mteam/shared";
@@ -36,6 +37,7 @@ const tones = ["violet", "sand", "steel", "rose"] as const;
 /** Only what a public page may show: the owner and the broker's email stay out. */
 const publicInclude = {
   agent: { include: { branch: true, user: { select: { name: true, phone: true } } } },
+  images: { select: { url: true }, orderBy: { position: "asc" } },
 } satisfies Prisma.ListingInclude;
 
 type ListingRow = Prisma.ListingGetPayload<{ include: typeof publicInclude }>;
@@ -54,7 +56,7 @@ function toListing(row: ListingRow): Listing {
     type: propertyTypes[row.type],
     title: row.title,
     city: row.city,
-    // ponytail: empty/0 fallbacks until the posting form (step 4) decides which of these land and commercial listings may omit.
+    // The posting form requires district and address; rooms is 0 for property without rooms, and the UI hides it.
     district: row.district ?? "",
     address: row.address ?? "",
     rooms: row.rooms ?? 0,
@@ -74,7 +76,8 @@ function toListing(row: ListingRow): Listing {
           phone: row.agent.user.phone,
         }
       : undefined,
-    // ponytail: placeholder gradient picked from the id, remove once listings have photos.
+    images: row.images.map((image) => image.url),
+    // ponytail: placeholder gradient picked from the id, remove once every listing has photos.
     tone: tones[row.id % tones.length],
     updatedAt: row.updatedAt.toISOString().slice(0, 10),
   };
@@ -127,4 +130,22 @@ export async function getListing(rawId: string): Promise<Listing | undefined> {
   if (!id.success) return undefined;
   const row = await db().listing.findFirst({ where: { id: id.data, status: "ACTIVE" }, include: publicInclude });
   return row ? toListing(row) : undefined;
+}
+
+/** Saves a user's listing. It stays PENDING and unverified until mTeam reviews it. */
+export async function createListing(ownerId: string, draft: ListingDraft, imageUrls: string[]): Promise<number> {
+  const { id } = await db().listing.create({
+    data: {
+      ...draft,
+      deal: dbDeals[draft.deal],
+      type: dbPropertyTypes[draft.type],
+      city: cityNames[draft.city],
+      status: "PENDING",
+      verified: false,
+      ownerId,
+      images: { create: imageUrls.map((url, position) => ({ url, position })) },
+    },
+    select: { id: true },
+  });
+  return id;
 }

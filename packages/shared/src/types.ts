@@ -1,6 +1,5 @@
-import type { DealType, PropertyType } from "./search";
+import type { Currency, DealType, PropertyType } from "./search";
 
-export type Currency = "USD" | "GEL" | "AED";
 
 export interface Agent {
   id: string;
@@ -29,6 +28,8 @@ export interface Listing {
   /** Checked on site by an mTeam broker. */
   verified: boolean;
   agent?: Agent;
+  /** Public photo URLs in display order. */
+  images: string[];
   /** Placeholder gradient until real photos are uploaded. */
   tone: "violet" | "sand" | "steel" | "rose";
   updatedAt: string;

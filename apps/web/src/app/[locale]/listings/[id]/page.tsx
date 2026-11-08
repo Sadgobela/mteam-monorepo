@@ -1,8 +1,10 @@
+import Image from "next/image";
 import { notFound } from "next/navigation";
 import { getListing } from "@mteam/db";
 import { formatPrice, getDictionary } from "@mteam/shared";
 import { Header } from "@/components/Header";
 import { resolveLocale } from "@/lib/locale";
+import { hasSession } from "@/lib/session";
 
 export const dynamic = "force-dynamic";
 
@@ -20,13 +22,23 @@ export default async function ListingPage({
 
   return (
     <>
-      <Header locale={locale} t={t} />
+      <Header locale={locale} t={t} signedIn={await hasSession()} />
       <main className="listing">
         <div className="ldesc">
           <div className="gal">
-            <div className={`ph ${listing.tone}`} />
-            <div className="ph sand" />
-            <div className="ph steel" />
+            {listing.images.length === 0 ? (
+              <>
+                <div className={`ph ${listing.tone}`} />
+                <div className="ph sand" />
+                <div className="ph steel" />
+              </>
+            ) : (
+              listing.images.map((url, index) => (
+                <div key={url} className="ph">
+                  <Image src={url} alt={`${listing.title} ${index + 1}`} fill unoptimized priority={index === 0} />
+                </div>
+              ))
+            )}
           </div>
           <div className="row">
             <h1>{listing.title}</h1>
@@ -42,10 +54,12 @@ export default async function ListingPage({
                 {listing.area} {t.units.sqm}
               </dd>
             </div>
-            <div>
-              <dt>{t.listing.rooms}</dt>
-              <dd>{listing.rooms}</dd>
-            </div>
+            {listing.rooms > 0 && (
+              <div>
+                <dt>{t.listing.rooms}</dt>
+                <dd>{listing.rooms}</dd>
+              </div>
+            )}
             {listing.floor && (
               <div>
                 <dt>{t.listing.floor}</dt>

@@ -1,12 +1,12 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const prisma = vi.hoisted(() => ({
-  listing: { findMany: vi.fn(), findFirst: vi.fn(), count: vi.fn() },
+  listing: { findMany: vi.fn(), findFirst: vi.fn(), count: vi.fn(), create: vi.fn() },
 }));
 
 vi.mock("./client", () => ({ db: () => prisma }));
 
-import { countActiveListings, getListing, searchListings } from "./index";
+import { countActiveListings, createListing, getListing, searchListings } from "./index";
 
 const fullRow = {
   id: 20418,
@@ -27,6 +27,7 @@ const fullRow = {
   condition: "New",
   verified: true,
   agent: { id: "a1", user: { name: "Nino", phone: "+995" }, branch: { name: "Vake" } },
+  images: [{ url: "https://cdn/a.jpg" }, { url: "https://cdn/b.jpg" }],
   updatedAt: new Date("2026-11-06T10:00:00Z"),
 };
 
@@ -68,6 +69,7 @@ describe("getListing", () => {
       condition: "New",
       verified: true,
       agent: { id: "a1", name: "Nino", branch: "Vake", phone: "+995" },
+      images: ["https://cdn/a.jpg", "https://cdn/b.jpg"],
       tone: "steel",
       updatedAt: "2026-11-06",
     });
@@ -182,6 +184,42 @@ describe("searchListings", () => {
       { currency: "GEL", price: { gte: undefined, lte: 1350 } },
       { currency: "AED", price: { gte: undefined, lte: 1836 } },
     ]);
+  });
+});
+
+describe("createListing", () => {
+  const draft = {
+    deal: "rent",
+    type: "house",
+    city: "batumi",
+    district: "Old town",
+    address: "Main 1",
+    title: "House",
+    description: "Sunny",
+    price: 900,
+    currency: "GEL",
+    area: 80,
+    rooms: 4,
+  } as const;
+
+  it("stores a pending, unverified listing owned by the user, with photos in order", async () => {
+    prisma.listing.create.mockResolvedValue({ id: 7 });
+    expect(await createListing("u1", draft, ["https://cdn/a.jpg", "https://cdn/b.jpg"])).toBe(7);
+    expect(prisma.listing.create.mock.calls[0][0].data).toEqual({
+      ...draft,
+      deal: "RENT",
+      type: "HOUSE",
+      city: "ბათუმი",
+      status: "PENDING",
+      verified: false,
+      ownerId: "u1",
+      images: {
+        create: [
+          { url: "https://cdn/a.jpg", position: 0 },
+          { url: "https://cdn/b.jpg", position: 1 },
+        ],
+      },
+    });
   });
 });
 

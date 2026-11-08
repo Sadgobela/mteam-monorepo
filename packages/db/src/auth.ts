@@ -1,0 +1,89 @@
+import { createHash, randomBytes, randomInt } from "node:crypto";
+import { z } from "zod";
+import { db } from "./client";
+
+const CODE_TTL_MS = 5 * 60_000;
+const RESEND_AFTER_MS = 60_000;
+const MAX_ATTEMPTS = 5;
+const ATTEMPT_WINDOW_MS = 60 * 60_000;
+const SESSION_TTL_MS = 30 * 24 * 60 * 60_000;
+
+const smsEnvSchema = z.object({ SMS_PROVIDER: z.literal("console") });
+
+const sha256 = (value: string) => createHash("sha256").update(value).digest("hex");
+const hashCode = (phone: string, code: string) => sha256(`${phone}:${code}`);
+
+// ponytail: console only, for local testing. A real provider goes here, together with a per-IP request limit, before launch.
+function assertCodesCanBeSent(): void {
+  smsEnvSchema.parse(process.env);
+  if (process.env.NODE_ENV === "production") throw new Error("SMS_PROVIDER=console is not allowed in production");
+}
+
+/**
+ * Issues a code for a normalized phone. Returns false if one was sent less than a minute ago,
+ * or if the guesses are used up, which locks the phone for an hour from the last code.
+ * Each step is a single conditional write, so parallel requests cannot pass the limit.
+ */
+export async function requestLoginCode(phone: string): Promise<boolean> {
+  assertCodesCanBeSent();
+  const client = db();
+  const now = Date.now();
+  const code = String(randomInt(100_000, 1_000_000));
+  const fresh = { codeHash: hashCode(phone, code), sentAt: new Date(now), expiresAt: new Date(now + CODE_TTL_MS) };
+
+  const claimed =
+    (
+      await client.loginCode.updateMany({
+        where: { phone, sentAt: { lte: new Date(now - ATTEMPT_WINDOW_MS) } },
+        data: { ...fresh, attempts: 0 },
+      })
+    ).count ||
+    (
+      await client.loginCode.updateMany({
+        where: { phone, sentAt: { lte: new Date(now - RESEND_AFTER_MS) }, attempts: { lt: MAX_ATTEMPTS } },
+        data: fresh,
+      })
+    ).count ||
+    (await client.loginCode.createMany({ data: [{ phone, ...fresh, attempts: 0 }], skipDuplicates: true })).count;
+  if (!claimed) return false;
+
+  console.info(`[login code] ${phone}: ${code}`);
+  return true;
+}
+
+/** Checks a code and returns a new session token, or null. A user is created on first login. */
+export async function verifyLoginCode(phone: string, code: string): Promise<string | null> {
+  if (!/^\d{6}$/.test(code)) return null;
+  const client = db();
+  const now = new Date();
+
+  // Counting the attempt first means parallel guesses cannot get past the limit.
+  const { count: open } = await client.loginCode.updateMany({
+    where: { phone, attempts: { lt: MAX_ATTEMPTS }, expiresAt: { gt: now } },
+    data: { attempts: { increment: 1 } },
+  });
+  if (open === 0) return null;
+
+  // Deleting on the hash makes a code single-use even if two requests race.
+  const { count: matched } = await client.loginCode.deleteMany({ where: { phone, codeHash: hashCode(phone, code) } });
+  if (matched === 0) return null;
+
+  const user = await client.user.upsert({ where: { phone }, update: {}, create: { phone } });
+  const token = randomBytes(32).toString("base64url");
+  await client.session.create({
+    data: { tokenHash: sha256(token), userId: user.id, expiresAt: new Date(now.getTime() + SESSION_TTL_MS) },
+  });
+  return token;
+}
+
+export async function getSessionUser(token: string) {
+  const session = await db().session.findUnique({
+    where: { tokenHash: sha256(token) },
+    select: { expiresAt: true, user: { select: { id: true, phone: true, role: true } } },
+  });
+  return session && session.expiresAt > new Date() ? session.user : null;
+}
+
+export async function deleteSession(token: string): Promise<void> {
+  await db().session.deleteMany({ where: { tokenHash: sha256(token) } });
+}

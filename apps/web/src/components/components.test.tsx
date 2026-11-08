@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 import { getDictionary, type Listing } from "@mteam/shared";
 import { fixtureListings } from "@/test-fixtures";
@@ -6,11 +6,13 @@ import { Header } from "./Header";
 import { ListingCard } from "./ListingCard";
 import { SearchBar } from "./SearchBar";
 
+vi.mock("@/lib/auth-actions", () => ({ logoutAction: vi.fn() }));
+
 const t = getDictionary("en");
 
 describe("Header", () => {
   it("shows navigation and marks the current language", () => {
-    render(<Header locale="en" t={t} />);
+    render(<Header locale="en" t={t} signedIn={false} />);
     expect(screen.getByRole("link", { name: "For sale" })).toHaveAttribute("href", "/en?deal=sale");
     expect(screen.getByRole("link", { name: "EN" })).toHaveAttribute("aria-current", "true");
     expect(screen.getByRole("link", { name: "KA" })).not.toHaveAttribute("aria-current");

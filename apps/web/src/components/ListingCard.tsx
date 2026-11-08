@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 import { formatPrice, type Dict, type Listing, type Locale } from "@mteam/shared";
 
@@ -6,6 +7,7 @@ export function ListingCard({ listing, locale, t }: { listing: Listing; locale: 
   return (
     <Link href={`/${locale}/listings/${listing.id}`} className="card">
       <div className={`ph ${listing.tone}`}>
+        {listing.images[0] && <Image src={listing.images[0]} alt={listing.title} fill unoptimized />}
         {listing.verified && (
           <span className="badge">
             <i />
@@ -23,7 +25,8 @@ export function ListingCard({ listing, locale, t }: { listing: Listing; locale: 
           {listing.address}, {listing.district}
         </span>
         <span className="meta">
-          {listing.rooms} {t.units.rooms} · {listing.area} {t.units.sqm}
+          {listing.rooms > 0 && `${listing.rooms} ${t.units.rooms} · `}
+          {listing.area} {t.units.sqm}
           {floor}
         </span>
       </div>
