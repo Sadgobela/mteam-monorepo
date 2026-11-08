@@ -131,10 +131,6 @@ export function countListings(filters: ListingFilters = {}): Promise<number> {
   return db().listing.count({ where: whereFor(filters) });
 }
 
-export function countActiveListings(): Promise<number> {
-  return db().listing.count({ where: { status: "ACTIVE" } });
-}
-
 /** Takes the raw URL segment. Unknown, unpublished and malformed ids all return undefined. */
 export async function getListing(rawId: string): Promise<Listing | undefined> {
   const id = listingIdSchema.safeParse(rawId);

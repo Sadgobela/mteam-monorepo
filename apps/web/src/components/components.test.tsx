@@ -14,24 +14,28 @@ describe("Header", () => {
   it("shows navigation and marks the current language", () => {
     render(<Header locale="en" t={t} signedIn={false} />);
     expect(screen.getByRole("link", { name: "For sale" })).toHaveAttribute("href", "/en?deal=sale");
+    expect(screen.getByRole("link", { name: "mTeam Verified" })).toHaveAttribute("href", "/en?verified=1");
     expect(screen.getByRole("link", { name: "EN" })).toHaveAttribute("aria-current", "true");
     expect(screen.getByRole("link", { name: "KA" })).not.toHaveAttribute("aria-current");
   });
 });
 
 describe("SearchBar", () => {
-  it("starts with every filter off", () => {
-    render(<SearchBar t={t} filters={{}} />);
+  const display = { sort: "new", view: "grid", cur: "usd", page: 1 } as const;
+
+  it("starts with every filter off and the extra filters closed", () => {
+    const { container } = render(<SearchBar t={t} filters={{}} display={display} />);
     expect(screen.getByRole("search")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Search" })).toBeInTheDocument();
-    for (const label of ["Deal", "City", "Type", "Rooms"]) expect(screen.getByLabelText(label)).toHaveValue("");
-    expect(screen.getByLabelText("Price from, $")).toHaveValue(null);
-    expect(screen.getByLabelText("Price to, $")).toHaveValue(null);
+    for (const label of ["Deal", "Type", "City", "Rooms"]) expect(screen.getByLabelText(label)).toHaveValue("");
+    expect(screen.getByLabelText("Location")).toHaveValue("");
+    expect(screen.getByLabelText("Verified only")).not.toBeChecked();
+    expect(container.querySelector("details")).not.toHaveAttribute("open");
   });
 
-  it("shows the active filters", () => {
-    render(
-      <SearchBar t={t} filters={{ deal: "rent", city: "dubai", type: "land", priceMin: 1000, priceMax: 2000, rooms: 4 }} />,
+  it("shows the active filters and opens the extra filters when one is in use", () => {
+    const { container } = render(
+      <SearchBar t={t} filters={{ deal: "rent", city: "dubai", type: "land", priceMin: 1000, priceMax: 2000, rooms: 4, q: "vake", verified: true }} display={display} />,
     );
     expect(screen.getByLabelText("Deal")).toHaveValue("rent");
     expect(screen.getByLabelText("City")).toHaveValue("dubai");
@@ -39,10 +43,21 @@ describe("SearchBar", () => {
     expect(screen.getByLabelText("Price from, $")).toHaveValue(1000);
     expect(screen.getByLabelText("Price to, $")).toHaveValue(2000);
     expect(screen.getByLabelText("Rooms")).toHaveValue("4");
+    expect(screen.getByLabelText("Location")).toHaveValue("vake");
+    expect(screen.getByLabelText("Verified only")).toBeChecked();
+    expect(container.querySelector("details")).toHaveAttribute("open");
+  });
+
+  it("carries the display choices through a new search", () => {
+    const { container } = render(<SearchBar t={t} filters={{}} display={{ ...display, cur: "gel", view: "list", sort: "asc" }} />);
+    const hidden = (name: string) => container.querySelector(`input[type=hidden][name=${name}]`);
+    expect(hidden("cur")).toHaveValue("gel");
+    expect(hidden("view")).toHaveValue("list");
+    expect(hidden("sort")).toHaveValue("asc");
   });
 
   it("labels options in the page language, and the top room count as a minimum", () => {
-    render(<SearchBar t={getDictionary("ru")} filters={{}} />);
+    render(<SearchBar t={getDictionary("ru")} filters={{}} display={display} />);
     expect(screen.getByRole("option", { name: "Тбилиси" })).toBeInTheDocument();
     expect(screen.getByRole("option", { name: "Посуточно" })).toBeInTheDocument();
     expect(screen.getByRole("option", { name: "Участок" })).toBeInTheDocument();

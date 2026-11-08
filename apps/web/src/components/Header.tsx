@@ -7,20 +7,15 @@ import { ThemeToggle } from "./ThemeToggle";
 export function Header({ locale, t, signedIn }: { locale: Locale; t: Dict; signedIn: boolean }) {
   return (
     <header className="nav">
+      <div className="nav-main">
       <Link href={`/${locale}`} className="brand">
         <span className="logo">
           <Image src="/logo-mark.png" alt="" width={26} height={25} />
         </span>
         <span className="brandname">MTeam</span>
       </Link>
-      <nav className="links" aria-label="main">
-        <Link href={`/${locale}?deal=sale`}>{t.nav.sale}</Link>
-        <Link href={`/${locale}?deal=rent`}>{t.nav.rent}</Link>
-        <Link href={`/${locale}?deal=daily`}>{t.nav.daily}</Link>
-        <Link href={`/${locale}?type=projects`}>{t.nav.projects}</Link>
-        <Link href={`/${locale}?city=dubai`}>{t.nav.dubai}</Link>
-      </nav>
       <span className="sp" />
+      <Link href={`/${locale}/listings/new`} className="btn">{t.nav.post}</Link>
       <nav className="lang" aria-label="language">
         {locales.map((l) => (
           <Link key={l} href={`/${l}`} aria-current={l === locale ? "true" : undefined}>
@@ -37,7 +32,14 @@ export function Header({ locale, t, signedIn }: { locale: Locale; t: Dict; signe
       ) : (
         <Link href={`/${locale}/login`} className="btn ghost">{t.nav.login}</Link>
       )}
-      <Link href={`/${locale}/listings/new`} className="btn">{t.nav.post}</Link>
+      </div>
+      <nav className="links" aria-label="main">
+        <Link href={`/${locale}?deal=sale`}>{t.nav.sale}</Link>
+        <Link href={`/${locale}?deal=rent`}>{t.nav.rent}</Link>
+        <Link href={`/${locale}?deal=daily`}>{t.nav.daily}</Link>
+        <Link href={`/${locale}?verified=1`} className="accent">mTeam Verified</Link>
+        <Link href={`/${locale}?city=dubai`}>{t.nav.dubai}</Link>
+      </nav>
     </header>
   );
 }

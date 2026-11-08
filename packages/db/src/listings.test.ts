@@ -6,7 +6,7 @@ const prisma = vi.hoisted(() => ({
 
 vi.mock("./client", () => ({ db: () => prisma }));
 
-import { countActiveListings, countListings, createListing, getListing, searchListings } from "./index";
+import { countListings, createListing, getListing, searchListings } from "./index";
 
 const fullRow = {
   id: 20418,
@@ -244,13 +244,5 @@ describe("countListings", () => {
     prisma.listing.count.mockResolvedValue(9);
     expect(await countListings()).toBe(9);
     expect(prisma.listing.count.mock.calls[0][0].where).toMatchObject({ status: "ACTIVE" });
-  });
-});
-
-describe("countActiveListings", () => {
-  it("counts published listings only", async () => {
-    prisma.listing.count.mockResolvedValue(4);
-    expect(await countActiveListings()).toBe(4);
-    expect(prisma.listing.count).toHaveBeenCalledWith({ where: { status: "ACTIVE" } });
   });
 });

@@ -57,7 +57,7 @@ export function ListingCard({
             </span>
           )}
         </div>
-        <h3 className="ctitle">{cardTitle(listing, t)}</h3>
+        <h2 className="ctitle">{cardTitle(listing, t)}</h2>
         <div className="cfacts">
           <span>
             {listing.area} {t.units.sqm}

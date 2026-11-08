@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
-import { searchListings } from "@mteam/db";
+import { countListings, searchListings } from "@mteam/db";
 import { renderToStaticMarkup } from "react-dom/server";
 import { fixtureListings } from "@/test-fixtures";
 
@@ -14,7 +14,8 @@ vi.mock("@mteam/db", async () => {
   const { fixtureListings: listings } = await import("@/test-fixtures");
   return {
     searchListings: vi.fn(async () => listings),
-    countActiveListings: async () => 57,
+    countListings: vi.fn(async () => 57),
+    PAGE_SIZE: 24,
     getListing: async (id: string) => listings.find((l) => String(l.id) === id),
   };
 });
@@ -42,21 +43,83 @@ describe("layout", () => {
 });
 
 describe("home page", () => {
-  it("shows the hero and featured listings", async () => {
-    render(await HomePage({ params: p({ locale: "en" }), searchParams: p({}) }));
-    expect(screen.getByRole("heading", { level: 2 })).toHaveTextContent("mTeam picks");
-    expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("Find a home");
-    expect(screen.getAllByRole("link", { name: /m²/ })).toHaveLength(fixtureListings.length);
-    expect(screen.getByText("57")).toBeInTheDocument();
-  });
-});
+  const home = async (query: Record<string, string> = {}, locale = "en") =>
+    render(await HomePage({ params: p({ locale }), searchParams: p(query) }));
 
-describe("home page search", () => {
-  it("passes the URL filters to the query and reflects them in the form", async () => {
-    render(await HomePage({ params: p({ locale: "en" }), searchParams: p({ deal: "rent", rooms: "2", bogus: "x" }) }));
-    expect(searchListings).toHaveBeenLastCalledWith({ deal: "rent", rooms: 2 });
-    expect(screen.getByRole("heading", { level: 2 })).toHaveTextContent("Search results");
+  it("shows verified listings and the main entry points", async () => {
+    await home();
+    expect(searchListings).toHaveBeenLastCalledWith({ verified: true }, { limit: 4 });
+    expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("Verified by mTeam");
+    expect(screen.getAllByRole("link", { name: /m²/ })).toHaveLength(fixtureListings.length);
+    expect(screen.getByRole("link", { name: /Give it to mTeam/ })).toHaveAttribute("href", "#give");
+    expect(screen.getByRole("heading", { level: 2, name: /Give it to mTeam/ })).toBeInTheDocument();
+    expect(screen.queryByText(/Listings found/)).toBeNull();
+    expect(screen.queryByRole("navigation", { name: "Pages" })).toBeNull();
+  });
+
+  it("treats only invalid filters as the home page", async () => {
+    await home({ type: "projects" });
+    expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("Verified by mTeam");
+  });
+
+  it("passes filters and display options to the query and reflects them", async () => {
+    await home({ deal: "rent", rooms: "2", sort: "asc", page: "2", bogus: "x" });
+    expect(searchListings).toHaveBeenLastCalledWith(expect.objectContaining({ deal: "rent", rooms: 2 }), { sort: "asc", page: 2 });
+    expect(countListings).toHaveBeenLastCalledWith(expect.objectContaining({ deal: "rent", rooms: 2 }));
+    expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("Search results");
+    expect(screen.getByText("Listings found: 57")).toBeInTheDocument();
     expect(screen.getByLabelText("Deal")).toHaveValue("rent");
+  });
+
+  it("shows results for a submitted form with every filter empty", async () => {
+    await home({ deal: "" });
+    expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("Search results");
+  });
+
+  it("keeps filters in sort, view and currency links, and marks the active ones", async () => {
+    await home({ deal: "sale", sort: "desc", view: "list", cur: "gel" });
+    expect(screen.getByRole("link", { name: "Price ↑" })).toHaveAttribute("href", "/en?deal=sale&sort=asc&view=list&cur=gel&page=1");
+    expect(screen.getByRole("link", { name: "Newest" })).not.toHaveAttribute("aria-current");
+    expect(screen.getByRole("link", { name: "Price ↓" })).toHaveAttribute("aria-current", "true");
+    expect(screen.getByRole("link", { name: "Grid" })).not.toHaveAttribute("aria-current");
+    expect(screen.getByRole("link", { name: "List" })).toHaveAttribute("aria-current", "true");
+    expect(screen.getByRole("link", { name: "₾" })).toHaveAttribute("aria-current", "true");
+    expect(screen.getByRole("link", { name: "$" })).toHaveAttribute("href", "/en?deal=sale&sort=desc&view=list&cur=usd");
+  });
+
+  it("uses the list layout only when asked", async () => {
+    const list = await home({ deal: "sale", view: "list" });
+    expect(list.container.querySelector(".cards.list")).not.toBeNull();
+    list.unmount();
+    const grid = await home({ deal: "sale" });
+    expect(grid.container.querySelector(".cards.list")).toBeNull();
+    expect(screen.getByRole("link", { name: "Newest" })).toHaveAttribute("aria-current", "true");
+    expect(screen.getByRole("link", { name: "Price ↑" })).not.toHaveAttribute("aria-current");
+    expect(screen.getByRole("link", { name: "Price ↓" })).not.toHaveAttribute("aria-current");
+    expect(screen.getByRole("link", { name: "$" })).toHaveAttribute("aria-current", "true");
+  });
+
+  it("does not use a saved view on the home page", async () => {
+    const { container } = await home({ view: "list" });
+    expect(container.querySelector(".cards.list")).toBeNull();
+  });
+
+  it("links to the next page only when more results exist", async () => {
+    await home({ deal: "sale" });
+    expect(screen.getByRole("link", { name: "Next →" })).toHaveAttribute("href", "/en?deal=sale&page=2");
+    expect(screen.queryByRole("link", { name: "← Previous" })).toBeNull();
+  });
+
+  it("links back from a later page and stops at the end", async () => {
+    await home({ deal: "sale", page: "3" });
+    expect(screen.getByRole("link", { name: "← Previous" })).toHaveAttribute("href", "/en?deal=sale&page=2");
+    expect(screen.queryByRole("link", { name: "Next →" })).toBeNull();
+  });
+
+  it("has no pager when everything fits on one page", async () => {
+    vi.mocked(countListings).mockResolvedValueOnce(3);
+    await home({ deal: "sale" });
+    expect(screen.queryByRole("navigation", { name: "Pages" })).toBeNull();
   });
 
   it("resets the form when the filters change without a page reload", async () => {
@@ -65,14 +128,9 @@ describe("home page search", () => {
     expect(screen.getByLabelText("Deal")).toHaveValue("sale");
   });
 
-  it("treats only invalid filters as an unfiltered home page", async () => {
-    render(await HomePage({ params: p({ locale: "en" }), searchParams: p({ type: "projects" }) }));
-    expect(screen.getByRole("heading", { level: 2 })).toHaveTextContent("mTeam picks");
-  });
-
   it("says so when nothing matches", async () => {
     vi.mocked(searchListings).mockResolvedValueOnce([]);
-    render(await HomePage({ params: p({ locale: "en" }), searchParams: p({ city: "batumi" }) }));
+    await home({ city: "batumi" });
     expect(screen.getByText("No listings match these filters.")).toBeInTheDocument();
     expect(screen.queryByRole("link", { name: /m²/ })).toBeNull();
   });
