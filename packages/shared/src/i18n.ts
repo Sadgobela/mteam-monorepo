@@ -7,7 +7,7 @@ export function isLocale(value: string): value is Locale {
 }
 
 const ka = {
-  nav: { sale: "იყიდება", rent: "ქირავდება", daily: "დღიურად", projects: "ახალი პროექტები", dubai: "დუბაი", login: "შესვლა", post: "+ განცხადება" },
+  nav: { sale: "იყიდება", rent: "ქირავდება", daily: "დღიურად", projects: "ახალი პროექტები", dubai: "დუბაი", login: "შესვლა", logout: "გასვლა", post: "+ განცხადება" },
   hero: {
     title: "იპოვე ბინა, რომლის ფოტოებიც სიმართლეს ამბობს",
     lead: "mTeam-ის ბროკერის მიერ გადამოწმებული განცხადებები და მესაკუთრეების პირდაპირი შეთავაზებები ერთ ადგილას.",
@@ -22,13 +22,40 @@ const ka = {
   perMonth: "/ თვე",
   units: { rooms: "ოთახი", floor: "სართ.", sqm: "მ²" },
   listing: { area: "ფართი", rooms: "ოთახები", floor: "სართული", condition: "მდგომარეობა", call: "დარეკვა", whatsapp: "WhatsApp", book: "ნახვის დაჯავშნა", broker: "mTeam ბროკერი", verifiedNote: "ფოტოები, ფართი და ფასი ბროკერმა ადგილზე გადაამოწმა." },
+  login: {
+    title: "შესვლა",
+    lead: "შეიყვანე მობილურის ნომერი და SMS-ით მიიღებ კოდს.",
+    phone: "მობილურის ნომერი",
+    send: "კოდის გაგზავნა",
+    code: "SMS კოდი",
+    codeSent: "კოდი გაიგზავნა ნომერზე",
+    verify: "შესვლა",
+    change: "ნომრის შეცვლა",
+    errors: {
+      invalidPhone: "შეიყვანე საქართველოს მობილურის ნომერი, მაგალითად 555 12 34 56.",
+      tooSoon: "კოდი ახლა ვერ გაიგზავნება. შეამოწმე ბოლო SMS ან სცადე მოგვიანებით.",
+      wrongCode: "კოდი არასწორია ან ვადა გაუვიდა.",
+    },
+  },
+  post: {
+    heading: "განცხადების დამატება",
+    fields: { title: "სათაური", description: "აღწერა", district: "უბანი", address: "მისამართი", price: "ფასი", currency: "ვალუტა", area: "ფართი, მ²", rooms: "ოთახები", floor: "სართული", floors: "სართულები სულ", photos: "ფოტოები: 1-დან 10-მდე, JPG, PNG ან WebP, თითო 5 მბ-მდე" },
+    submit: "გაგზავნა",
+    sent: "განცხადება მიღებულია. მოდერაციის შემდეგ გამოქვეყნდება.",
+    another: "კიდევ ერთის დამატება",
+    errors: {
+      invalid: "შეამოწმე ველები. ბინასა და სახლს ოთახების რაოდენობა სჭირდება, სართულს კი სართულების საერთო რაოდენობა.",
+      photos: "დაამატე 1-დან 10-მდე ფოტო: JPG, PNG ან WebP, თითო 5 მბ-მდე.",
+      save: "განცხადების შენახვა ვერ მოხერხდა. სცადე თავიდან.",
+    },
+  },
   theme: { dark: "მუქი რეჟიმი", light: "ნათელი რეჟიმი" },
 };
 
 type Dict = typeof ka;
 
 const en: Dict = {
-  nav: { sale: "For sale", rent: "For rent", daily: "Daily", projects: "New projects", dubai: "Dubai", login: "Sign in", post: "+ Post a listing" },
+  nav: { sale: "For sale", rent: "For rent", daily: "Daily", projects: "New projects", dubai: "Dubai", login: "Sign in", logout: "Sign out", post: "+ Post a listing" },
   hero: {
     title: "Find a home whose photos tell the truth",
     lead: "Listings checked by mTeam brokers and direct offers from owners, in one place.",
@@ -43,11 +70,38 @@ const en: Dict = {
   perMonth: "/ month",
   units: { rooms: "rooms", floor: "floor", sqm: "m²" },
   listing: { area: "Area", rooms: "Rooms", floor: "Floor", condition: "Condition", call: "Call", whatsapp: "WhatsApp", book: "Book a viewing", broker: "mTeam broker", verifiedNote: "Photos, area and price were checked on site by the broker." },
+  login: {
+    title: "Sign in",
+    lead: "Enter your mobile number and we will text you a code.",
+    phone: "Mobile number",
+    send: "Send code",
+    code: "SMS code",
+    codeSent: "Code sent to",
+    verify: "Sign in",
+    change: "Change number",
+    errors: {
+      invalidPhone: "Enter a Georgian mobile number, for example 555 12 34 56.",
+      tooSoon: "We cannot send another code right now. Check your last SMS or try again later.",
+      wrongCode: "That code is wrong or has expired.",
+    },
+  },
+  post: {
+    heading: "Post a listing",
+    fields: { title: "Title", description: "Description", district: "District", address: "Address", price: "Price", currency: "Currency", area: "Area, m²", rooms: "Rooms", floor: "Floor", floors: "Total floors", photos: "Photos: 1 to 10, JPG, PNG or WebP, up to 5 MB each" },
+    submit: "Submit",
+    sent: "Your listing was received and will be published after moderation.",
+    another: "Add another",
+    errors: {
+      invalid: "Check the fields. Apartments and houses need a room count, and a floor needs the total number of floors.",
+      photos: "Add 1 to 10 photos: JPG, PNG or WebP, up to 5 MB each.",
+      save: "The listing could not be saved. Please try again.",
+    },
+  },
   theme: { dark: "Dark mode", light: "Light mode" },
 };
 
 const ru: Dict = {
-  nav: { sale: "Продажа", rent: "Аренда", daily: "Посуточно", projects: "Новостройки", dubai: "Дубай", login: "Войти", post: "+ Объявление" },
+  nav: { sale: "Продажа", rent: "Аренда", daily: "Посуточно", projects: "Новостройки", dubai: "Дубай", login: "Войти", logout: "Выйти", post: "+ Объявление" },
   hero: {
     title: "Найдите квартиру, фото которой не обманывают",
     lead: "Объявления, проверенные брокерами mTeam, и прямые предложения собственников в одном месте.",
@@ -62,6 +116,33 @@ const ru: Dict = {
   perMonth: "/ мес.",
   units: { rooms: "комн.", floor: "этаж", sqm: "м²" },
   listing: { area: "Площадь", rooms: "Комнаты", floor: "Этаж", condition: "Состояние", call: "Позвонить", whatsapp: "WhatsApp", book: "Записаться на просмотр", broker: "Брокер mTeam", verifiedNote: "Фото, площадь и цену брокер проверил на месте." },
+  login: {
+    title: "Вход",
+    lead: "Введите номер мобильного, и мы пришлём код по SMS.",
+    phone: "Номер мобильного",
+    send: "Отправить код",
+    code: "Код из SMS",
+    codeSent: "Код отправлен на номер",
+    verify: "Войти",
+    change: "Изменить номер",
+    errors: {
+      invalidPhone: "Введите грузинский номер мобильного, например 555 12 34 56.",
+      tooSoon: "Сейчас нельзя отправить новый код. Проверьте последнее SMS или повторите позже.",
+      wrongCode: "Код неверный или устарел.",
+    },
+  },
+  post: {
+    heading: "Новое объявление",
+    fields: { title: "Заголовок", description: "Описание", district: "Район", address: "Адрес", price: "Цена", currency: "Валюта", area: "Площадь, м²", rooms: "Комнаты", floor: "Этаж", floors: "Всего этажей", photos: "Фото: от 1 до 10, JPG, PNG или WebP, до 5 МБ каждое" },
+    submit: "Отправить",
+    sent: "Объявление получено и будет опубликовано после модерации.",
+    another: "Добавить ещё",
+    errors: {
+      invalid: "Проверьте поля. Для квартиры и дома нужно число комнат, а для этажа — общее число этажей.",
+      photos: "Добавьте от 1 до 10 фото: JPG, PNG или WebP, до 5 МБ каждое.",
+      save: "Не удалось сохранить объявление. Попробуйте ещё раз.",
+    },
+  },
   theme: { dark: "Тёмная тема", light: "Светлая тема" },
 };
 

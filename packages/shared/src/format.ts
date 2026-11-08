@@ -1,4 +1,4 @@
-import type { Currency } from "./types";
+import type { Currency } from "./search";
 
 const symbols: Record<Currency, string> = { USD: "$", GEL: "₾", AED: "AED " };
 

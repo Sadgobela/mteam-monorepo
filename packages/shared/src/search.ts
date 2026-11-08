@@ -6,6 +6,9 @@ export type DealType = (typeof dealTypes)[number];
 export const propertyTypes = ["apartment", "house", "commercial", "land"] as const;
 export type PropertyType = (typeof propertyTypes)[number];
 
+export const currencies = ["USD", "GEL", "AED"] as const;
+export type Currency = (typeof currencies)[number];
+
 export const citySlugs = ["tbilisi", "batumi", "dubai"] as const;
 export type CitySlug = (typeof citySlugs)[number];
 

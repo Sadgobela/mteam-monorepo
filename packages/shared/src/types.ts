@@ -1,6 +1,5 @@
-import type { DealType, PropertyType } from "./search";
+import type { Currency, DealType, PropertyType } from "./search";
 
-export type Currency = "USD" | "GEL" | "AED";
 
 export interface Agent {
   id: string;
