@@ -23,7 +23,8 @@ vi.mock("@mteam/db", async () => {
   };
 });
 
-vi.mock("@/lib/session", () => ({ hasSession: async () => false }));
+vi.mock("@/lib/session", () => ({ hasSession: async () => false, currentUser: async () => null }));
+vi.mock("@/lib/account-actions", () => ({ toggleFavoriteAction: vi.fn() }));
 vi.mock("@/lib/auth-actions", () => ({ logoutAction: vi.fn() }));
 
 import LocaleLayout, { generateStaticParams, metadata } from "./[locale]/layout";

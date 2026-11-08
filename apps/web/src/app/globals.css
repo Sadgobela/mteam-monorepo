@@ -128,3 +128,12 @@ a.btn { text-decoration: none; display: inline-block; }
 .side { position: sticky; top: 16px; align-self: start; }
 .band .form-row { margin-top: 10px; align-items: end; }
 .band .lead-error { grid-column: 1 / -1; }
+.nav-link { display: inline-flex; align-items: center; min-height: 44px; padding: 0 4px; font-weight: 600; }
+.card-wrap { position: relative; display: grid; }
+.fav { position: absolute; right: 8px; top: 8px; width: 44px; height: 44px; border-radius: 50%; border: 0; background: #fff; color: #6e45a0; display: grid; place-items: center; cursor: pointer; }
+.cards.list .fav { left: 248px; right: auto; }
+@media (max-width: 640px) { .cards.list .fav { left: auto; right: 8px; } }
+.mine { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.mine li { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; padding: 12px 14px; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; }
+.mine li > div { flex: 1 1 260px; min-width: 0; }
+.status { font-size: 13px; font-weight: 700; color: var(--brand-deep); }

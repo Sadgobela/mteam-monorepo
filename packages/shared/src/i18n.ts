@@ -7,7 +7,7 @@ export function isLocale(value: string): value is Locale {
 }
 
 const ka = {
-  nav: { sale: "იყიდება", rent: "ქირავდება", daily: "დღიურად", dubai: "დუბაი", login: "შესვლა", logout: "გასვლა", post: "+ განცხადება" },
+  nav: { sale: "იყიდება", rent: "ქირავდება", daily: "დღიურად", dubai: "დუბაი", favorites: "რჩეულები", my: "ჩემი განცხადებები", login: "შესვლა", logout: "გასვლა", post: "+ განცხადება" },
   search: { location: "მდებარეობა", locationHint: "მაგ. ვაკე, საბურთალო", verifiedOnly: "მხოლოდ Verified", more: "სხვა ფილტრები", deal: "გარიგება", city: "ქალაქი", type: "ტიპი", priceMin: "ფასი, $ დან", priceMax: "ფასი, $ მდე", rooms: "ოთახები", any: "ყველა", submit: "ძებნა", results: "ძებნის შედეგები", empty: "ამ ფილტრებით განცხადება ვერ მოიძებნა." },
   results: { found: "მოიძებნა {count} განცხადება", sort: "დალაგება", sortNew: "ახალი", sortAsc: "ფასი ↑", sortDesc: "ფასი ↓", view: "ხედი", grid: "ბადე", list: "სია", currency: "ვალუტა", pages: "გვერდები", previous: "← წინა", next: "შემდეგი →" },
   home: { leadGoal: "რა გსურს?", leadName: "სახელი", leadSell: "მინდა გაყიდვა", leadRent: "მინდა გაქირავება", leadSubmit: "დაგვიტოვე ნომერი", leadSent: "მადლობა! ბროკერი მალე დაგიკავშირდება.", heading: "mTeam-ის მიერ გადამოწმებული", verifiedTitle: "გადამოწმებული განცხადებები", verifiedLead: "ადგილზე ნანახი ბროკერის მიერ", giveTitle: "მიეცი mTeam-ს", giveLead: "გაყიდვას ან გაქირავებას ჩვენ მივხედავთ", postTitle: "დაამატე განცხადება", postLead: "ფოტოებით, რამდენიმე წუთში", bandTitle: "გაქვს ბინა? მიეცი mTeam-ს", bandText: "საკომისიოს მხოლოდ მესაკუთრე იხდის. გაქირავებისას: დამქირავებელი ერთ წელიწადში, ან საკომისიოს ნახევარი უკან." },
@@ -46,13 +46,15 @@ const ka = {
       save: "განცხადების შენახვა ვერ მოხერხდა. სცადე თავიდან.",
     },
   },
+  favorites: { heading: "რჩეულები", empty: "ჯერ არაფერი შეგინახავს. დააჭირე გულს განცხადებაზე.", add: "რჩეულებში დამატება", remove: "რჩეულებიდან ამოღება" },
+  my: { heading: "ჩემი განცხადებები", empty: "ჯერ განცხადება არ დაგიმატებია.", archive: "მოხსნა", status: { DRAFT: "დრაფტი", PENDING: "მოდერაციაზე", ACTIVE: "გამოქვეყნებული", ARCHIVED: "მოხსნილი", REJECTED: "უარყოფილი" } },
   theme: { dark: "მუქი რეჟიმი", light: "ნათელი რეჟიმი" },
 };
 
 type Dict = typeof ka;
 
 const en: Dict = {
-  nav: { sale: "For sale", rent: "For rent", daily: "Daily", dubai: "Dubai", login: "Sign in", logout: "Sign out", post: "+ Post a listing" },
+  nav: { sale: "For sale", rent: "For rent", daily: "Daily", dubai: "Dubai", favorites: "Favourites", my: "My listings", login: "Sign in", logout: "Sign out", post: "+ Post a listing" },
   search: { location: "Location", locationHint: "For example ვაკე, საბურთალო", verifiedOnly: "Verified only", more: "More filters", deal: "Deal", city: "City", type: "Type", priceMin: "Price from, $", priceMax: "Price to, $", rooms: "Rooms", any: "Any", submit: "Search", results: "Search results", empty: "No listings match these filters." },
   results: { found: "Listings found: {count}", sort: "Sort", sortNew: "Newest", sortAsc: "Price ↑", sortDesc: "Price ↓", view: "View", grid: "Grid", list: "List", currency: "Currency", pages: "Pages", previous: "← Previous", next: "Next →" },
   home: { leadGoal: "What would you like?", leadName: "Your name", leadSell: "I want to sell", leadRent: "I want to rent out", leadSubmit: "Leave your number", leadSent: "Thank you! A broker will contact you soon.", heading: "Verified by mTeam", verifiedTitle: "Verified listings", verifiedLead: "Seen on site by a broker", giveTitle: "Give it to mTeam", giveLead: "We handle the sale or rental", postTitle: "Post a listing", postLead: "With photos, in a few minutes", bandTitle: "Own a property? Give it to mTeam", bandText: "Only the owner pays commission. For rentals: a tenant within one year, or half the fee back." },
@@ -91,11 +93,13 @@ const en: Dict = {
       save: "The listing could not be saved. Please try again.",
     },
   },
+  favorites: { heading: "Favourites", empty: "Nothing saved yet. Tap the heart on a listing.", add: "Add to favourites", remove: "Remove from favourites" },
+  my: { heading: "My listings", empty: "You have not posted anything yet.", archive: "Take down", status: { DRAFT: "Draft", PENDING: "In review", ACTIVE: "Published", ARCHIVED: "Taken down", REJECTED: "Rejected" } },
   theme: { dark: "Dark mode", light: "Light mode" },
 };
 
 const ru: Dict = {
-  nav: { sale: "Продажа", rent: "Аренда", daily: "Посуточно", dubai: "Дубай", login: "Войти", logout: "Выйти", post: "+ Объявление" },
+  nav: { sale: "Продажа", rent: "Аренда", daily: "Посуточно", dubai: "Дубай", favorites: "Избранное", my: "Мои объявления", login: "Войти", logout: "Выйти", post: "+ Объявление" },
   search: { location: "Местоположение", locationHint: "Например, ვაკე, საბურთალო", verifiedOnly: "Только Verified", more: "Другие фильтры", deal: "Сделка", city: "Город", type: "Тип", priceMin: "Цена от, $", priceMax: "Цена до, $", rooms: "Комнаты", any: "Все", submit: "Найти", results: "Результаты поиска", empty: "По этим фильтрам объявлений нет." },
   results: { found: "Найдено объявлений: {count}", sort: "Сортировка", sortNew: "Новые", sortAsc: "Цена ↑", sortDesc: "Цена ↓", view: "Вид", grid: "Сетка", list: "Список", currency: "Валюта", pages: "Страницы", previous: "← Назад", next: "Дальше →" },
   home: { leadGoal: "Что вы хотите?", leadName: "Имя", leadSell: "Хочу продать", leadRent: "Хочу сдать", leadSubmit: "Оставить номер", leadSent: "Спасибо! Брокер скоро свяжется с вами.", heading: "Проверено mTeam", verifiedTitle: "Проверенные объявления", verifiedLead: "Брокер видел объект на месте", giveTitle: "Доверьте mTeam", giveLead: "Продажу или аренду мы возьмём на себя", postTitle: "Добавить объявление", postLead: "С фото, за несколько минут", bandTitle: "Есть недвижимость? Доверьте её mTeam", bandText: "Комиссию платит только собственник. При аренде: арендатор в течение года или половина комиссии обратно." },
@@ -134,6 +138,8 @@ const ru: Dict = {
       save: "Не удалось сохранить объявление. Попробуйте ещё раз.",
     },
   },
+  favorites: { heading: "Избранное", empty: "Пока ничего не сохранено. Нажмите на сердечко в объявлении.", add: "Добавить в избранное", remove: "Убрать из избранного" },
+  my: { heading: "Мои объявления", empty: "Вы ещё ничего не публиковали.", archive: "Снять", status: { DRAFT: "Черновик", PENDING: "На модерации", ACTIVE: "Опубликовано", ARCHIVED: "Снято", REJECTED: "Отклонено" } },
   theme: { dark: "Тёмная тема", light: "Светлая тема" },
 };
 

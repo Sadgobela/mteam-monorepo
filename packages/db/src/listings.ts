@@ -33,7 +33,7 @@ const dbPropertyTypes: Record<PropertyType, DbPropertyType> = {
 const tones = ["violet", "sand", "steel", "rose"] as const;
 
 /** Only what a public page may show: names and emails stay out, and the phone is the listing's contact number. */
-const publicInclude = {
+export const publicInclude = {
   agent: { include: { branch: true, user: { select: { name: true, phone: true } } } },
   images: { select: { url: true }, orderBy: { position: "asc" } },
   owner: { select: { phone: true } },
@@ -48,7 +48,7 @@ const listingIdSchema = z
   .transform(Number)
   .refine((id) => id <= POSTGRES_INT_MAX);
 
-function toListing(row: ListingRow): Listing {
+export function toListing(row: ListingRow): Listing {
   return {
     id: row.id,
     deal: deals[row.deal],
@@ -134,11 +134,17 @@ export function countListings(filters: ListingFilters = {}): Promise<number> {
   return db().listing.count({ where: whereFor(filters) });
 }
 
+/** Reads an id from untrusted text. Returns null for anything that is not a possible listing id. */
+export function parseListingId(raw: string): number | null {
+  const id = listingIdSchema.safeParse(raw);
+  return id.success ? id.data : null;
+}
+
 /** Takes the raw URL segment. Unknown, unpublished and malformed ids all return undefined. */
 export async function getListing(rawId: string): Promise<Listing | undefined> {
-  const id = listingIdSchema.safeParse(rawId);
-  if (!id.success) return undefined;
-  const row = await db().listing.findFirst({ where: { id: id.data, status: "ACTIVE" }, include: publicInclude });
+  const id = parseListingId(rawId);
+  if (id === null) return undefined;
+  const row = await db().listing.findFirst({ where: { id, status: "ACTIVE" }, include: publicInclude });
   return row ? toListing(row) : undefined;
 }
 
@@ -159,4 +165,20 @@ export async function createListing(ownerId: string, draft: ListingDraft, imageU
     select: { id: true },
   });
   return id;
+}
+
+/** Everything a user has posted, whatever its status. */
+export async function listMyListings(ownerId: string) {
+  const rows = await db().listing.findMany({
+    where: { ownerId },
+    include: publicInclude,
+    orderBy: { id: "desc" },
+    take: 100,
+  });
+  return rows.map((row) => ({ listing: toListing(row), status: row.status }));
+}
+
+/** Takes a listing off the site. The owner check is part of the write, so nobody can archive another user's listing. */
+export async function archiveListing(ownerId: string, id: number): Promise<void> {
+  await db().listing.updateMany({ where: { id, ownerId }, data: { status: "ARCHIVED" } });
 }

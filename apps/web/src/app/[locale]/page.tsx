@@ -1,14 +1,14 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { countListings, PAGE_SIZE, searchListings } from "@mteam/db";
+import { countListings, getFavoriteIds, PAGE_SIZE, searchListings } from "@mteam/db";
 import { getDictionary, parseListingDisplay, parseListingFilters } from "@mteam/shared";
 import { Header } from "@/components/Header";
 import { LeadForm } from "@/components/LeadForm";
-import { ListingCard } from "@/components/ListingCard";
+import { ListingGrid } from "@/components/ListingGrid";
 import { SearchBar } from "@/components/SearchBar";
 import { Segmented } from "@/components/Segmented";
 import { resolveLocale } from "@/lib/locale";
-import { hasSession } from "@/lib/session";
+import { currentUser } from "@/lib/session";
 import { resultsHref, type Query } from "@/lib/url";
 
 const HOME_LISTINGS = 4;
@@ -37,6 +37,8 @@ export default async function HomePage({
       : searchListings({ verified: true }, { limit: HOME_LISTINGS }),
     isResults ? countListings(filters) : 0,
   ]);
+  const user = await currentUser();
+  const favoriteIds = user ? await getFavoriteIds(user.id) : [];
   const href = (change: Record<string, string>) => resultsHref(locale, query, change);
 
   // An old link can point past the end once listings are removed.
@@ -45,7 +47,7 @@ export default async function HomePage({
 
   return (
     <>
-      <Header locale={locale} t={t} signedIn={await hasSession()} />
+      <Header locale={locale} t={t} signedIn={user !== null} />
       <main className="page">
         {/* Keyed so that header links, which navigate without a reload, reset the form. */}
         <SearchBar key={JSON.stringify([filters, display])} t={t} filters={filters} display={display} />
@@ -101,11 +103,15 @@ export default async function HomePage({
         {listings.length === 0 ? (
           <p className="meta">{t.search.empty}</p>
         ) : (
-          <div className={isResults && display.view === "list" ? "cards list" : "cards"}>
-            {listings.map((l) => (
-              <ListingCard key={l.id} listing={l} locale={locale} t={t} cur={display.cur} />
-            ))}
-          </div>
+          <ListingGrid
+            listings={listings}
+            locale={locale}
+            t={t}
+            cur={display.cur}
+            list={isResults && display.view === "list"}
+            signedIn={user !== null}
+            favoriteIds={favoriteIds}
+          />
         )}
 
         {isResults && (display.page > 1 || display.page * PAGE_SIZE < total) && (
