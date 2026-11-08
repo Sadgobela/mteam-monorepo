@@ -96,6 +96,7 @@ model Agent {
   branchId String?
   photoUrl String?
   listings Listing[] @relation("AgentListings")
+  verifiedListings Listing[] @relation("VerifiedListings")
   leads    Lead[]
 }
 
@@ -120,6 +121,9 @@ model Listing {
   floors      Int?
   condition   String?
   verified    Boolean       @default(false) // checked on site by an mTeam broker
+  verifiedAt  DateTime?
+  verifiedBy  Agent?        @relation("VerifiedListings", fields: [verifiedById], references: [id])
+  verifiedById String?
   owner       User          @relation(fields: [ownerId], references: [id])
   ownerId     String
   agent       Agent?        @relation("AgentListings", fields: [agentId], references: [id])

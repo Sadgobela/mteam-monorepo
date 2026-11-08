@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import { countListings, searchListings } from "@mteam/db";
 import { renderToStaticMarkup } from "react-dom/server";
 import { fixtureListings } from "@/test-fixtures";
@@ -23,8 +23,23 @@ vi.mock("@mteam/db", async () => {
   };
 });
 
-vi.mock("@/lib/session", () => ({ hasSession: async () => false }));
+vi.mock("@/lib/session", () => ({ hasSession: async () => false, currentUser: async () => null }));
+vi.mock("@/lib/account-actions", () => ({ setFavoriteAction: vi.fn() }));
 vi.mock("@/lib/auth-actions", () => ({ logoutAction: vi.fn() }));
+
+const circleMarker = vi.hoisted(() => vi.fn(() => ({ bindPopup: () => ({ addTo: () => undefined }), addTo: () => undefined })));
+
+vi.mock("leaflet", () => ({
+  default: {
+    map: () => {
+      const map = { setView: () => map, fitBounds: () => map, remove: () => undefined, on: () => undefined };
+      return map;
+    },
+    tileLayer: () => ({ addTo: () => undefined }),
+    circleMarker: circleMarker,
+    latLngBounds: (points: unknown) => points,
+  },
+}));
 
 import LocaleLayout, { generateStaticParams, metadata } from "./[locale]/layout";
 import HomePage, { dynamic as homeRendering } from "./[locale]/page";
@@ -68,7 +83,7 @@ describe("home page", () => {
   it("passes filters and display options to the query and reflects them", async () => {
     await home({ deal: "rent", rooms: "2", sort: "asc", page: "2", bogus: "x" });
     expect(searchListings).toHaveBeenLastCalledWith(expect.objectContaining({ deal: "rent", rooms: 2 }), { sort: "asc", page: 2 });
-    expect(countListings).toHaveBeenLastCalledWith(expect.objectContaining({ deal: "rent", rooms: 2 }));
+    expect(countListings).toHaveBeenLastCalledWith(expect.objectContaining({ deal: "rent", rooms: 2 }), { located: false });
     expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("Search results");
     expect(screen.getByText("Listings found: 57")).toBeInTheDocument();
     expect(screen.getByLabelText("Deal")).toHaveValue("rent");
@@ -100,6 +115,29 @@ describe("home page", () => {
     expect(screen.getByRole("link", { name: "Price ↑" })).not.toHaveAttribute("aria-current");
     expect(screen.getByRole("link", { name: "Price ↓" })).not.toHaveAttribute("aria-current");
     expect(screen.getByRole("link", { name: "$" })).toHaveAttribute("aria-current", "true");
+  });
+
+  it("shows a map instead of cards, without paging, using only located listings", async () => {
+    vi.mocked(searchListings).mockResolvedValueOnce([
+      { ...fixtureListings[0], lat: 41.7, lng: 44.7 },
+      { ...fixtureListings[1], lat: 41.7 },
+      { ...fixtureListings[2], lng: 44.7 },
+    ]);
+    circleMarker.mockClear();
+    await home({ deal: "sale", view: "map", sort: "asc" });
+    expect(searchListings).toHaveBeenLastCalledWith(expect.anything(), { sort: "asc", limit: 200, located: true });
+    expect(countListings).toHaveBeenLastCalledWith(expect.anything(), { located: true });
+    await waitFor(() => expect(circleMarker).toHaveBeenCalledOnce());
+    expect(circleMarker.mock.calls[0]).toEqual([[41.7, 44.7], expect.anything()]);
+    expect(screen.getByRole("region", { name: "Map" })).toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: /m²/ })).toBeNull();
+    expect(screen.queryByRole("navigation", { name: "Pages" })).toBeNull();
+    expect(screen.getByRole("link", { name: "Map" })).toHaveAttribute("aria-current", "true");
+  });
+
+  it("does not redirect a stale page number on the map", async () => {
+    await home({ deal: "sale", view: "map", page: "50" });
+    expect(screen.getByRole("region", { name: "Map" })).toBeInTheDocument();
   });
 
   it("does not use a saved view on the home page", async () => {
@@ -169,14 +207,18 @@ describe("listing page", () => {
     expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("ვაკეში");
     expect(screen.getByText("Floor")).toBeInTheDocument();
     expect(screen.getByText("Condition")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "WhatsApp" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Call" })).toHaveAttribute("href", "tel:+995555000000");
+    expect(screen.getByRole("link", { name: "WhatsApp" })).toHaveAttribute("href", "https://wa.me/995555000000");
+    expect(screen.getByText(/mTeam broker/)).toBeInTheDocument();
     expect(screen.getByText(/checked on site/)).toBeInTheDocument();
   });
 
   it("hides missing details, agent and badge", async () => {
     render(await ListingPage({ params: p({ locale: "en", id: "20422" }) }));
     expect(screen.queryByText("Condition")).toBeNull();
-    expect(screen.queryByRole("button", { name: "WhatsApp" })).toBeNull();
+    expect(screen.getByText("Owner")).toBeInTheDocument();
+    expect(screen.queryByText(/mTeam broker/)).toBeNull();
+    expect(screen.getByRole("link", { name: "WhatsApp" })).toBeInTheDocument();
     expect(screen.queryByText(/checked on site/)).toBeNull();
   });
 

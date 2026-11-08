@@ -18,6 +18,8 @@ export interface Listing {
   address: string;
   price: number;
   currency: Currency;
+  lat?: number;
+  lng?: number;
   /** Area in square metres. */
   area: number;
   rooms: number;
@@ -28,6 +30,10 @@ export interface Listing {
   /** Checked on site by an mTeam broker. */
   verified: boolean;
   agent?: Agent;
+  /** Who checked the listing on site, and when. */
+  verification?: { by: string; at: string };
+  /** The number to call: the broker's if there is one, otherwise the owner's. */
+  contactPhone: string;
   /** Public photo URLs in display order. */
   images: string[];
   /** Placeholder gradient until real photos are uploaded. */

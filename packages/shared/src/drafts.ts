@@ -29,6 +29,18 @@ const whole = (min: number, max: number) =>
 const optionalWhole = (min: number, max: number) =>
   z.union([z.literal("").transform(() => undefined), whole(min, max)]).optional();
 
+const coordinate = (limit: number) =>
+  z
+    .union([
+      z.literal("").transform(() => undefined),
+      z
+        .string()
+        .regex(/^-?\d{1,3}(\.\d{1,8})?$/)
+        .transform(Number)
+        .refine((value) => Math.abs(value) <= limit),
+    ])
+    .optional();
+
 const draftSchema = z
   .object({
     deal: z.enum(dealTypes),
@@ -48,8 +60,11 @@ const draftSchema = z
     rooms: optionalWhole(1, 50),
     floor: optionalWhole(1, 200),
     floors: optionalWhole(1, 200),
+    lat: coordinate(90),
+    lng: coordinate(180),
   })
   .refine((d) => d.rooms !== undefined || d.type === "commercial" || d.type === "land")
+  .refine((d) => (d.lat === undefined) === (d.lng === undefined))
   .refine((d) => (d.floor === undefined) === (d.floors === undefined) && (d.floor ?? 0) <= (d.floors ?? 0));
 
 export type ListingDraft = z.infer<typeof draftSchema>;
@@ -57,5 +72,23 @@ export type ListingDraft = z.infer<typeof draftSchema>;
 /** Validates a submitted listing form. Owner, status and verification are never read from it. */
 export function parseListingDraft(fields: Record<string, unknown>): ListingDraft | null {
   const result = draftSchema.safeParse(fields);
+  return result.success ? result.data : null;
+}
+
+const leadSchema = z.object({
+  name: text(100),
+  phone: z.string().transform((value, context) => {
+    const phone = parsePhone(value);
+    if (!phone) context.addIssue({ code: "custom", message: "invalid phone" });
+    return phone ?? "";
+  }),
+  deal: z.enum(["sale", "rent"]),
+});
+
+export type LeadDraft = z.infer<typeof leadSchema>;
+
+/** Validates a "Give it to mTeam" request. */
+export function parseLead(fields: Record<string, unknown>): LeadDraft | null {
+  const result = leadSchema.safeParse(fields);
   return result.success ? result.data : null;
 }

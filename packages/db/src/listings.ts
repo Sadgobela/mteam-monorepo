@@ -32,10 +32,12 @@ const dbPropertyTypes: Record<PropertyType, DbPropertyType> = {
 };
 const tones = ["violet", "sand", "steel", "rose"] as const;
 
-/** Only what a public page may show: the owner and the broker's email stay out. */
-const publicInclude = {
-  agent: { include: { branch: true, user: { select: { name: true, phone: true } } } },
+/** Only what a public page may show: names and emails stay out, and the phone is the listing's contact number. */
+export const publicInclude = {
+  agent: { include: { branch: true, user: { select: { name: true, phone: true, role: true } } } },
   images: { select: { url: true }, orderBy: { position: "asc" } },
+  owner: { select: { phone: true } },
+  verifiedBy: { select: { user: { select: { name: true } } } },
 } satisfies Prisma.ListingInclude;
 
 type ListingRow = Prisma.ListingGetPayload<{ include: typeof publicInclude }>;
@@ -47,7 +49,9 @@ const listingIdSchema = z
   .transform(Number)
   .refine((id) => id <= POSTGRES_INT_MAX);
 
-function toListing(row: ListingRow): Listing {
+export function toListing(row: ListingRow): Listing {
+  // A listing can outlive its broker's role; a phone is only public while that person is a broker.
+  const agent = row.agent?.user.role === "AGENT" ? row.agent : null;
   return {
     id: row.id,
     deal: deals[row.deal],
@@ -61,19 +65,25 @@ function toListing(row: ListingRow): Listing {
     price: row.price,
     currency: row.currency,
     area: row.area,
+    lat: row.lat ?? undefined,
+    lng: row.lng ?? undefined,
     floor: row.floor ?? undefined,
     floors: row.floors ?? undefined,
     condition: row.condition ?? undefined,
     description: row.description,
     verified: row.verified,
-    agent: row.agent
+    agent: agent
       ? {
-          id: row.agent.id,
-          name: row.agent.user.name ?? "",
-          branch: row.agent.branch?.name ?? "",
-          phone: row.agent.user.phone,
+          id: agent.id,
+          name: agent.user.name ?? "",
+          branch: agent.branch?.name ?? "",
+          phone: agent.user.phone,
         }
       : undefined,
+    verification: row.verifiedAt
+      ? { by: row.verifiedBy?.user.name ?? "mTeam", at: row.verifiedAt.toISOString().slice(0, 10) }
+      : undefined,
+    contactPhone: agent?.user.phone ?? row.owner.phone,
     images: row.images.map((image) => image.url),
     // ponytail: placeholder gradient picked from the id, remove once every listing has photos.
     tone: tones[row.id % tones.length],
@@ -92,7 +102,7 @@ function textClause(q: string | undefined): Prisma.ListingWhereInput[] | undefin
   return [{ district: match }, { address: match }, { city: match }, { title: match }];
 }
 
-function whereFor(filters: ListingFilters): Prisma.ListingWhereInput {
+function whereFor(filters: ListingFilters, located = false): Prisma.ListingWhereInput {
   return {
     status: "ACTIVE",
     deal: filters.deal && dbDeals[filters.deal],
@@ -101,6 +111,9 @@ function whereFor(filters: ListingFilters): Prisma.ListingWhereInput {
     rooms: roomsClause(filters.rooms),
     verified: filters.verified,
     priceUsd: { gte: filters.priceMin, lte: filters.priceMax },
+    area: { gte: filters.areaMin, lte: filters.areaMax },
+    lat: located ? { not: null } : undefined,
+    lng: located ? { not: null } : undefined,
     OR: textClause(filters.q),
   };
 }
@@ -115,10 +128,15 @@ const orderings: Record<SortOrder, Prisma.ListingOrderByWithRelationInput[]> = {
 /** One page of published listings matching the filters. No filters means all of them. */
 export async function searchListings(
   filters: ListingFilters = {},
-  { sort = "new", page = 1, limit = PAGE_SIZE }: { sort?: SortOrder; page?: number; limit?: number } = {},
+  {
+    sort = "new",
+    page = 1,
+    limit = PAGE_SIZE,
+    located = false,
+  }: { sort?: SortOrder; page?: number; limit?: number; located?: boolean } = {},
 ): Promise<Listing[]> {
   const rows = await db().listing.findMany({
-    where: whereFor(filters),
+    where: whereFor(filters, located),
     include: publicInclude,
     orderBy: orderings[sort],
     skip: (page - 1) * limit,
@@ -128,15 +146,21 @@ export async function searchListings(
 }
 
 /** How many published listings match the filters, across all pages. */
-export function countListings(filters: ListingFilters = {}): Promise<number> {
-  return db().listing.count({ where: whereFor(filters) });
+export function countListings(filters: ListingFilters = {}, { located = false }: { located?: boolean } = {}): Promise<number> {
+  return db().listing.count({ where: whereFor(filters, located) });
+}
+
+/** Reads an id from untrusted text. Returns null for anything that is not a possible listing id. */
+export function parseListingId(raw: string): number | null {
+  const id = listingIdSchema.safeParse(raw);
+  return id.success ? id.data : null;
 }
 
 /** Takes the raw URL segment. Unknown, unpublished and malformed ids all return undefined. */
 export async function getListing(rawId: string): Promise<Listing | undefined> {
-  const id = listingIdSchema.safeParse(rawId);
-  if (!id.success) return undefined;
-  const row = await db().listing.findFirst({ where: { id: id.data, status: "ACTIVE" }, include: publicInclude });
+  const id = parseListingId(rawId);
+  if (id === null) return undefined;
+  const row = await db().listing.findFirst({ where: { id, status: "ACTIVE" }, include: publicInclude });
   return row ? toListing(row) : undefined;
 }
 
@@ -157,4 +181,20 @@ export async function createListing(ownerId: string, draft: ListingDraft, imageU
     select: { id: true },
   });
   return id;
+}
+
+/** Everything a user has posted, whatever its status. */
+export async function listMyListings(ownerId: string) {
+  const rows = await db().listing.findMany({
+    where: { ownerId },
+    include: publicInclude,
+    orderBy: { id: "desc" },
+    take: 100,
+  });
+  return rows.map((row) => ({ listing: toListing(row), status: row.status }));
+}
+
+/** Takes a live or pending listing down. The owner check is part of the write, and a rejection cannot be overwritten. */
+export async function archiveListing(ownerId: string, id: number): Promise<void> {
+  await db().listing.updateMany({ where: { id, ownerId, status: { in: ["PENDING", "ACTIVE"] } }, data: { status: "ARCHIVED" } });
 }

@@ -24,6 +24,12 @@ export function Header({ locale, t, signedIn }: { locale: Locale; t: Dict; signe
         ))}
       </nav>
       <ThemeToggle labels={t.theme} />
+      {signedIn && (
+        <>
+          <Link href={`/${locale}/favorites`} className="nav-link">{t.nav.favorites}</Link>
+          <Link href={`/${locale}/my-listings`} className="nav-link">{t.nav.my}</Link>
+        </>
+      )}
       {signedIn ? (
         <form action={logoutAction}>
           <input type="hidden" name="locale" value={locale} />
@@ -39,6 +45,7 @@ export function Header({ locale, t, signedIn }: { locale: Locale; t: Dict; signe
         <Link href={`/${locale}?deal=daily`}>{t.nav.daily}</Link>
         <Link href={`/${locale}?verified=1`} className="accent">mTeam Verified</Link>
         <Link href={`/${locale}?city=dubai`}>{t.nav.dubai}</Link>
+        <Link href={`/${locale}/brokers`}>{t.nav.brokers}</Link>
       </nav>
     </header>
   );

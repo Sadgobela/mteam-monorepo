@@ -1,5 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { defaultLocale, formatPrice, getDictionary, isLocale, locales } from "./index";
+import { defaultLocale, formatDay, formatPrice, getDictionary, isLocale, locales } from "./index";
+
+describe("formatDay", () => {
+  it("writes a short date in the page language, independent of time zone", () => {
+    expect(formatDay("2026-11-06", "en")).toBe("Nov 6");
+    expect(formatDay("2026-11-06T23:30:00Z", "en")).toBe("Nov 6");
+  });
+});
 
 describe("formatPrice", () => {
   it("formats each currency", () => {

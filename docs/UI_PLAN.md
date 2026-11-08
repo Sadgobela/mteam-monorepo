@@ -46,49 +46,53 @@ Chosen on 2026-11-09: **version A, the familiar grid**, from the [clickable mock
 - [x] Home: one wide bar with deal and property type, location, and search.
 - [x] "Verified only" switch beside the search button.
 - [x] A filters button opening price, rooms and city.
-- [ ] Add area, floor and district to it.
+- [x] Area in the panel; district through the location text.
+- [ ] Floor filter.
 - [x] Results: the same bar stays at the top.
-- [ ] Active filters as removable chips.
+- [x] Active filters as removable chips.
 
 ### 3. Listing card
 - [x] Order: photo, price, price per m², generated title, icon row, address, date.
 - [x] Generated title in the page language, such as "For sale: 3-room apartment in Vake", so the card is not only in the language the owner wrote.
 - [x] mTeam Verified badge top left and photo count.
-- [ ] Broker and check date on hover; favourite heart top right.
-- [ ] Broker avatar and name on verified cards.
+- [x] Favourite heart top right.
+- [ ] Broker and check date on hover.
+- [x] Broker avatar and name on cards.
 - [x] Four columns on desktop, two on tablet, one on phone.
 
 ### 4. Results
 - [x] Separate results view with listing count and sort (newest, price up, price down).
 - [x] Grid / list switch.
 - [x] Pagination.
-- [ ] Map view (later).
+- [x] Map view.
 
 ### 5. Listing page
 - [ ] Full-width gallery with a photo viewer.
-- [ ] Sticky price and contact box: price, ₾/$ switch, call, WhatsApp, and the broker's face and branch.
-- [ ] A verification panel: what was checked, by whom and when.
+- [x] Sticky contact box: call, WhatsApp, and the broker's face and branch.
+- [ ] Price and ₾/$ switch in that box.
+- [x] Verification note: what was checked, by whom and when.
 - [ ] "Give it to mTeam" for owners.
-- [ ] Working call and WhatsApp buttons.
+- [x] Working call and WhatsApp buttons.
 - [ ] Facts as an icon grid.
 
 ### 6. Posting form
-- [ ] Steps: type, location, details, photos, with a photo preview before sending.
+- [x] Photo preview before sending, and an optional map pin.
+- [ ] Split into steps.
 
 ## Needs backend work
 
 These UI items need more than styling:
 
 - [x] Sort options and pagination in `searchListings`.
-- [ ] District and area filters.
+- [x] Area filter.
 - [x] ₾/$ price display, at fixed rates.
 - [ ] A real exchange rate source.
-- [ ] Favourites.
+- [x] Favourites.
 - [x] Verified filter and verified-first ordering.
-- [ ] Who verified a listing and when (`verifiedAt`, `verifiedBy`).
-- [ ] Lead form for Give it to mTeam (the `Lead` model already exists).
+- [x] Who verified a listing and when (`verifiedAt`, `verifiedBy`).
+- [x] Lead form for Give it to mTeam.
 - [ ] Generated titles need translated district names, or fall back to the city.
 
 ## Order
 
-Done: card, search and header, results. Next: Give it to mTeam lead form, listing page, posting form.
+Done: card, search and header, results, map, lead form, contact, favourites, broker profiles, moderation. Remaining polish: photo viewer, posting steps, compact phone menu.

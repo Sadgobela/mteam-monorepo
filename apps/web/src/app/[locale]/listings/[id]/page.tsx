@@ -1,8 +1,10 @@
 import Image from "next/image";
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getListing } from "@mteam/db";
-import { formatPrice, getDictionary } from "@mteam/shared";
+import { formatDay, formatPrice, getDictionary } from "@mteam/shared";
 import { Header } from "@/components/Header";
+import { ListingMap } from "@/components/ListingMap";
 import { resolveLocale } from "@/lib/locale";
 import { hasSession } from "@/lib/session";
 
@@ -34,9 +36,9 @@ export default async function ListingPage({
               </>
             ) : (
               listing.images.map((url, index) => (
-                <div key={url} className="ph">
+                <a key={url} className="ph" href={url} target="_blank" rel="noreferrer">
                   <Image src={url} alt={`${listing.title} ${index + 1}`} fill unoptimized priority={index === 0} />
-                </div>
+                </a>
               ))
             )}
           </div>
@@ -76,33 +78,47 @@ export default async function ListingPage({
             )}
           </dl>
           <p>{listing.description}</p>
+          {listing.lat !== undefined && listing.lng !== undefined && (
+            <ListingMap
+              label={t.results.map}
+              points={[{ id: listing.id, lat: listing.lat, lng: listing.lng, label: listing.title, href: `/${locale}/listings/${listing.id}` }]}
+            />
+          )}
         </div>
         <aside className="side">
-          {listing.agent && (
-            <div className="agent">
+          <div className="agent">
+            {listing.agent ? (
               <div className="who">
                 <span className="av" aria-hidden="true">
                   {listing.agent.name.slice(0, 1)}
                 </span>
                 <div>
-                  <b>{listing.agent.name}</b>
+                  <Link href={`/${locale}/brokers/${listing.agent.id}`}><b>{listing.agent.name}</b></Link>
                   <div className="meta">
                     {t.listing.broker} · {listing.agent.branch}
                   </div>
                 </div>
               </div>
-              <div className="btns">
-                <button type="button" className="btn">{t.listing.call}</button>
-                <button type="button" className="btn wa">{t.listing.whatsapp}</button>
-                <button type="button" className="btn ghost">{t.listing.book}</button>
-              </div>
+            ) : (
+              <b>{t.listing.owner}</b>
+            )}
+            <div className="btns">
+              <a className="btn" href={`tel:${listing.contactPhone}`}>{t.listing.call}</a>
+              <a className="btn wa" href={`https://wa.me/${listing.contactPhone.replace(/\D/g, "")}`} target="_blank" rel="noreferrer">
+                {t.listing.whatsapp}
+              </a>
             </div>
-          )}
+          </div>
           {listing.verified && (
             <div className="note">
               <b>mTeam Verified</b>
               <br />
               {t.listing.verifiedNote}
+              {listing.verification && (
+                <div className="meta">
+                  {t.listing.checkedBy.replace("{name}", listing.verification.by).replace("{date}", formatDay(listing.verification.at, locale))}
+                </div>
+              )}
             </div>
           )}
         </aside>

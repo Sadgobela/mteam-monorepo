@@ -10,7 +10,8 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run --coverage",
     "db:deploy": "prisma migrate deploy",
-    "db:seed": "prisma db seed"
+    "db:seed": "prisma db seed",
+    "db:promote": "node --env-file-if-exists=.env prisma/promote.ts"
   },
   "devDependencies": {
     "@types/node": "^20.19.43",

@@ -1,6 +1,7 @@
 "use client";
 
-import { startTransition, useActionState, useState, type FormEvent } from "react";
+import Image from "next/image";
+import { startTransition, useActionState, useEffect, useState, type ChangeEvent, type FormEvent } from "react";
 import {
   citySlugs,
   currencies,
@@ -12,6 +13,7 @@ import {
   type Locale,
 } from "@mteam/shared";
 import { createListingAction } from "@/lib/listing-actions";
+import { LocationPicker } from "./LocationPicker";
 
 function Choice({ name, label, options }: { name: string; label: string; options: { value: string; label: string }[] }) {
   return (
@@ -40,6 +42,13 @@ function Input({ label, ...input }: { label: string } & React.InputHTMLAttribute
 export function ListingForm({ locale, t }: { locale: Locale; t: Dict }) {
   const [state, dispatch, pending] = useActionState(createListingAction, {});
   const [photosRejected, setPhotosRejected] = useState(false);
+  const [previews, setPreviews] = useState<string[]>([]);
+
+  useEffect(() => () => previews.forEach((url) => URL.revokeObjectURL(url)), [previews]);
+
+  function showPreviews(event: ChangeEvent<HTMLInputElement>) {
+    setPreviews(Array.from(event.target.files as FileList).map((file) => URL.createObjectURL(file)));
+  }
 
   // Dispatching by hand stops React from clearing the form, so a server-side error does not lose what was typed.
   function submit(event: FormEvent<HTMLFormElement>) {
@@ -84,7 +93,18 @@ export function ListingForm({ locale, t }: { locale: Locale; t: Dict }) {
         <Input label={f.floor} name="floor" type="number" min={1} max={200} />
         <Input label={f.floors} name="floors" type="number" min={1} max={200} />
       </div>
-      <Input label={f.photos} name="photos" type="file" required multiple accept="image/jpeg,image/png,image/webp" />
+      <LocationPicker label={f.pin} clearLabel={f.pinClear} />
+      <Input label={f.photos} name="photos" type="file" required multiple accept="image/jpeg,image/png,image/webp" onChange={showPreviews} />
+      {previews.length > 0 && (
+        <div className="previews">
+          {previews.map((url) => (
+            <div key={url} className="ph thumb">
+              <Image src={url} alt="" fill unoptimized />
+            </div>
+          ))}
+        </div>
+      )}
+      <p className="meta">{t.post.phoneNotice}</p>
       {error && <p className="note" role="alert">{t.post.errors[error]}</p>}
       <button className="btn" type="submit" disabled={pending}>{t.post.submit}</button>
     </form>

@@ -4,8 +4,8 @@ import { cityNames, convertPrice, parseListingDisplay, parseListingFilters, pric
 describe("parseListingFilters", () => {
   it("reads every filter", () => {
     expect(
-      parseListingFilters({ deal: "rent", type: "house", city: "batumi", priceMin: "1000", priceMax: "2000", rooms: "3", q: " vake ", verified: "1" }),
-    ).toEqual({ deal: "rent", type: "house", city: "batumi", priceMin: 1000, priceMax: 2000, rooms: 3, q: "vake", verified: true });
+      parseListingFilters({ deal: "rent", type: "house", city: "batumi", priceMin: "1000", priceMax: "2000", rooms: "3", q: " vake ", verified: "1", areaMin: "40", areaMax: "90" }),
+    ).toEqual({ deal: "rent", type: "house", city: "batumi", priceMin: 1000, priceMax: 2000, rooms: 3, q: "vake", verified: true, areaMin: 40, areaMax: 90 });
   });
 
   it("treats a query with no filters as no filters", () => {
@@ -33,6 +33,8 @@ describe("parseListingFilters", () => {
     ["priceMax", "100000001"],
     ["priceMax", "9999999999"],
     ["verified", "true"],
+    ["areaMin", "abc"],
+    ["areaMax", "12345678"],
     ["q", "x".repeat(101)],
     ["q", "a\0b"],
   ])("ignores %s=%s", (key, value) => {
@@ -77,7 +79,7 @@ describe("parseListingDisplay", () => {
   });
 
   it("falls back on invalid or repeated values", () => {
-    expect(parseListingDisplay({ sort: "price", view: "map", cur: "eur", page: ["1", "2"] })).toEqual(defaults);
+    expect(parseListingDisplay({ sort: "price", view: "cards", cur: "eur", page: ["1", "2"] })).toEqual(defaults);
   });
 });
 

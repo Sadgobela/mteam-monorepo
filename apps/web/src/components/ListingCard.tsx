@@ -1,6 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
-import { convertPrice, formatPrice, type DisplayCurrency, type Dict, type Listing, type Locale } from "@mteam/shared";
+import { convertPrice, formatDay, formatPrice, type DisplayCurrency, type Dict, type Listing, type Locale } from "@mteam/shared";
 
 /** Built from the listing's facts, so a card reads in the page language whatever language the owner wrote in. */
 function cardTitle(listing: Listing, t: Dict): string {
@@ -24,9 +24,6 @@ export function ListingCard({
 }) {
   const shown = convertPrice(listing.price, listing.currency, cur);
   const currency = cur === "gel" ? "GEL" : "USD";
-  const date = new Intl.DateTimeFormat(locale, { day: "numeric", month: "short", timeZone: "UTC" }).format(
-    new Date(listing.updatedAt),
-  );
   return (
     <Link href={`/${locale}/listings/${listing.id}`} className="card">
       <div className={`ph ${listing.tone}`}>
@@ -73,11 +70,17 @@ export function ListingCard({
             </span>
           )}
         </div>
+        {listing.agent?.name && (
+          <span className="cbroker">
+            <i aria-hidden="true">{listing.agent.name.slice(0, 1)}</i>
+            {listing.agent.name}
+          </span>
+        )}
         <div className="cfoot meta">
           <span>
             {listing.address}, {listing.district}
           </span>
-          <span>{date}</span>
+          <span>{formatDay(listing.updatedAt, locale)}</span>
         </div>
       </div>
     </Link>

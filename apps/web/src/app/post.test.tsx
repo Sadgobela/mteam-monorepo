@@ -20,6 +20,18 @@ vi.mock("next/navigation", () => ({
   },
 }));
 
+vi.mock("leaflet", () => ({
+  default: {
+    map: () => {
+      const map = { setView: () => map, fitBounds: () => map, remove: () => undefined, on: () => undefined };
+      return map;
+    },
+    tileLayer: () => ({ addTo: () => undefined }),
+    circleMarker: () => ({ bindPopup: () => ({ addTo: () => undefined }), addTo: () => undefined }),
+    latLngBounds: (points: unknown) => points,
+  },
+}));
+
 import { ListingCard } from "@/components/ListingCard";
 import { ListingForm } from "@/components/ListingForm";
 import { createListingAction } from "@/lib/listing-actions";
@@ -123,6 +135,24 @@ describe("ListingForm", () => {
     getAll.mockRestore();
   });
 
+  it("previews chosen photos and releases the previous ones", () => {
+    const created = vi.fn().mockReturnValueOnce("blob:one").mockReturnValueOnce("blob:two");
+    const revoked = vi.fn();
+    vi.stubGlobal("URL", Object.assign(URL, { createObjectURL: created, revokeObjectURL: revoked }));
+    const { container, unmount } = render(<ListingForm locale="en" t={t} />);
+    const input = screen.getByLabelText(t.post.fields.photos);
+
+    expect(container.querySelector(".previews")).toBeNull();
+    fireEvent.change(input, { target: { files: [new File(["x"], "a.jpg")] } });
+    expect(container.querySelector(".previews img")).toHaveAttribute("src", "blob:one");
+    fireEvent.change(input, { target: { files: [new File(["y"], "b.jpg")] } });
+    expect(revoked).toHaveBeenCalledWith("blob:one");
+    expect(container.querySelector(".previews img")).toHaveAttribute("src", "blob:two");
+    unmount();
+    expect(revoked).toHaveBeenCalledWith("blob:two");
+    vi.unstubAllGlobals();
+  });
+
   it("offers translated choices", () => {
     render(<ListingForm locale="en" t={getDictionary("ru")} />);
     expect(screen.getByRole("option", { name: "Батуми" })).toBeInTheDocument();
@@ -170,6 +200,22 @@ describe("listing photos", () => {
       "https://cdn/a.jpg",
       "https://cdn/b.jpg",
     ]);
+  });
+
+  it("says who checked a verified listing and when", async () => {
+    db.getListing.mockResolvedValue({ ...fixtureListings[0], verification: { by: "Nino", at: "2026-11-05" } });
+    render(await ListingPage({ params: Promise.resolve({ locale: "en", id: "20418" }) }));
+    expect(screen.getByText("Checked by Nino, Nov 5")).toBeInTheDocument();
+  });
+
+  it("shows a map only when the listing has a location", async () => {
+    db.getListing.mockResolvedValue({ ...fixtureListings[0], lat: 41.7, lng: 44.7 });
+    const pinned = render(await ListingPage({ params: Promise.resolve({ locale: "en", id: "20418" }) }));
+    expect(screen.getByRole("region", { name: t.results.map })).toBeInTheDocument();
+    pinned.unmount();
+    db.getListing.mockResolvedValue({ ...fixtureListings[0], lat: 41.7 });
+    render(await ListingPage({ params: Promise.resolve({ locale: "en", id: "20418" }) }));
+    expect(screen.queryByRole("region", { name: t.results.map })).toBeNull();
   });
 
   it("omits the rooms fact for property without rooms", async () => {
