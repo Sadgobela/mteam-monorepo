@@ -1,9 +1,10 @@
 import Image from "next/image";
 import Link from "next/link";
 import { locales, type Dict, type Locale } from "@mteam/shared";
+import { logoutAction } from "@/lib/auth-actions";
 import { ThemeToggle } from "./ThemeToggle";
 
-export function Header({ locale, t }: { locale: Locale; t: Dict }) {
+export function Header({ locale, t, signedIn }: { locale: Locale; t: Dict; signedIn: boolean }) {
   return (
     <header className="nav">
       <Link href={`/${locale}`} className="brand">
@@ -28,8 +29,15 @@ export function Header({ locale, t }: { locale: Locale; t: Dict }) {
         ))}
       </nav>
       <ThemeToggle labels={t.theme} />
-      <button type="button" className="btn ghost">{t.nav.login}</button>
-      <button type="button" className="btn">{t.nav.post}</button>
+      {signedIn ? (
+        <form action={logoutAction}>
+          <input type="hidden" name="locale" value={locale} />
+          <button type="submit" className="btn ghost">{t.nav.logout}</button>
+        </form>
+      ) : (
+        <Link href={`/${locale}/login`} className="btn ghost">{t.nav.login}</Link>
+      )}
+      <Link href={`/${locale}/listings/new`} className="btn">{t.nav.post}</Link>
     </header>
   );
 }

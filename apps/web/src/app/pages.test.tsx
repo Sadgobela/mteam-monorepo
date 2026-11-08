@@ -19,6 +19,9 @@ vi.mock("@mteam/db", async () => {
   };
 });
 
+vi.mock("@/lib/session", () => ({ hasSession: async () => false }));
+vi.mock("@/lib/auth-actions", () => ({ logoutAction: vi.fn() }));
+
 import LocaleLayout, { generateStaticParams, metadata } from "./[locale]/layout";
 import HomePage, { dynamic as homeRendering } from "./[locale]/page";
 import ListingPage, { dynamic as listingRendering } from "./[locale]/listings/[id]/page";

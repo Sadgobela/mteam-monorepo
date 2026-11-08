@@ -3,6 +3,7 @@ import { getListing } from "@mteam/db";
 import { formatPrice, getDictionary } from "@mteam/shared";
 import { Header } from "@/components/Header";
 import { resolveLocale } from "@/lib/locale";
+import { hasSession } from "@/lib/session";
 
 export const dynamic = "force-dynamic";
 
@@ -20,7 +21,7 @@ export default async function ListingPage({
 
   return (
     <>
-      <Header locale={locale} t={t} />
+      <Header locale={locale} t={t} signedIn={await hasSession()} />
       <main className="listing">
         <div className="ldesc">
           <div className="gal">

@@ -4,6 +4,7 @@ import { Header } from "@/components/Header";
 import { ListingCard } from "@/components/ListingCard";
 import { SearchBar } from "@/components/SearchBar";
 import { resolveLocale } from "@/lib/locale";
+import { hasSession } from "@/lib/session";
 
 /** Reads live data, so it renders per request and the build needs no database. */
 export const dynamic = "force-dynamic";
@@ -22,7 +23,7 @@ export default async function HomePage({
   const filtered = Object.values(filters).some((value) => value !== undefined);
   return (
     <>
-      <Header locale={locale} t={t} />
+      <Header locale={locale} t={t} signedIn={await hasSession()} />
       <main>
         <section className="hero">
           <h1>{t.hero.title}</h1>
