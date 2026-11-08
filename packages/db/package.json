@@ -5,8 +5,29 @@
   "scripts": {
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate dev",
-    "db:studio": "prisma studio"
+    "db:studio": "prisma studio",
+    "postinstall": "prisma generate",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run --coverage",
+    "db:deploy": "prisma migrate deploy",
+    "db:seed": "prisma db seed"
   },
-  "devDependencies": { "prisma": "^6.16.0" },
-  "dependencies": { "@prisma/client": "^6.16.0" }
+  "devDependencies": {
+    "@types/node": "^20.19.43",
+    "@vitest/coverage-v8": "^3.2.7",
+    "prisma": "^6.16.0",
+    "typescript": "^5.9.3",
+    "vitest": "^3.2.7"
+  },
+  "dependencies": {
+    "@prisma/client": "^6.16.0",
+    "zod": "^4.6.7"
+  },
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "prisma": {
+    "seed": "node prisma/seed.ts"
+  }
 }
