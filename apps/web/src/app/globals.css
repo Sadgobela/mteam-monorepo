@@ -53,8 +53,9 @@ h1, h2, h3 { margin: 0; text-wrap: balance; }
 .search .more { display: flex; }
 .more summary { list-style: none; min-height: 52px; }
 .more summary::-webkit-details-marker { display: none; }
-.more-panel { position: absolute; z-index: 5; left: -2px; right: -2px; top: calc(100% + 8px); display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 8px; padding: 12px; background: var(--surface); border: 1px solid var(--line); border-radius: 14px; box-shadow: 0 10px 30px rgba(20, 12, 30, 0.18); }
-.more-panel input, .more-panel select { min-height: 40px; padding: 0 10px; border: 1px solid var(--line); border-radius: 8px; width: 100%; }
+.search .more[open] { flex: 1 1 100%; display: block; }
+.more-panel { margin-top: 8px; display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 8px; padding: 12px; border-top: 1px solid var(--line); }
+.search .more-panel input, .search .more-panel select { min-height: 40px; padding: 0 10px; border: 1px solid var(--line); border-radius: 8px; width: 100%; }
 .search > .btn { min-height: 52px; padding-inline: 28px; }
 @media (max-width: 760px) { .search > .btn { flex: 1 1 100%; } }
 .search small { color: var(--muted); font-size: 12px; }

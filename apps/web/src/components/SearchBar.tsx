@@ -50,7 +50,7 @@ export function SearchBar({ t, filters, display }: { t: Dict; filters: ListingFi
   const lastRoom = roomOptions[roomOptions.length - 1];
   const moreIsActive = [filters.city, filters.priceMin, filters.priceMax, filters.rooms].some((v) => v !== undefined);
   return (
-    <form className="search" role="search" action="" method="get">
+    <form className="search" role="search" action="" method="get" noValidate>
       <input type="hidden" name="cur" value={display.cur} />
       <input type="hidden" name="view" value={display.view} />
       <input type="hidden" name="sort" value={display.sort} />

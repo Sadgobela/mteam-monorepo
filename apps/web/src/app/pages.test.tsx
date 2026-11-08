@@ -8,6 +8,9 @@ vi.mock("next/navigation", () => ({
   notFound: () => {
     throw new Error("NEXT_NOT_FOUND");
   },
+  redirect: (url: string) => {
+    throw new Error(`REDIRECT ${url}`);
+  },
 }));
 
 vi.mock("@mteam/db", async () => {
@@ -114,6 +117,24 @@ describe("home page", () => {
     await home({ deal: "sale", page: "3" });
     expect(screen.getByRole("link", { name: "← Previous" })).toHaveAttribute("href", "/en?deal=sale&page=2");
     expect(screen.queryByRole("link", { name: "Next →" })).toBeNull();
+  });
+
+  it("sends a link past the end to the last page", async () => {
+    await expect(HomePage({ params: p({ locale: "en" }), searchParams: p({ deal: "sale", page: "50" }) })).rejects.toThrow(
+      "REDIRECT /en?deal=sale&page=3",
+    );
+  });
+
+  it("does not redirect when there are no results at all", async () => {
+    vi.mocked(countListings).mockResolvedValueOnce(0);
+    vi.mocked(searchListings).mockResolvedValueOnce([]);
+    await home({ deal: "sale" });
+    expect(screen.getByText("No listings match these filters.")).toBeInTheDocument();
+  });
+
+  it("treats a repeated deal as no search, because its links could not keep it", async () => {
+    render(await HomePage({ params: p({ locale: "en" }), searchParams: p({ deal: ["a", "b"] }) }));
+    expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("Verified by mTeam");
   });
 
   it("has no pager when everything fits on one page", async () => {

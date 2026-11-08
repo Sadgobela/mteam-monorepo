@@ -189,6 +189,10 @@ describe("searchListings", () => {
     expect((await whereFor({ rooms: 4 })).rooms).toEqual({ gte: 4 });
   });
 
+  it("treats LIKE wildcards in the text as plain characters", async () => {
+    expect((await whereFor({ q: "50%_a\\" })).OR[0].district.contains).toBe("50\\%\\_a\\\\");
+  });
+
   it("filters on the normalized USD price, one-sided or both", async () => {
     expect((await whereFor({ priceMin: 1000, priceMax: 2000 })).priceUsd).toEqual({ gte: 1000, lte: 2000 });
     prisma.listing.findMany.mockClear();
@@ -238,6 +242,15 @@ describe("countListings", () => {
     prisma.listing.count.mockResolvedValue(3);
     expect(await countListings({ deal: "sale", verified: true })).toBe(3);
     expect(prisma.listing.count.mock.calls[0][0].where).toMatchObject({ status: "ACTIVE", deal: "SALE", verified: true });
+  });
+
+  it("uses exactly the search's conditions", async () => {
+    const filters = { deal: "sale", q: "vake", priceMin: 100, priceMax: 200, rooms: 4, verified: true } as const;
+    prisma.listing.findMany.mockResolvedValue([]);
+    prisma.listing.count.mockResolvedValue(0);
+    await searchListings(filters);
+    await countListings(filters);
+    expect(prisma.listing.count.mock.calls[0][0].where).toEqual(prisma.listing.findMany.mock.calls[0][0].where);
   });
 
   it("counts everything published by default", async () => {

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { countListings, PAGE_SIZE, searchListings } from "@mteam/db";
 import { getDictionary, parseListingDisplay, parseListingFilters } from "@mteam/shared";
 import { Header } from "@/components/Header";
@@ -28,7 +29,7 @@ export default async function HomePage({
   const display = parseListingDisplay(query);
 
   // A submitted form always sends "deal", even when every filter is left empty.
-  const isResults = query.deal !== undefined || Object.values(filters).some((value) => value !== undefined);
+  const isResults = typeof query.deal === "string" || Object.values(filters).some((value) => value !== undefined);
   const [listings, total] = await Promise.all([
     isResults
       ? searchListings(filters, { sort: display.sort, page: display.page })
@@ -36,6 +37,10 @@ export default async function HomePage({
     isResults ? countListings(filters) : 0,
   ]);
   const href = (change: Record<string, string>) => resultsHref(locale, query, change);
+
+  // An old link can point past the end once listings are removed.
+  const lastPage = Math.max(1, Math.ceil(total / PAGE_SIZE));
+  if (isResults && display.page > lastPage) redirect(href({ page: String(lastPage) }));
 
   return (
     <>

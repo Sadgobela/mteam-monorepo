@@ -25,7 +25,7 @@ describe("SearchBar", () => {
 
   it("starts with every filter off and the extra filters closed", () => {
     const { container } = render(<SearchBar t={t} filters={{}} display={display} />);
-    expect(screen.getByRole("search")).toBeInTheDocument();
+    expect(screen.getByRole("search")).toHaveAttribute("novalidate");
     expect(screen.getByRole("button", { name: "Search" })).toBeInTheDocument();
     for (const label of ["Deal", "Type", "City", "Rooms"]) expect(screen.getByLabelText(label)).toHaveValue("");
     expect(screen.getByLabelText("Location")).toHaveValue("");
@@ -54,6 +54,7 @@ describe("SearchBar", () => {
     expect(hidden("cur")).toHaveValue("gel");
     expect(hidden("view")).toHaveValue("list");
     expect(hidden("sort")).toHaveValue("asc");
+    expect(hidden("page")).toBeNull();
   });
 
   it("labels options in the page language, and the top room count as a minimum", () => {

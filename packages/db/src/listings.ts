@@ -87,7 +87,8 @@ function roomsClause(rooms: number | undefined): Prisma.IntNullableFilter | numb
 
 function textClause(q: string | undefined): Prisma.ListingWhereInput[] | undefined {
   if (q === undefined) return undefined;
-  const match = { contains: q, mode: "insensitive" } as const;
+  // Without escaping, % and _ would act as LIKE wildcards.
+  const match = { contains: q.replace(/[\\%_]/g, "\\$&"), mode: "insensitive" } as const;
   return [{ district: match }, { address: match }, { city: match }, { title: match }];
 }
 
