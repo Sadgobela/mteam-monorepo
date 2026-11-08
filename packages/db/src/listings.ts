@@ -63,6 +63,8 @@ export function toListing(row: ListingRow): Listing {
     price: row.price,
     currency: row.currency,
     area: row.area,
+    lat: row.lat ?? undefined,
+    lng: row.lng ?? undefined,
     floor: row.floor ?? undefined,
     floors: row.floors ?? undefined,
     condition: row.condition ?? undefined,

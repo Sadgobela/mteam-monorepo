@@ -79,7 +79,7 @@ export type DisplayCurrency = "usd" | "gel";
 
 const displaySchema = z.object({
   sort: z.enum(sortOrders).catch("new"),
-  view: z.enum(["grid", "list"]).catch("grid"),
+  view: z.enum(["grid", "list", "map"]).catch("grid"),
   cur: z.enum(["usd", "gel"]).catch("usd"),
   page: z
     .string()

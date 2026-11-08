@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { getListing } from "@mteam/db";
 import { formatDay, formatPrice, getDictionary } from "@mteam/shared";
 import { Header } from "@/components/Header";
+import { ListingMap } from "@/components/ListingMap";
 import { resolveLocale } from "@/lib/locale";
 import { hasSession } from "@/lib/session";
 
@@ -77,6 +78,12 @@ export default async function ListingPage({
             )}
           </dl>
           <p>{listing.description}</p>
+          {listing.lat !== undefined && listing.lng !== undefined && (
+            <ListingMap
+              label={t.results.map}
+              points={[{ id: listing.id, lat: listing.lat, lng: listing.lng, label: listing.title, href: `/${locale}/listings/${listing.id}` }]}
+            />
+          )}
         </div>
         <aside className="side">
           <div className="agent">

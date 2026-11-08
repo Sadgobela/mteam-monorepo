@@ -4,6 +4,7 @@ import { countListings, getFavoriteIds, PAGE_SIZE, searchListings } from "@mteam
 import { getDictionary, parseListingDisplay, parseListingFilters } from "@mteam/shared";
 import { FilterChips } from "@/components/FilterChips";
 import { Header } from "@/components/Header";
+import { ListingMap } from "@/components/ListingMap";
 import { LeadForm } from "@/components/LeadForm";
 import { ListingGrid } from "@/components/ListingGrid";
 import { SearchBar } from "@/components/SearchBar";
@@ -13,6 +14,7 @@ import { currentUser } from "@/lib/session";
 import { resultsHref, type Query } from "@/lib/url";
 
 const HOME_LISTINGS = 4;
+const MAP_LISTINGS = 200;
 
 /** Reads live data, so it renders per request and the build needs no database. */
 export const dynamic = "force-dynamic";
@@ -32,9 +34,10 @@ export default async function HomePage({
 
   // A submitted form always sends "deal", even when every filter is left empty.
   const isResults = typeof query.deal === "string" || Object.values(filters).some((value) => value !== undefined);
+  const isMap = isResults && display.view === "map";
   const [listings, total] = await Promise.all([
     isResults
-      ? searchListings(filters, { sort: display.sort, page: display.page })
+      ? searchListings(filters, isMap ? { sort: display.sort, limit: MAP_LISTINGS } : { sort: display.sort, page: display.page })
       : searchListings({ verified: true }, { limit: HOME_LISTINGS }),
     isResults ? countListings(filters) : 0,
   ]);
@@ -44,7 +47,7 @@ export default async function HomePage({
 
   // An old link can point past the end once listings are removed.
   const lastPage = Math.max(1, Math.ceil(total / PAGE_SIZE));
-  if (isResults && display.page > lastPage) redirect(href({ page: String(lastPage) }));
+  if (isResults && !isMap && display.page > lastPage) redirect(href({ page: String(lastPage) }));
 
   return (
     <>
@@ -72,6 +75,7 @@ export default async function HomePage({
               options={[
                 { text: t.results.grid, href: href({ view: "grid" }), active: display.view === "grid" },
                 { text: t.results.list, href: href({ view: "list" }), active: display.view === "list" },
+                { text: t.results.map, href: href({ view: "map", page: "1" }), active: display.view === "map" },
               ]}
             />
           </div>
@@ -105,6 +109,15 @@ export default async function HomePage({
 
         {listings.length === 0 ? (
           <p className="meta">{t.search.empty}</p>
+        ) : isMap ? (
+          <ListingMap
+            label={t.results.map}
+            points={listings.flatMap((l) =>
+              l.lat === undefined || l.lng === undefined
+                ? []
+                : [{ id: l.id, lat: l.lat, lng: l.lng, label: l.title, href: `/${locale}/listings/${l.id}` }],
+            )}
+          />
         ) : (
           <ListingGrid
             listings={listings}
@@ -117,7 +130,7 @@ export default async function HomePage({
           />
         )}
 
-        {isResults && (display.page > 1 || display.page * PAGE_SIZE < total) && (
+        {isResults && !isMap && (display.page > 1 || display.page * PAGE_SIZE < total) && (
           <nav className="pager" aria-label={t.results.pages}>
             {display.page > 1 && <Link href={href({ page: String(display.page - 1) })}>{t.results.previous}</Link>}
             {display.page * PAGE_SIZE < total && <Link href={href({ page: String(display.page + 1) })}>{t.results.next}</Link>}

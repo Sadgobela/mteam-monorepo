@@ -29,6 +29,18 @@ const whole = (min: number, max: number) =>
 const optionalWhole = (min: number, max: number) =>
   z.union([z.literal("").transform(() => undefined), whole(min, max)]).optional();
 
+const coordinate = (limit: number) =>
+  z
+    .union([
+      z.literal("").transform(() => undefined),
+      z
+        .string()
+        .regex(/^-?\d{1,3}(\.\d{1,8})?$/)
+        .transform(Number)
+        .refine((value) => Math.abs(value) <= limit),
+    ])
+    .optional();
+
 const draftSchema = z
   .object({
     deal: z.enum(dealTypes),
@@ -48,8 +60,11 @@ const draftSchema = z
     rooms: optionalWhole(1, 50),
     floor: optionalWhole(1, 200),
     floors: optionalWhole(1, 200),
+    lat: coordinate(90),
+    lng: coordinate(180),
   })
   .refine((d) => d.rooms !== undefined || d.type === "commercial" || d.type === "land")
+  .refine((d) => (d.lat === undefined) === (d.lng === undefined))
   .refine((d) => (d.floor === undefined) === (d.floors === undefined) && (d.floor ?? 0) <= (d.floors ?? 0));
 
 export type ListingDraft = z.infer<typeof draftSchema>;

@@ -79,7 +79,7 @@ describe("parseListingDisplay", () => {
   });
 
   it("falls back on invalid or repeated values", () => {
-    expect(parseListingDisplay({ sort: "price", view: "map", cur: "eur", page: ["1", "2"] })).toEqual(defaults);
+    expect(parseListingDisplay({ sort: "price", view: "cards", cur: "eur", page: ["1", "2"] })).toEqual(defaults);
   });
 });
 

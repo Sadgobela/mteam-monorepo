@@ -27,6 +27,18 @@ vi.mock("@/lib/session", () => ({ hasSession: async () => false, currentUser: as
 vi.mock("@/lib/account-actions", () => ({ toggleFavoriteAction: vi.fn() }));
 vi.mock("@/lib/auth-actions", () => ({ logoutAction: vi.fn() }));
 
+vi.mock("leaflet", () => ({
+  default: {
+    map: () => {
+      const map = { setView: () => map, fitBounds: () => map, remove: () => undefined, on: () => undefined };
+      return map;
+    },
+    tileLayer: () => ({ addTo: () => undefined }),
+    circleMarker: () => ({ bindPopup: () => ({ addTo: () => undefined }), addTo: () => undefined }),
+    latLngBounds: (points: unknown) => points,
+  },
+}));
+
 import LocaleLayout, { generateStaticParams, metadata } from "./[locale]/layout";
 import HomePage, { dynamic as homeRendering } from "./[locale]/page";
 import ListingPage, { dynamic as listingRendering } from "./[locale]/listings/[id]/page";
@@ -101,6 +113,25 @@ describe("home page", () => {
     expect(screen.getByRole("link", { name: "Price ↑" })).not.toHaveAttribute("aria-current");
     expect(screen.getByRole("link", { name: "Price ↓" })).not.toHaveAttribute("aria-current");
     expect(screen.getByRole("link", { name: "$" })).toHaveAttribute("aria-current", "true");
+  });
+
+  it("shows a map instead of cards, without paging, using only located listings", async () => {
+    vi.mocked(searchListings).mockResolvedValueOnce([
+      { ...fixtureListings[0], lat: 41.7, lng: 44.7 },
+      { ...fixtureListings[1], lat: 41.7 },
+      { ...fixtureListings[2], lng: 44.7 },
+    ]);
+    await home({ deal: "sale", view: "map", sort: "asc" });
+    expect(searchListings).toHaveBeenLastCalledWith(expect.anything(), { sort: "asc", limit: 200 });
+    expect(screen.getByRole("region", { name: "Map" })).toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: /m²/ })).toBeNull();
+    expect(screen.queryByRole("navigation", { name: "Pages" })).toBeNull();
+    expect(screen.getByRole("link", { name: "Map" })).toHaveAttribute("aria-current", "true");
+  });
+
+  it("does not redirect a stale page number on the map", async () => {
+    await home({ deal: "sale", view: "map", page: "50" });
+    expect(screen.getByRole("region", { name: "Map" })).toBeInTheDocument();
   });
 
   it("does not use a saved view on the home page", async () => {

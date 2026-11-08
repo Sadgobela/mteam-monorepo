@@ -18,6 +18,8 @@ export interface Listing {
   address: string;
   price: number;
   currency: Currency;
+  lat?: number;
+  lng?: number;
   /** Area in square metres. */
   area: number;
   rooms: number;

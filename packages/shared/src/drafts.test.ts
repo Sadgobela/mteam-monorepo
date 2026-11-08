@@ -80,12 +80,22 @@ describe("parseListingDraft", () => {
     expect(parseListingDraft({ ...valid, type, rooms: "" })).toBeNull();
   });
 
+  it("reads an optional map pin", () => {
+    expect(parseListingDraft({ ...valid, lat: "41.709512", lng: "-44.76" })).toMatchObject({ lat: 41.709512, lng: -44.76 });
+    expect(parseListingDraft({ ...valid, lat: "", lng: "" })?.lat).toBeUndefined();
+  });
+
   it("accepts a missing floor pair", () => {
     const { floor: _floor, floors: _floors, ...rest } = valid;
     expect(parseListingDraft(rest)?.floor).toBeUndefined();
   });
 
   it.each([
+    ["latitude without longitude", { lat: "41.7" }],
+    ["longitude without latitude", { lng: "44.7" }],
+    ["latitude out of range", { lat: "91", lng: "44.7" }],
+    ["longitude out of range", { lat: "41.7", lng: "181" }],
+    ["text coordinate", { lat: "north", lng: "44.7" }],
     ["floor without total", { floors: "" }],
     ["total without floor", { floor: "" }],
     ["floor above total", { floor: "13" }],

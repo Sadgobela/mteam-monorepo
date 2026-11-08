@@ -20,6 +20,18 @@ vi.mock("next/navigation", () => ({
   },
 }));
 
+vi.mock("leaflet", () => ({
+  default: {
+    map: () => {
+      const map = { setView: () => map, fitBounds: () => map, remove: () => undefined, on: () => undefined };
+      return map;
+    },
+    tileLayer: () => ({ addTo: () => undefined }),
+    circleMarker: () => ({ bindPopup: () => ({ addTo: () => undefined }), addTo: () => undefined }),
+    latLngBounds: (points: unknown) => points,
+  },
+}));
+
 import { ListingCard } from "@/components/ListingCard";
 import { ListingForm } from "@/components/ListingForm";
 import { createListingAction } from "@/lib/listing-actions";
@@ -176,6 +188,16 @@ describe("listing photos", () => {
     db.getListing.mockResolvedValue({ ...fixtureListings[0], verification: { by: "Nino", at: "2026-11-05" } });
     render(await ListingPage({ params: Promise.resolve({ locale: "en", id: "20418" }) }));
     expect(screen.getByText("Checked by Nino, Nov 5")).toBeInTheDocument();
+  });
+
+  it("shows a map only when the listing has a location", async () => {
+    db.getListing.mockResolvedValue({ ...fixtureListings[0], lat: 41.7, lng: 44.7 });
+    const pinned = render(await ListingPage({ params: Promise.resolve({ locale: "en", id: "20418" }) }));
+    expect(screen.getByRole("region", { name: t.results.map })).toBeInTheDocument();
+    pinned.unmount();
+    db.getListing.mockResolvedValue({ ...fixtureListings[0], lat: 41.7 });
+    render(await ListingPage({ params: Promise.resolve({ locale: "en", id: "20418" }) }));
+    expect(screen.queryByRole("region", { name: t.results.map })).toBeNull();
   });
 
   it("omits the rooms fact for property without rooms", async () => {

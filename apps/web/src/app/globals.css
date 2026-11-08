@@ -150,3 +150,6 @@ a.btn { text-decoration: none; display: inline-block; }
 .agent.profile { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
 .chips { display: flex; gap: 8px; flex-wrap: wrap; }
 .chips a { display: inline-flex; align-items: center; gap: 6px; min-height: 36px; padding: 0 12px; border-radius: 999px; background: var(--brand-soft); color: var(--brand-deep); font-size: 13px; font-weight: 700; }
+.map { height: 520px; border-radius: 14px; border: 1px solid var(--line); z-index: 0; }
+.ldesc .map { height: 280px; }
+.map.small { height: 240px; }
