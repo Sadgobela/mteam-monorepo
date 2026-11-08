@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { countListings, getFavoriteIds, PAGE_SIZE, searchListings } from "@mteam/db";
 import { getDictionary, parseListingDisplay, parseListingFilters } from "@mteam/shared";
+import { FilterChips } from "@/components/FilterChips";
 import { Header } from "@/components/Header";
 import { LeadForm } from "@/components/LeadForm";
 import { ListingGrid } from "@/components/ListingGrid";
@@ -51,6 +52,8 @@ export default async function HomePage({
       <main className="page">
         {/* Keyed so that header links, which navigate without a reload, reset the form. */}
         <SearchBar key={JSON.stringify([filters, display])} t={t} filters={filters} display={display} />
+
+        {isResults && <FilterChips locale={locale} t={t} query={query} filters={filters} />}
 
         {isResults ? (
           <div className="toolbar">

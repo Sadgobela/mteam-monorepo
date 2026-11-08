@@ -107,6 +107,7 @@ function whereFor(filters: ListingFilters): Prisma.ListingWhereInput {
     rooms: roomsClause(filters.rooms),
     verified: filters.verified,
     priceUsd: { gte: filters.priceMin, lte: filters.priceMax },
+    area: { gte: filters.areaMin, lte: filters.areaMax },
     OR: textClause(filters.q),
   };
 }

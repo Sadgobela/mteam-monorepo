@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 import { getDictionary, type Listing } from "@mteam/shared";
 import { fixtureListings } from "@/test-fixtures";
+import { FilterChips } from "./FilterChips";
 import { Header } from "./Header";
 import { ListingCard } from "./ListingCard";
 import { SearchBar } from "./SearchBar";
@@ -20,6 +21,35 @@ describe("Header", () => {
   });
 });
 
+describe("FilterChips", () => {
+  const all = {
+    deal: "rent",
+    type: "land",
+    city: "dubai",
+    q: "marina",
+    verified: true,
+    rooms: 2,
+    priceMin: 100,
+    priceMax: 200,
+    areaMin: 40,
+    areaMax: 90,
+  } as const;
+
+  it("renders nothing with no filters", () => {
+    const { container } = render(<FilterChips locale="en" t={t} query={{}} filters={{}} />);
+    expect(container).toBeEmptyDOMElement();
+  });
+
+  it("shows each active filter as a link that removes only it", () => {
+    render(<FilterChips locale="en" t={t} query={{ deal: "rent", city: "dubai", page: "3" }} filters={all} />);
+    expect(screen.getAllByRole("link")).toHaveLength(10);
+    expect(screen.getByRole("link", { name: "Remove filter: Dubai" })).toHaveAttribute("href", "/en?deal=rent&city=&page=1");
+    expect(screen.getByRole("link", { name: "Remove filter: Area from, m² 40" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Remove filter: marina" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Remove filter: mTeam Verified" })).toBeInTheDocument();
+  });
+});
+
 describe("SearchBar", () => {
   const display = { sort: "new", view: "grid", cur: "usd", page: 1 } as const;
 
@@ -35,7 +65,7 @@ describe("SearchBar", () => {
 
   it("shows the active filters and opens the extra filters when one is in use", () => {
     const { container } = render(
-      <SearchBar t={t} filters={{ deal: "rent", city: "dubai", type: "land", priceMin: 1000, priceMax: 2000, rooms: 4, q: "vake", verified: true }} display={display} />,
+      <SearchBar t={t} filters={{ deal: "rent", city: "dubai", type: "land", priceMin: 1000, priceMax: 2000, rooms: 4, q: "vake", verified: true, areaMin: 40 }} display={display} />,
     );
     expect(screen.getByLabelText("Deal")).toHaveValue("rent");
     expect(screen.getByLabelText("City")).toHaveValue("dubai");
@@ -44,6 +74,7 @@ describe("SearchBar", () => {
     expect(screen.getByLabelText("Price to, $")).toHaveValue(2000);
     expect(screen.getByLabelText("Rooms")).toHaveValue("4");
     expect(screen.getByLabelText("Location")).toHaveValue("vake");
+    expect(screen.getByLabelText("Area from, m²")).toHaveValue(40);
     expect(screen.getByLabelText("Verified only")).toBeChecked();
     expect(container.querySelector("details")).toHaveAttribute("open");
   });

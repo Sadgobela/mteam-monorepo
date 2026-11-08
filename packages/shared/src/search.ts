@@ -29,6 +29,13 @@ const price = z
   .optional()
   .catch(undefined);
 
+const area = z
+  .string()
+  .regex(/^\d{1,7}$/)
+  .transform(Number)
+  .optional()
+  .catch(undefined);
+
 const filtersSchema = z.object({
   deal: z.enum(dealTypes).optional().catch(undefined),
   type: z.enum(propertyTypes).optional().catch(undefined),
@@ -41,6 +48,8 @@ const filtersSchema = z.object({
     .transform(Number)
     .optional()
     .catch(undefined),
+  areaMin: area,
+  areaMax: area,
   /** Free text matched against district, address, city and title. */
   q: z
     .string()
