@@ -78,8 +78,8 @@ export default async function ListingPage({
           <p>{listing.description}</p>
         </div>
         <aside className="side">
-          {listing.agent && (
-            <div className="agent">
+          <div className="agent">
+            {listing.agent ? (
               <div className="who">
                 <span className="av" aria-hidden="true">
                   {listing.agent.name.slice(0, 1)}
@@ -91,13 +91,16 @@ export default async function ListingPage({
                   </div>
                 </div>
               </div>
-              <div className="btns">
-                <button type="button" className="btn">{t.listing.call}</button>
-                <button type="button" className="btn wa">{t.listing.whatsapp}</button>
-                <button type="button" className="btn ghost">{t.listing.book}</button>
-              </div>
+            ) : (
+              <b>{t.listing.owner}</b>
+            )}
+            <div className="btns">
+              <a className="btn" href={`tel:${listing.contactPhone}`}>{t.listing.call}</a>
+              <a className="btn wa" href={`https://wa.me/${listing.contactPhone.replace(/\D/g, "")}`} target="_blank" rel="noreferrer">
+                {t.listing.whatsapp}
+              </a>
             </div>
-          )}
+          </div>
           {listing.verified && (
             <div className="note">
               <b>mTeam Verified</b>

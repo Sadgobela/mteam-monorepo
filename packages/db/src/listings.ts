@@ -32,10 +32,11 @@ const dbPropertyTypes: Record<PropertyType, DbPropertyType> = {
 };
 const tones = ["violet", "sand", "steel", "rose"] as const;
 
-/** Only what a public page may show: the owner and the broker's email stay out. */
+/** Only what a public page may show: names and emails stay out, and the phone is the listing's contact number. */
 const publicInclude = {
   agent: { include: { branch: true, user: { select: { name: true, phone: true } } } },
   images: { select: { url: true }, orderBy: { position: "asc" } },
+  owner: { select: { phone: true } },
 } satisfies Prisma.ListingInclude;
 
 type ListingRow = Prisma.ListingGetPayload<{ include: typeof publicInclude }>;
@@ -74,6 +75,7 @@ function toListing(row: ListingRow): Listing {
           phone: row.agent.user.phone,
         }
       : undefined,
+    contactPhone: row.agent?.user.phone ?? row.owner.phone,
     images: row.images.map((image) => image.url),
     // ponytail: placeholder gradient picked from the id, remove once every listing has photos.
     tone: tones[row.id % tones.length],

@@ -169,14 +169,18 @@ describe("listing page", () => {
     expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("ვაკეში");
     expect(screen.getByText("Floor")).toBeInTheDocument();
     expect(screen.getByText("Condition")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "WhatsApp" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Call" })).toHaveAttribute("href", "tel:+995555000000");
+    expect(screen.getByRole("link", { name: "WhatsApp" })).toHaveAttribute("href", "https://wa.me/995555000000");
+    expect(screen.getByText(/mTeam broker/)).toBeInTheDocument();
     expect(screen.getByText(/checked on site/)).toBeInTheDocument();
   });
 
   it("hides missing details, agent and badge", async () => {
     render(await ListingPage({ params: p({ locale: "en", id: "20422" }) }));
     expect(screen.queryByText("Condition")).toBeNull();
-    expect(screen.queryByRole("button", { name: "WhatsApp" })).toBeNull();
+    expect(screen.getByText("Owner")).toBeInTheDocument();
+    expect(screen.queryByText(/mTeam broker/)).toBeNull();
+    expect(screen.getByRole("link", { name: "WhatsApp" })).toBeInTheDocument();
     expect(screen.queryByText(/checked on site/)).toBeNull();
   });
 

@@ -85,6 +85,7 @@ export function ListingForm({ locale, t }: { locale: Locale; t: Dict }) {
         <Input label={f.floors} name="floors" type="number" min={1} max={200} />
       </div>
       <Input label={f.photos} name="photos" type="file" required multiple accept="image/jpeg,image/png,image/webp" />
+      <p className="meta">{t.post.phoneNotice}</p>
       {error && <p className="note" role="alert">{t.post.errors[error]}</p>}
       <button className="btn" type="submit" disabled={pending}>{t.post.submit}</button>
     </form>

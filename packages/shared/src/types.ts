@@ -28,6 +28,8 @@ export interface Listing {
   /** Checked on site by an mTeam broker. */
   verified: boolean;
   agent?: Agent;
+  /** The number to call: the broker's if there is one, otherwise the owner's. */
+  contactPhone: string;
   /** Public photo URLs in display order. */
   images: string[];
   /** Placeholder gradient until real photos are uploaded. */

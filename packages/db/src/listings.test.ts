@@ -28,6 +28,7 @@ const fullRow = {
   verified: true,
   agent: { id: "a1", user: { name: "Nino", phone: "+995" }, branch: { name: "Vake" } },
   images: [{ url: "https://cdn/a.jpg" }, { url: "https://cdn/b.jpg" }],
+  owner: { phone: "+995owner" },
   updatedAt: new Date("2026-11-06T10:00:00Z"),
 };
 
@@ -69,6 +70,7 @@ describe("getListing", () => {
       condition: "New",
       verified: true,
       agent: { id: "a1", name: "Nino", branch: "Vake", phone: "+995" },
+      contactPhone: "+995",
       images: ["https://cdn/a.jpg", "https://cdn/b.jpg"],
       tone: "steel",
       updatedAt: "2026-11-06",
@@ -87,6 +89,7 @@ describe("getListing", () => {
       floors: undefined,
       condition: undefined,
       agent: undefined,
+      contactPhone: "+995owner",
       tone: "sand",
     });
   });
@@ -99,12 +102,12 @@ describe("getListing", () => {
     expect((await getListing("20418"))?.agent).toEqual({ id: "a2", name: "", branch: "", phone: "+995" });
   });
 
-  it("only looks up published listings and never selects owner data", async () => {
+  it("only looks up published listings and selects no more than the owner's phone", async () => {
     prisma.listing.findFirst.mockResolvedValue(null);
     expect(await getListing("20418")).toBeUndefined();
     const args = prisma.listing.findFirst.mock.calls[0][0];
     expect(args.where).toEqual({ id: 20418, status: "ACTIVE" });
-    expect(args.include).not.toHaveProperty("owner");
+    expect(args.include.owner).toEqual({ select: { phone: true } });
     expect(args.include.agent.include.user).toEqual({ select: { name: true, phone: true } });
   });
 

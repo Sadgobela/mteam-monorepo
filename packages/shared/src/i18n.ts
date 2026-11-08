@@ -16,7 +16,7 @@ const ka = {
   deal: { sale: "იყიდება", rent: "ქირავდება", daily: "დღიურად" },
   perMonth: "/ თვე",
   units: { rooms: "ოთახი", floor: "სართ.", sqm: "მ²" },
-  listing: { area: "ფართი", rooms: "ოთახები", floor: "სართული", condition: "მდგომარეობა", call: "დარეკვა", whatsapp: "WhatsApp", book: "ნახვის დაჯავშნა", broker: "mTeam ბროკერი", verifiedNote: "ფოტოები, ფართი და ფასი ბროკერმა ადგილზე გადაამოწმა." },
+  listing: { area: "ფართი", rooms: "ოთახები", floor: "სართული", condition: "მდგომარეობა", call: "დარეკვა", whatsapp: "WhatsApp", owner: "მესაკუთრე", broker: "mTeam ბროკერი", verifiedNote: "ფოტოები, ფართი და ფასი ბროკერმა ადგილზე გადაამოწმა." },
   card: { title: "{deal} {rooms} ოთახიანი {type}", titleNoRooms: "{deal} {type}", photos: "ფოტო" },
   login: {
     title: "შესვლა",
@@ -36,6 +36,7 @@ const ka = {
   post: {
     heading: "განცხადების დამატება",
     fields: { title: "სათაური", description: "აღწერა", district: "უბანი", address: "მისამართი", price: "ფასი", currency: "ვალუტა", area: "ფართი, მ²", rooms: "ოთახები", floor: "სართული", floors: "სართულები სულ", photos: "ფოტოები: 1-დან 10-მდე, JPG, PNG ან WebP, თითო 5 მბ-მდე" },
+    phoneNotice: "შენი ნომერი განცხადებაზე გამოჩნდება, რომ დაგიკავშირდნენ.",
     submit: "გაგზავნა",
     sent: "განცხადება მიღებულია. მოდერაციის შემდეგ გამოქვეყნდება.",
     another: "კიდევ ერთის დამატება",
@@ -60,7 +61,7 @@ const en: Dict = {
   deal: { sale: "For sale", rent: "For rent", daily: "Daily" },
   perMonth: "/ month",
   units: { rooms: "rooms", floor: "floor", sqm: "m²" },
-  listing: { area: "Area", rooms: "Rooms", floor: "Floor", condition: "Condition", call: "Call", whatsapp: "WhatsApp", book: "Book a viewing", broker: "mTeam broker", verifiedNote: "Photos, area and price were checked on site by the broker." },
+  listing: { area: "Area", rooms: "Rooms", floor: "Floor", condition: "Condition", call: "Call", whatsapp: "WhatsApp", owner: "Owner", broker: "mTeam broker", verifiedNote: "Photos, area and price were checked on site by the broker." },
   card: { title: "{deal}: {rooms}-room {type}", titleNoRooms: "{deal}: {type}", photos: "photos" },
   login: {
     title: "Sign in",
@@ -80,6 +81,7 @@ const en: Dict = {
   post: {
     heading: "Post a listing",
     fields: { title: "Title", description: "Description", district: "District", address: "Address", price: "Price", currency: "Currency", area: "Area, m²", rooms: "Rooms", floor: "Floor", floors: "Total floors", photos: "Photos: 1 to 10, JPG, PNG or WebP, up to 5 MB each" },
+    phoneNotice: "Your number will be shown on the listing so people can contact you.",
     submit: "Submit",
     sent: "Your listing was received and will be published after moderation.",
     another: "Add another",
@@ -102,7 +104,7 @@ const ru: Dict = {
   deal: { sale: "Продажа", rent: "Аренда", daily: "Посуточно" },
   perMonth: "/ мес.",
   units: { rooms: "комн.", floor: "этаж", sqm: "м²" },
-  listing: { area: "Площадь", rooms: "Комнаты", floor: "Этаж", condition: "Состояние", call: "Позвонить", whatsapp: "WhatsApp", book: "Записаться на просмотр", broker: "Брокер mTeam", verifiedNote: "Фото, площадь и цену брокер проверил на месте." },
+  listing: { area: "Площадь", rooms: "Комнаты", floor: "Этаж", condition: "Состояние", call: "Позвонить", whatsapp: "WhatsApp", owner: "Собственник", broker: "Брокер mTeam", verifiedNote: "Фото, площадь и цену брокер проверил на месте." },
   card: { title: "{deal}: {rooms}-комн. {type}", titleNoRooms: "{deal}: {type}", photos: "фото" },
   login: {
     title: "Вход",
@@ -122,6 +124,7 @@ const ru: Dict = {
   post: {
     heading: "Новое объявление",
     fields: { title: "Заголовок", description: "Описание", district: "Район", address: "Адрес", price: "Цена", currency: "Валюта", area: "Площадь, м²", rooms: "Комнаты", floor: "Этаж", floors: "Всего этажей", photos: "Фото: от 1 до 10, JPG, PNG или WebP, до 5 МБ каждое" },
+    phoneNotice: "Ваш номер будет показан в объявлении, чтобы с вами могли связаться.",
     submit: "Отправить",
     sent: "Объявление получено и будет опубликовано после модерации.",
     another: "Добавить ещё",
