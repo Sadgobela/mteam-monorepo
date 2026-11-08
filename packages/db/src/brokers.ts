@@ -12,10 +12,10 @@ export interface Broker {
   phone: string;
 }
 
-/** Brokers with a name set. A staff account with no name is not ready to be shown publicly. */
+/** Only people with the broker role and a name set. Their phone is public, so admins and former brokers must not appear. */
 export async function listBrokers(): Promise<(Broker & { listingCount: number })[]> {
   const rows = await db().agent.findMany({
-    where: { user: { name: { not: null } } },
+    where: { user: { name: { not: null }, role: "AGENT" } },
     include: {
       user: { select: { name: true, phone: true } },
       branch: { select: { name: true } },
@@ -36,7 +36,7 @@ export async function listBrokers(): Promise<(Broker & { listingCount: number })
 export async function getBroker(id: string): Promise<(Broker & { listings: Listing[] }) | null> {
   if (!/^[\w-]{1,40}$/.test(id)) return null;
   const row = await db().agent.findFirst({
-    where: { id, user: { name: { not: null } } },
+    where: { id, user: { name: { not: null }, role: "AGENT" } },
     include: {
       user: { select: { name: true, phone: true } },
       branch: { select: { name: true } },

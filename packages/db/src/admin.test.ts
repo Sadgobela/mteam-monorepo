@@ -82,28 +82,25 @@ describe("leads", () => {
 });
 
 describe("promoteUser", () => {
-  const fake = () => ({
-    user: { update: vi.fn().mockResolvedValue({ id: "u1" }) },
-    agent: { upsert: vi.fn() },
-  });
+  const fake = () => ({ user: { update: vi.fn().mockResolvedValue({ id: "u1" }) } });
+  const staffWrite = { upsert: { create: {}, update: {} } };
 
-  it.each(["AGENT", "ADMIN"])("makes %s a broker record too", async (role) => {
+  it.each(["AGENT", "ADMIN"])("makes %s a broker record in the same write", async (role) => {
     const client = fake();
     await promoteUser(client as unknown as PrismaClient, "+995", role);
-    expect(client.user.update).toHaveBeenCalledWith({ where: { phone: "+995" }, data: { role, name: undefined } });
-    expect(client.agent.upsert).toHaveBeenCalledWith({ where: { userId: "u1" }, update: {}, create: { userId: "u1" } });
+    expect(client.user.update).toHaveBeenCalledWith({ where: { phone: "+995" }, data: { role, name: undefined, agent: staffWrite } });
   });
 
   it("can set the name shown on the broker's profile", async () => {
     const client = fake();
     await promoteUser(client as unknown as PrismaClient, "+995", "AGENT", "Nino");
-    expect(client.user.update).toHaveBeenCalledWith({ where: { phone: "+995" }, data: { role: "AGENT", name: "Nino" } });
+    expect(client.user.update.mock.calls[0][0].data.name).toBe("Nino");
   });
 
   it("creates no broker record for an ordinary user", async () => {
     const client = fake();
     await promoteUser(client as unknown as PrismaClient, "+995", "USER");
-    expect(client.agent.upsert).not.toHaveBeenCalled();
+    expect(client.user.update.mock.calls[0][0].data.agent).toBeUndefined();
   });
 
   it("rejects an unknown role before writing", async () => {

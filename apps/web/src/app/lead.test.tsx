@@ -30,6 +30,14 @@ describe("leadAction", () => {
   });
 });
 
+describe("leadAction failure", () => {
+  it("returns an error instead of crashing", async () => {
+    vi.spyOn(console, "error").mockImplementation(() => undefined);
+    db.createLead.mockRejectedValue(new Error("down"));
+    expect(await leadAction({}, form({ name: "Nino", phone: "555123456", deal: "sale" }))).toEqual({ failed: true });
+  });
+});
+
 describe("LeadForm", () => {
   const fill = async (phone: string) => {
     const user = userEvent.setup();
@@ -47,6 +55,14 @@ describe("LeadForm", () => {
 
   it("explains a bad number", async () => {
     await fill("123");
-    expect(await screen.findByRole("alert")).toHaveTextContent(t.login.errors.invalidPhone);
+    expect(await screen.findByRole("alert")).toHaveTextContent(t.home.leadInvalid);
+  });
+
+  it("keeps the form and apologises if saving fails", async () => {
+    vi.spyOn(console, "error").mockImplementation(() => undefined);
+    db.createLead.mockRejectedValue(new Error("down"));
+    await fill("555123456");
+    expect(await screen.findByRole("alert")).toHaveTextContent(t.home.leadFailed);
+    expect(screen.getByRole("button", { name: t.home.leadSubmit })).toBeInTheDocument();
   });
 });

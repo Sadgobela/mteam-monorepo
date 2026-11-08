@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { archiveListing, parseListingId, toggleFavorite } from "@mteam/db";
+import { archiveListing, parseListingId, setFavorite } from "@mteam/db";
 import { resolveLocale } from "./locale";
 import { currentUser } from "./session";
 
@@ -15,8 +15,9 @@ async function run(form: FormData, action: (userId: string, listingId: number) =
   revalidatePath("/", "layout");
 }
 
-export async function toggleFavoriteAction(form: FormData): Promise<void> {
-  await run(form, toggleFavorite);
+export async function setFavoriteAction(form: FormData): Promise<void> {
+  const want = form.get("want") === "1";
+  await run(form, (userId, listingId) => setFavorite(userId, listingId, want));
 }
 
 export async function archiveListingAction(form: FormData): Promise<void> {

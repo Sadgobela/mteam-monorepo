@@ -11,7 +11,7 @@ export function LeadForm({ t }: { t: Dict }) {
     <form className="form-row" action={action}>
       <label className="field">
         <small>{t.home.leadName}</small>
-        <input name="name" required maxLength={100} autoComplete="name" />
+        <input name="name" required maxLength={100} autoComplete="name" pattern=".*\S.*" />
       </label>
       <label className="field">
         <small>{t.login.phone}</small>
@@ -25,7 +25,8 @@ export function LeadForm({ t }: { t: Dict }) {
         </select>
       </label>
       <button className="btn lead-submit" type="submit" disabled={pending}>{t.home.leadSubmit}</button>
-      {state.invalid && <p className="note lead-error" role="alert">{t.login.errors.invalidPhone}</p>}
+      {state.invalid && <p className="note lead-error" role="alert">{t.home.leadInvalid}</p>}
+      {state.failed && <p className="note lead-error" role="alert">{t.home.leadFailed}</p>}
     </form>
   );
 }

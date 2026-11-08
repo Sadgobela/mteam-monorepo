@@ -36,7 +36,7 @@ export default async function MyListingsPage({ params }: { params: Promise<{ loc
                 </div>
               </div>
               <span className="status">{t.my.status[status]}</span>
-              {status !== "ARCHIVED" && (
+              {(status === "ACTIVE" || status === "PENDING") && (
                 <form action={archiveListingAction}>
                   <input type="hidden" name="locale" value={locale} />
                   <input type="hidden" name="listingId" value={listing.id} />

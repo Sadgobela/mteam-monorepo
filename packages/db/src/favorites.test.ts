@@ -7,7 +7,7 @@ const prisma = vi.hoisted(() => ({
 
 vi.mock("./client", () => ({ db: () => prisma }));
 
-import { archiveListing, getFavoriteIds, listFavorites, listMyListings, parseListingId, toggleFavorite } from "./index";
+import { archiveListing, getFavoriteIds, listFavorites, listMyListings, parseListingId, setFavorite } from "./index";
 
 const row = {
   id: 7,
@@ -35,26 +35,24 @@ const row = {
 
 beforeEach(() => vi.resetAllMocks());
 
-describe("toggleFavorite", () => {
-  it("removes an existing favourite and stops", async () => {
-    prisma.favorite.deleteMany.mockResolvedValue({ count: 1 });
-    await toggleFavorite("u1", 7);
+describe("setFavorite", () => {
+  it("removes when asked, and removing twice is harmless", async () => {
+    await setFavorite("u1", 7, false);
     expect(prisma.favorite.deleteMany).toHaveBeenCalledWith({ where: { userId: "u1", listingId: 7 } });
     expect(prisma.favorite.createMany).not.toHaveBeenCalled();
   });
 
-  it("adds a published listing, safely under a double click", async () => {
-    prisma.favorite.deleteMany.mockResolvedValue({ count: 0 });
+  it("adds a published listing, and adding twice is harmless", async () => {
     prisma.listing.findFirst.mockResolvedValue({ id: 7 });
-    await toggleFavorite("u1", 7);
+    await setFavorite("u1", 7, true);
     expect(prisma.listing.findFirst.mock.calls[0][0].where).toEqual({ id: 7, status: "ACTIVE" });
     expect(prisma.favorite.createMany).toHaveBeenCalledWith({ data: [{ userId: "u1", listingId: 7 }], skipDuplicates: true });
+    expect(prisma.favorite.deleteMany).not.toHaveBeenCalled();
   });
 
   it("refuses an unpublished or unknown listing", async () => {
-    prisma.favorite.deleteMany.mockResolvedValue({ count: 0 });
     prisma.listing.findFirst.mockResolvedValue(null);
-    await toggleFavorite("u1", 7);
+    await setFavorite("u1", 7, true);
     expect(prisma.favorite.createMany).not.toHaveBeenCalled();
   });
 });
@@ -88,7 +86,10 @@ describe("my listings", () => {
   it("can only archive the caller's own listing", async () => {
     prisma.listing.updateMany.mockResolvedValue({ count: 1 });
     await archiveListing("u1", 7);
-    expect(prisma.listing.updateMany).toHaveBeenCalledWith({ where: { id: 7, ownerId: "u1" }, data: { status: "ARCHIVED" } });
+    expect(prisma.listing.updateMany).toHaveBeenCalledWith({
+      where: { id: 7, ownerId: "u1", status: { in: ["PENDING", "ACTIVE"] } },
+      data: { status: "ARCHIVED" },
+    });
   });
 });
 

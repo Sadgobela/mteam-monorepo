@@ -130,7 +130,7 @@ a.btn { text-decoration: none; display: inline-block; }
 .band .lead-error { grid-column: 1 / -1; }
 .nav-link { display: inline-flex; align-items: center; min-height: 44px; padding: 0 4px; font-weight: 600; }
 .card-wrap { position: relative; display: grid; }
-.fav { position: absolute; right: 8px; top: 8px; width: 44px; height: 44px; border-radius: 50%; border: 0; background: #fff; color: #6e45a0; display: grid; place-items: center; cursor: pointer; }
+.fav { position: absolute; right: 8px; top: 8px; width: 44px; height: 44px; border-radius: 50%; border: 0; background: var(--surface); color: var(--brand-deep); display: grid; place-items: center; cursor: pointer; }
 .cards.list .fav { left: 248px; right: auto; }
 @media (max-width: 640px) { .cards.list .fav { left: auto; right: 8px; } }
 .mine { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }

@@ -1,6 +1,6 @@
 import Link from "next/link";
 import type { DisplayCurrency, Dict, Listing, Locale } from "@mteam/shared";
-import { toggleFavoriteAction } from "@/lib/account-actions";
+import { setFavoriteAction } from "@/lib/account-actions";
 import { ListingCard } from "./ListingCard";
 
 function Heart({ filled }: { filled: boolean }) {
@@ -36,10 +36,11 @@ export function ListingGrid({
           <div key={listing.id} className="card-wrap">
             <ListingCard listing={listing} locale={locale} t={t} cur={cur} />
             {signedIn ? (
-              <form action={toggleFavoriteAction}>
+              <form action={setFavoriteAction}>
                 <input type="hidden" name="locale" value={locale} />
                 <input type="hidden" name="listingId" value={listing.id} />
-                <button type="submit" className="fav" aria-pressed={active} aria-label={active ? t.favorites.remove : t.favorites.add}>
+                <input type="hidden" name="want" value={active ? "0" : "1"} />
+                <button type="submit" className="fav" aria-label={active ? t.favorites.remove : t.favorites.add}>
                   <Heart filled={active} />
                 </button>
               </form>

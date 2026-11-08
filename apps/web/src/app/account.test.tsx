@@ -12,7 +12,7 @@ const db = vi.hoisted(() => ({
   PAGE_SIZE: 24,
   parseListingId: vi.fn(),
   searchListings: vi.fn(),
-  toggleFavorite: vi.fn(),
+  setFavorite: vi.fn(),
 }));
 const session = vi.hoisted(() => ({ currentUser: vi.fn(), hasSession: vi.fn() }));
 const revalidatePath = vi.hoisted(() => vi.fn());
@@ -31,7 +31,7 @@ vi.mock("next/navigation", () => ({
 }));
 
 import { Header } from "@/components/Header";
-import { archiveListingAction, toggleFavoriteAction } from "@/lib/account-actions";
+import { archiveListingAction, setFavoriteAction } from "@/lib/account-actions";
 import HomePage from "./[locale]/page";
 import FavoritesPage from "./[locale]/favorites/page";
 import MyListingsPage from "./[locale]/my-listings/page";
@@ -53,11 +53,16 @@ beforeEach(() => {
 describe("account actions", () => {
   const body = { locale: "en", listingId: "7" };
 
-  it("toggles a favourite for the signed-in user and refreshes", async () => {
-    await toggleFavoriteAction(form(body));
+  it("saves a favourite for the signed-in user and refreshes", async () => {
+    await setFavoriteAction(form({ ...body, want: "1" }));
     expect(db.parseListingId).toHaveBeenCalledWith("7");
-    expect(db.toggleFavorite).toHaveBeenCalledWith("u1", 7);
+    expect(db.setFavorite).toHaveBeenCalledWith("u1", 7, true);
     expect(revalidatePath).toHaveBeenCalledWith("/", "layout");
+  });
+
+  it("removes a favourite when asked", async () => {
+    await setFavoriteAction(form({ ...body, want: "0" }));
+    expect(db.setFavorite).toHaveBeenCalledWith("u1", 7, false);
   });
 
   it("archives only through the signed-in user", async () => {
@@ -67,14 +72,14 @@ describe("account actions", () => {
 
   it("sends a visitor to login without acting", async () => {
     session.currentUser.mockResolvedValue(null);
-    await expect(toggleFavoriteAction(form(body))).rejects.toThrow("REDIRECT /en/login");
-    expect(db.toggleFavorite).not.toHaveBeenCalled();
+    await expect(setFavoriteAction(form(body))).rejects.toThrow("REDIRECT /en/login");
+    expect(db.setFavorite).not.toHaveBeenCalled();
   });
 
   it("ignores an invalid id", async () => {
     db.parseListingId.mockReturnValue(null);
-    await toggleFavoriteAction(form({ locale: "en", listingId: "x" }));
-    expect(db.toggleFavorite).not.toHaveBeenCalled();
+    await setFavoriteAction(form({ locale: "en", listingId: "x" }));
+    expect(db.setFavorite).not.toHaveBeenCalled();
   });
 });
 
@@ -87,7 +92,6 @@ describe("favourite hearts on the home page", () => {
     expect(db.getFavoriteIds).toHaveBeenCalledWith("u1");
     expect(screen.getAllByRole("button", { name: t.favorites.remove })).toHaveLength(1);
     expect(screen.getAllByRole("button", { name: t.favorites.add })).toHaveLength(fixtureListings.length - 1);
-    expect(screen.getByRole("button", { name: t.favorites.remove })).toHaveAttribute("aria-pressed", "true");
   });
 
   it("sends a visitor's heart to login without a query", async () => {
@@ -127,7 +131,7 @@ describe("MyListingsPage", () => {
   });
 
   it("links only published listings and offers archive until archived", async () => {
-    db.listMyListings.mockResolvedValue([entry("ACTIVE", 0), entry("PENDING", 1), entry("ARCHIVED", 2)]);
+    db.listMyListings.mockResolvedValue([entry("ACTIVE", 0), entry("PENDING", 1), entry("ARCHIVED", 2), entry("REJECTED", 2)]);
     render(await MyListingsPage({ params }));
     expect(db.listMyListings).toHaveBeenCalledWith("u1");
     expect(screen.getByRole("link", { name: fixtureListings[0].title })).toHaveAttribute("href", `/en/listings/${fixtureListings[0].id}`);

@@ -4,11 +4,13 @@ import { publicInclude, toListing } from "./listings";
 
 const LIST_LIMIT = 100;
 
-/** Adds or removes a favourite. Only a published listing can be added. */
-export async function toggleFavorite(userId: string, listingId: number): Promise<void> {
+/** Sets a favourite to the state the user asked for, so a double click or a stale tab cannot undo it. Only published listings can be added. */
+export async function setFavorite(userId: string, listingId: number, want: boolean): Promise<void> {
   const client = db();
-  const { count: removed } = await client.favorite.deleteMany({ where: { userId, listingId } });
-  if (removed > 0) return;
+  if (!want) {
+    await client.favorite.deleteMany({ where: { userId, listingId } });
+    return;
+  }
   const listing = await client.listing.findFirst({ where: { id: listingId, status: "ACTIVE" }, select: { id: true } });
   if (listing) await client.favorite.createMany({ data: [{ userId, listingId }], skipDuplicates: true });
 }

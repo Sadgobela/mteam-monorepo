@@ -9,7 +9,7 @@ const session = vi.hoisted(() => ({ currentUser: vi.fn(), hasSession: vi.fn() })
 vi.mock("@mteam/db", () => db);
 vi.mock("@/lib/session", () => session);
 vi.mock("@/lib/auth-actions", () => ({ logoutAction: vi.fn() }));
-vi.mock("@/lib/account-actions", () => ({ toggleFavoriteAction: vi.fn() }));
+vi.mock("@/lib/account-actions", () => ({ setFavoriteAction: vi.fn() }));
 vi.mock("next/navigation", () => ({
   notFound: () => {
     throw new Error("NEXT_NOT_FOUND");

@@ -18,6 +18,6 @@ export {
   verifyListing,
 } from "./admin";
 export { getBroker, listBrokers, type Broker } from "./brokers";
-export { getFavoriteIds, listFavorites, toggleFavorite } from "./favorites";
+export { getFavoriteIds, listFavorites, setFavorite } from "./favorites";
 export { createLead } from "./leads";
 export { deleteSession, getSessionUser, requestLoginCode, verifyLoginCode } from "./auth";

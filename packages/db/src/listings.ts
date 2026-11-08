@@ -185,7 +185,7 @@ export async function listMyListings(ownerId: string) {
   return rows.map((row) => ({ listing: toListing(row), status: row.status }));
 }
 
-/** Takes a listing off the site. The owner check is part of the write, so nobody can archive another user's listing. */
+/** Takes a live or pending listing down. The owner check is part of the write, and a rejection cannot be overwritten. */
 export async function archiveListing(ownerId: string, id: number): Promise<void> {
-  await db().listing.updateMany({ where: { id, ownerId }, data: { status: "ARCHIVED" } });
+  await db().listing.updateMany({ where: { id, ownerId, status: { in: ["PENDING", "ACTIVE"] } }, data: { status: "ARCHIVED" } });
 }

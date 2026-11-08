@@ -20,7 +20,7 @@ describe("listBrokers", () => {
       { id: "a2", name: "", branch: "", phone: "+996", listingCount: 0 },
     ]);
     const args = prisma.agent.findMany.mock.calls[0][0];
-    expect(args.where).toEqual({ user: { name: { not: null } } });
+    expect(args.where).toEqual({ user: { name: { not: null }, role: "AGENT" } });
     expect(args.include._count.select.listings.where).toEqual({ status: "ACTIVE" });
   });
 });
@@ -32,7 +32,7 @@ describe("getBroker", () => {
     expect(broker).toMatchObject({ id: "a1", name: "Nino", branch: "Vake", phone: "+995" });
     expect(broker?.listings.map((l) => l.id)).toEqual([7]);
     const args = prisma.agent.findFirst.mock.calls[0][0];
-    expect(args.where).toEqual({ id: "a1", user: { name: { not: null } } });
+    expect(args.where).toEqual({ id: "a1", user: { name: { not: null }, role: "AGENT" } });
     expect(args.include.listings.where).toEqual({ status: "ACTIVE" });
   });
 
