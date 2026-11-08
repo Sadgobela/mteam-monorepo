@@ -12,7 +12,7 @@ vi.mock("next/navigation", () => ({
 vi.mock("@mteam/db", async () => {
   const { fixtureListings: listings } = await import("@/test-fixtures");
   return {
-    getFeaturedListings: async () => listings,
+    searchListings: vi.fn(async () => listings),
     countActiveListings: async () => 57,
     getListing: async (id: string) => listings.find((l) => String(l.id) === id),
   };

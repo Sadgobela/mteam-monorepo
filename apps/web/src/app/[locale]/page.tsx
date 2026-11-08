@@ -1,4 +1,4 @@
-import { countActiveListings, getFeaturedListings } from "@mteam/db";
+import { countActiveListings, searchListings } from "@mteam/db";
 import { getDictionary } from "@mteam/shared";
 import { Header } from "@/components/Header";
 import { ListingCard } from "@/components/ListingCard";
@@ -11,7 +11,7 @@ export const dynamic = "force-dynamic";
 export default async function HomePage({ params }: { params: Promise<{ locale: string }> }) {
   const locale = resolveLocale((await params).locale);
   const t = getDictionary(locale);
-  const [listings, activeCount] = await Promise.all([getFeaturedListings(), countActiveListings()]);
+  const [listings, activeCount] = await Promise.all([searchListings(), countActiveListings()]);
   return (
     <>
       <Header locale={locale} t={t} />

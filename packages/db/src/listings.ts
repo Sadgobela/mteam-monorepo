@@ -1,9 +1,18 @@
 import type { DealType as DbDealType, Prisma, PropertyType as DbPropertyType } from "@prisma/client";
-import type { DealType, Listing, PropertyType } from "@mteam/shared";
+import {
+  cityNames,
+  roomOptions,
+  type Currency,
+  type DealType,
+  type Listing,
+  type ListingFilters,
+  type PropertyType,
+} from "@mteam/shared";
 import { z } from "zod";
 import { db } from "./client";
 
-const FEATURED_LIMIT = 12;
+// ponytail: one page of results; add pagination when a search can match more than this.
+const SEARCH_LIMIT = 24;
 const POSTGRES_INT_MAX = 2147483647;
 
 const deals: Record<DbDealType, DealType> = { SALE: "sale", RENT: "rent", DAILY: "daily" };
@@ -13,6 +22,15 @@ const propertyTypes: Record<DbPropertyType, PropertyType> = {
   COMMERCIAL: "commercial",
   LAND: "land",
 };
+const dbDeals: Record<DealType, DbDealType> = { sale: "SALE", rent: "RENT", daily: "DAILY" };
+const dbPropertyTypes: Record<PropertyType, DbPropertyType> = {
+  apartment: "APARTMENT",
+  house: "HOUSE",
+  commercial: "COMMERCIAL",
+  land: "LAND",
+};
+// ponytail: fixed rates. AED is pegged to USD; GEL drifts, so replace this with a stored daily rate if price filters need to be exact.
+const unitsPerUsd: Record<Currency, number> = { USD: 1, GEL: 2.7, AED: 3.6725 };
 const tones = ["violet", "sand", "steel", "rose"] as const;
 
 /** Only what a public page may show: the owner and the broker's email stay out. */
@@ -62,13 +80,39 @@ function toListing(row: ListingRow): Listing {
   };
 }
 
-/** Newest published listings for the home page. */
-export async function getFeaturedListings(): Promise<Listing[]> {
+/** Price bounds are in USD; each listing is compared in its own currency. */
+function priceClauses({ priceMin, priceMax }: ListingFilters): Prisma.ListingWhereInput[] | undefined {
+  if (priceMin === undefined && priceMax === undefined) return undefined;
+  return (Object.keys(unitsPerUsd) as Currency[]).map((currency) => {
+    const rate = unitsPerUsd[currency];
+    return {
+      currency,
+      price: {
+        gte: priceMin === undefined ? undefined : Math.round(priceMin * rate),
+        lte: priceMax === undefined ? undefined : Math.round(priceMax * rate),
+      },
+    };
+  });
+}
+
+function roomsClause(rooms: number | undefined): Prisma.IntNullableFilter | number | undefined {
+  return rooms === roomOptions[roomOptions.length - 1] ? { gte: rooms } : rooms;
+}
+
+/** Newest published listings matching the filters. No filters means all of them. */
+export async function searchListings(filters: ListingFilters = {}): Promise<Listing[]> {
   const rows = await db().listing.findMany({
-    where: { status: "ACTIVE" },
+    where: {
+      status: "ACTIVE",
+      deal: filters.deal && dbDeals[filters.deal],
+      type: filters.type && dbPropertyTypes[filters.type],
+      city: filters.city && cityNames[filters.city],
+      rooms: roomsClause(filters.rooms),
+      OR: priceClauses(filters),
+    },
     include: publicInclude,
     orderBy: { id: "desc" },
-    take: FEATURED_LIMIT,
+    take: SEARCH_LIMIT,
   });
   return rows.map(toListing);
 }
