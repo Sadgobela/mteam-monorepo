@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { countListings, PAGE_SIZE, searchListings } from "@mteam/db";
 import { getDictionary, parseListingDisplay, parseListingFilters } from "@mteam/shared";
 import { Header } from "@/components/Header";
+import { LeadForm } from "@/components/LeadForm";
 import { ListingCard } from "@/components/ListingCard";
 import { SearchBar } from "@/components/SearchBar";
 import { Segmented } from "@/components/Segmented";
@@ -117,6 +118,7 @@ export default async function HomePage({
         <section id="give" className="band">
           <h2>{t.home.bandTitle}</h2>
           <p>{t.home.bandText}</p>
+          <LeadForm t={t} />
         </section>
       </main>
     </>

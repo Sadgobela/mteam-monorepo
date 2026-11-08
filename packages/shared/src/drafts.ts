@@ -59,3 +59,21 @@ export function parseListingDraft(fields: Record<string, unknown>): ListingDraft
   const result = draftSchema.safeParse(fields);
   return result.success ? result.data : null;
 }
+
+const leadSchema = z.object({
+  name: text(100),
+  phone: z.string().transform((value, context) => {
+    const phone = parsePhone(value);
+    if (!phone) context.addIssue({ code: "custom", message: "invalid phone" });
+    return phone ?? "";
+  }),
+  deal: z.enum(["sale", "rent"]),
+});
+
+export type LeadDraft = z.infer<typeof leadSchema>;
+
+/** Validates a "Give it to mTeam" request. */
+export function parseLead(fields: Record<string, unknown>): LeadDraft | null {
+  const result = leadSchema.safeParse(fields);
+  return result.success ? result.data : null;
+}

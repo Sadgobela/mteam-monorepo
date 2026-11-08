@@ -122,7 +122,9 @@ a.btn { text-decoration: none; display: inline-block; }
 @media (max-width: 640px) { .cards.list .card { grid-template-columns: minmax(0, 1fr); } }
 .pager { display: flex; justify-content: center; gap: 24px; font-weight: 700; color: var(--brand-deep); }
 .pager a { display: inline-flex; align-items: center; min-height: 44px; }
-.band { display: grid; gap: 4px; background: var(--brand-soft); border-radius: 16px; padding: 22px; scroll-margin-top: 16px; }
+.band { display: grid; gap: 4px; min-width: 0; background: var(--brand-soft); border-radius: 16px; padding: 22px; scroll-margin-top: 16px; }
 .band h2 { font-size: 20px; font-weight: 800; }
 .band p { margin: 0; color: var(--muted); }
 .side { position: sticky; top: 16px; align-self: start; }
+.band .form-row { margin-top: 10px; align-items: end; }
+.band .lead-error { grid-column: 1 / -1; }

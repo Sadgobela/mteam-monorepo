@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { parseListingDraft, parsePhone } from "./index";
+import { parseLead, parseListingDraft, parsePhone } from "./index";
 
 describe("parsePhone", () => {
   it.each(["555123456", "555 12 34 56", "+995555123456", "+995 (555) 12-34-56", "00995555123456", "995555123456"])(
@@ -11,6 +11,25 @@ describe("parsePhone", () => {
 
   it.each(["", "abc", "55512345", "5551234567", "455123456", "+1555123456", "+971501234567"])("rejects %j", (input) => {
     expect(parsePhone(input)).toBeNull();
+  });
+});
+
+describe("parseLead", () => {
+  it("normalizes a valid request", () => {
+    expect(parseLead({ name: " Nino ", phone: "555 12 34 56", deal: "rent", extra: "x" })).toEqual({
+      name: "Nino",
+      phone: "+995555123456",
+      deal: "rent",
+    });
+  });
+
+  it.each([
+    ["no name", { name: " " }],
+    ["bad phone", { phone: "123" }],
+    ["daily deal", { deal: "daily" }],
+    ["NUL in name", { name: "a\0b" }],
+  ])("rejects %s", (_name, change) => {
+    expect(parseLead({ name: "Nino", phone: "555123456", deal: "sale", ...change })).toBeNull();
   });
 });
 
