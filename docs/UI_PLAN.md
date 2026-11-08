@@ -36,29 +36,32 @@ These come first in every design decision. Where a portal convention conflicts w
 
 ## Plan
 
-Recommended base: myhome's page structure and grid, with ss's list view as the second option on results.
+Chosen on 2026-11-09: **version A, the familiar grid**, from the [clickable mockup](https://claude.ai/artifact/LG6CuHAfL58Qu8KoT8agxS). Results keep a list view as the second option.
 
 ### 1. Header
-- [ ] Two rows on desktop: logo, post button, language, favourites, sign in; then the sections.
+- [x] Two rows on desktop: logo, post button, language, favourites, sign in; then the sections.
 - [ ] Compact phone header with a menu.
 
 ### 2. Search
-- [ ] Home: one wide bar with deal and property type, location, and search.
-- [ ] "Verified only" switch beside the search button.
-- [ ] A filters button opening the full set: price, area, rooms, floor, city and district.
-- [ ] Results: the same bar stays at the top, with active filters as removable chips.
+- [x] Home: one wide bar with deal and property type, location, and search.
+- [x] "Verified only" switch beside the search button.
+- [x] A filters button opening price, rooms and city.
+- [ ] Add area, floor and district to it.
+- [x] Results: the same bar stays at the top.
+- [ ] Active filters as removable chips.
 
 ### 3. Listing card
-- [ ] Order: photo, price, price per m², generated title, icon row, address, date.
-- [ ] Generated title in the page language, such as "For sale: 3-room apartment in Vake", so the card is not only in the language the owner wrote.
-- [ ] mTeam Verified badge top left, with broker and check date on hover and on the listing page; favourite heart top right; photo count.
+- [x] Order: photo, price, price per m², generated title, icon row, address, date.
+- [x] Generated title in the page language, such as "For sale: 3-room apartment in Vake", so the card is not only in the language the owner wrote.
+- [x] mTeam Verified badge top left and photo count.
+- [ ] Broker and check date on hover; favourite heart top right.
 - [ ] Broker avatar and name on verified cards.
-- [ ] Four columns on desktop, two on tablet, one on phone.
+- [x] Four columns on desktop, two on tablet, one on phone.
 
 ### 4. Results
-- [ ] Separate results view with listing count and sort (newest, price up, price down).
-- [ ] Grid / list switch.
-- [ ] Pagination.
+- [x] Separate results view with listing count and sort (newest, price up, price down).
+- [x] Grid / list switch.
+- [x] Pagination.
 - [ ] Map view (later).
 
 ### 5. Listing page
@@ -76,14 +79,16 @@ Recommended base: myhome's page structure and grid, with ss's list view as the s
 
 These UI items need more than styling:
 
-- [ ] Sort options and pagination in `searchListings`.
+- [x] Sort options and pagination in `searchListings`.
 - [ ] District and area filters.
-- [ ] ₾/$ price display (exchange rate source; search currently uses a fixed rate).
+- [x] ₾/$ price display, at fixed rates.
+- [ ] A real exchange rate source.
 - [ ] Favourites.
-- [ ] Who verified a listing and when (`verifiedAt`, `verifiedBy`), and a verified filter with verified-first ordering.
+- [x] Verified filter and verified-first ordering.
+- [ ] Who verified a listing and when (`verifiedAt`, `verifiedBy`).
 - [ ] Lead form for Give it to mTeam (the `Lead` model already exists).
 - [ ] Generated titles need translated district names, or fall back to the city.
 
 ## Order
 
-1 card, 2 search and header, 3 results, 4 listing page, 5 posting form. The card comes first because it appears on every browsing page and is what users compare with the portals.
+Done: card, search and header, results. Next: Give it to mTeam lead form, listing page, posting form.
