@@ -1,2 +1,2 @@
 export { db } from "./client";
-export { countActiveListings, getFeaturedListings, getListing } from "./listings";
+export { countActiveListings, getListing, searchListings } from "./listings";

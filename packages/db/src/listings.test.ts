@@ -6,7 +6,7 @@ const prisma = vi.hoisted(() => ({
 
 vi.mock("./client", () => ({ db: () => prisma }));
 
-import { countActiveListings, getFeaturedListings, getListing } from "./index";
+import { countActiveListings, getListing, searchListings } from "./index";
 
 const fullRow = {
   id: 20418,
@@ -121,15 +121,67 @@ describe("getListing", () => {
   });
 });
 
-describe("getFeaturedListings", () => {
+describe("searchListings", () => {
+  const whereFor = async (filters: Parameters<typeof searchListings>[0]) => {
+    prisma.listing.findMany.mockResolvedValue([]);
+    await searchListings(filters);
+    return prisma.listing.findMany.mock.calls[0][0].where;
+  };
+
   it("returns a bounded, newest-first page of published listings", async () => {
     prisma.listing.findMany.mockResolvedValue([fullRow, bareRow]);
-    expect((await getFeaturedListings()).map((l) => l.id)).toEqual([20418, 20421]);
+    expect((await searchListings()).map((l) => l.id)).toEqual([20418, 20421]);
     expect(prisma.listing.findMany.mock.calls[0][0]).toMatchObject({
       where: { status: "ACTIVE" },
       orderBy: { id: "desc" },
-      take: 12,
+      take: 24,
     });
+  });
+
+  it("applies no filter beyond published when none is given", async () => {
+    const where = await whereFor({});
+    expect(JSON.parse(JSON.stringify(where))).toEqual({ status: "ACTIVE" });
+  });
+
+  it("translates deal, type and city to stored values and stays published-only", async () => {
+    expect(await whereFor({ deal: "rent", type: "house", city: "batumi" })).toMatchObject({
+      status: "ACTIVE",
+      deal: "RENT",
+      type: "HOUSE",
+      city: "ბათუმი",
+    });
+  });
+
+  it.each([1, 3])("matches exactly %i rooms", async (rooms) => {
+    expect((await whereFor({ rooms })).rooms).toBe(rooms);
+  });
+
+  it("treats the top room option as that many or more", async () => {
+    expect((await whereFor({ rooms: 4 })).rooms).toEqual({ gte: 4 });
+  });
+
+  it("converts USD price bounds into each currency", async () => {
+    expect((await whereFor({ priceMin: 1000, priceMax: 2000 })).OR).toEqual([
+      { currency: "USD", price: { gte: 1000, lte: 2000 } },
+      { currency: "GEL", price: { gte: 2700, lte: 5400 } },
+      { currency: "AED", price: { gte: 3673, lte: 7345 } },
+    ]);
+  });
+
+  it("supports a one-sided price range, including a minimum of zero", async () => {
+    const min = (await whereFor({ priceMin: 0 })).OR;
+    expect(min).toEqual([
+      { currency: "USD", price: { gte: 0, lte: undefined } },
+      { currency: "GEL", price: { gte: 0, lte: undefined } },
+      { currency: "AED", price: { gte: 0, lte: undefined } },
+    ]);
+    prisma.listing.findMany.mockClear();
+    const max = (await whereFor({ priceMax: 500 })).OR;
+    expect(max).toEqual([
+      { currency: "USD", price: { gte: undefined, lte: 500 } },
+      { currency: "GEL", price: { gte: undefined, lte: 1350 } },
+      { currency: "AED", price: { gte: undefined, lte: 1836 } },
+    ]);
   });
 });
 

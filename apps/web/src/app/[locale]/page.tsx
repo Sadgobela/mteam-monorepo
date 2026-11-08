@@ -1,5 +1,5 @@
-import { countActiveListings, getFeaturedListings } from "@mteam/db";
-import { getDictionary } from "@mteam/shared";
+import { countActiveListings, searchListings } from "@mteam/db";
+import { getDictionary, parseListingFilters } from "@mteam/shared";
 import { Header } from "@/components/Header";
 import { ListingCard } from "@/components/ListingCard";
 import { SearchBar } from "@/components/SearchBar";
@@ -8,10 +8,18 @@ import { resolveLocale } from "@/lib/locale";
 /** Reads live data, so it renders per request and the build needs no database. */
 export const dynamic = "force-dynamic";
 
-export default async function HomePage({ params }: { params: Promise<{ locale: string }> }) {
+export default async function HomePage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ locale: string }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
   const locale = resolveLocale((await params).locale);
   const t = getDictionary(locale);
-  const [listings, activeCount] = await Promise.all([getFeaturedListings(), countActiveListings()]);
+  const filters = parseListingFilters(await searchParams);
+  const [listings, activeCount] = await Promise.all([searchListings(filters), countActiveListings()]);
+  const filtered = Object.values(filters).some((value) => value !== undefined);
   return (
     <>
       <Header locale={locale} t={t} />
@@ -19,7 +27,8 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
         <section className="hero">
           <h1>{t.hero.title}</h1>
           <p>{t.hero.lead}</p>
-          <SearchBar t={t} />
+          {/* Keyed so that header links, which navigate without a reload, reset the form. */}
+          <SearchBar key={JSON.stringify(filters)} t={t} filters={filters} />
           <div className="trust">
             <span>
               <b>{activeCount}</b> {t.stats.listings}
@@ -32,13 +41,17 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
         </section>
         <section className="section">
           <div className="row">
-            <h2>{t.featured}</h2>
+            <h2>{filtered ? t.search.results : t.featured}</h2>
           </div>
-          <div className="cards">
-            {listings.map((l) => (
-              <ListingCard key={l.id} listing={l} locale={locale} t={t} />
-            ))}
-          </div>
+          {listings.length === 0 ? (
+            <p className="meta">{t.search.empty}</p>
+          ) : (
+            <div className="cards">
+              {listings.map((l) => (
+                <ListingCard key={l.id} listing={l} locale={locale} t={t} />
+              ))}
+            </div>
+          )}
         </section>
       </main>
     </>

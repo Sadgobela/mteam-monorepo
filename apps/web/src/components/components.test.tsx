@@ -18,10 +18,34 @@ describe("Header", () => {
 });
 
 describe("SearchBar", () => {
-  it("renders the search fields", () => {
-    render(<SearchBar t={t} />);
+  it("starts with every filter off", () => {
+    render(<SearchBar t={t} filters={{}} />);
     expect(screen.getByRole("search")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Search" })).toBeInTheDocument();
+    for (const label of ["Deal", "City", "Type", "Rooms"]) expect(screen.getByLabelText(label)).toHaveValue("");
+    expect(screen.getByLabelText("Price from, $")).toHaveValue(null);
+    expect(screen.getByLabelText("Price to, $")).toHaveValue(null);
+  });
+
+  it("shows the active filters", () => {
+    render(
+      <SearchBar t={t} filters={{ deal: "rent", city: "dubai", type: "land", priceMin: 1000, priceMax: 2000, rooms: 4 }} />,
+    );
+    expect(screen.getByLabelText("Deal")).toHaveValue("rent");
+    expect(screen.getByLabelText("City")).toHaveValue("dubai");
+    expect(screen.getByLabelText("Type")).toHaveValue("land");
+    expect(screen.getByLabelText("Price from, $")).toHaveValue(1000);
+    expect(screen.getByLabelText("Price to, $")).toHaveValue(2000);
+    expect(screen.getByLabelText("Rooms")).toHaveValue("4");
+  });
+
+  it("labels options in the page language, and the top room count as a minimum", () => {
+    render(<SearchBar t={getDictionary("ru")} filters={{}} />);
+    expect(screen.getByRole("option", { name: "Тбилиси" })).toBeInTheDocument();
+    expect(screen.getByRole("option", { name: "Посуточно" })).toBeInTheDocument();
+    expect(screen.getByRole("option", { name: "Участок" })).toBeInTheDocument();
+    expect(screen.getByRole("option", { name: "4+" })).toHaveValue("4");
+    expect(screen.getByRole("option", { name: "3" })).toHaveValue("3");
   });
 });
 
