@@ -16,7 +16,7 @@ const ka = {
   deal: { sale: "იყიდება", rent: "ქირავდება", daily: "დღიურად" },
   perMonth: "/ თვე",
   units: { rooms: "ოთახი", floor: "სართ.", sqm: "მ²" },
-  listing: { area: "ფართი", rooms: "ოთახები", floor: "სართული", condition: "მდგომარეობა", call: "დარეკვა", whatsapp: "WhatsApp", owner: "მესაკუთრე", broker: "mTeam ბროკერი", verifiedNote: "ფოტოები, ფართი და ფასი ბროკერმა ადგილზე გადაამოწმა." },
+  listing: { checkedBy: "შეამოწმა {name}, {date}", area: "ფართი", rooms: "ოთახები", floor: "სართული", condition: "მდგომარეობა", call: "დარეკვა", whatsapp: "WhatsApp", owner: "მესაკუთრე", broker: "mTeam ბროკერი", verifiedNote: "ფოტოები, ფართი და ფასი ბროკერმა ადგილზე გადაამოწმა." },
   card: { title: "{deal} {rooms} ოთახიანი {type}", titleNoRooms: "{deal} {type}", photos: "ფოტო" },
   login: {
     title: "შესვლა",
@@ -48,6 +48,7 @@ const ka = {
   },
   favorites: { heading: "რჩეულები", empty: "ჯერ არაფერი შეგინახავს. დააჭირე გულს განცხადებაზე.", add: "რჩეულებში დამატება", remove: "რჩეულებიდან ამოღება" },
   my: { heading: "ჩემი განცხადებები", empty: "ჯერ განცხადება არ დაგიმატებია.", archive: "მოხსნა", status: { DRAFT: "დრაფტი", PENDING: "მოდერაციაზე", ACTIVE: "გამოქვეყნებული", ARCHIVED: "მოხსნილი", REJECTED: "უარყოფილი" } },
+  admin: { heading: "მართვის პანელი", pending: "მოდერაციას ელოდება", unverified: "გადასამოწმებელი", leads: "მიეცი mTeam-ს: მოთხოვნები", nothing: "ცარიელია.", approve: "გამოქვეყნება", reject: "უარყოფა", verify: "ადგილზე შევამოწმე", contacted: "დავუკავშირდი", contactedDone: "დაკავშირებული" },
   theme: { dark: "მუქი რეჟიმი", light: "ნათელი რეჟიმი" },
 };
 
@@ -63,7 +64,7 @@ const en: Dict = {
   deal: { sale: "For sale", rent: "For rent", daily: "Daily" },
   perMonth: "/ month",
   units: { rooms: "rooms", floor: "floor", sqm: "m²" },
-  listing: { area: "Area", rooms: "Rooms", floor: "Floor", condition: "Condition", call: "Call", whatsapp: "WhatsApp", owner: "Owner", broker: "mTeam broker", verifiedNote: "Photos, area and price were checked on site by the broker." },
+  listing: { checkedBy: "Checked by {name}, {date}", area: "Area", rooms: "Rooms", floor: "Floor", condition: "Condition", call: "Call", whatsapp: "WhatsApp", owner: "Owner", broker: "mTeam broker", verifiedNote: "Photos, area and price were checked on site by the broker." },
   card: { title: "{deal}: {rooms}-room {type}", titleNoRooms: "{deal}: {type}", photos: "photos" },
   login: {
     title: "Sign in",
@@ -95,6 +96,7 @@ const en: Dict = {
   },
   favorites: { heading: "Favourites", empty: "Nothing saved yet. Tap the heart on a listing.", add: "Add to favourites", remove: "Remove from favourites" },
   my: { heading: "My listings", empty: "You have not posted anything yet.", archive: "Take down", status: { DRAFT: "Draft", PENDING: "In review", ACTIVE: "Published", ARCHIVED: "Taken down", REJECTED: "Rejected" } },
+  admin: { heading: "Admin panel", pending: "Waiting for moderation", unverified: "To verify on site", leads: "Give it to mTeam requests", nothing: "Nothing here.", approve: "Publish", reject: "Reject", verify: "I checked it on site", contacted: "Mark contacted", contactedDone: "Contacted" },
   theme: { dark: "Dark mode", light: "Light mode" },
 };
 
@@ -108,7 +110,7 @@ const ru: Dict = {
   deal: { sale: "Продажа", rent: "Аренда", daily: "Посуточно" },
   perMonth: "/ мес.",
   units: { rooms: "комн.", floor: "этаж", sqm: "м²" },
-  listing: { area: "Площадь", rooms: "Комнаты", floor: "Этаж", condition: "Состояние", call: "Позвонить", whatsapp: "WhatsApp", owner: "Собственник", broker: "Брокер mTeam", verifiedNote: "Фото, площадь и цену брокер проверил на месте." },
+  listing: { checkedBy: "Проверил(а) {name}, {date}", area: "Площадь", rooms: "Комнаты", floor: "Этаж", condition: "Состояние", call: "Позвонить", whatsapp: "WhatsApp", owner: "Собственник", broker: "Брокер mTeam", verifiedNote: "Фото, площадь и цену брокер проверил на месте." },
   card: { title: "{deal}: {rooms}-комн. {type}", titleNoRooms: "{deal}: {type}", photos: "фото" },
   login: {
     title: "Вход",
@@ -140,6 +142,7 @@ const ru: Dict = {
   },
   favorites: { heading: "Избранное", empty: "Пока ничего не сохранено. Нажмите на сердечко в объявлении.", add: "Добавить в избранное", remove: "Убрать из избранного" },
   my: { heading: "Мои объявления", empty: "Вы ещё ничего не публиковали.", archive: "Снять", status: { DRAFT: "Черновик", PENDING: "На модерации", ACTIVE: "Опубликовано", ARCHIVED: "Снято", REJECTED: "Отклонено" } },
+  admin: { heading: "Панель управления", pending: "Ждут модерации", unverified: "Проверить на месте", leads: "Заявки «Доверьте mTeam»", nothing: "Пусто.", approve: "Опубликовать", reject: "Отклонить", verify: "Проверено на месте", contacted: "Связались", contactedDone: "Связались" },
   theme: { dark: "Тёмная тема", light: "Светлая тема" },
 };
 

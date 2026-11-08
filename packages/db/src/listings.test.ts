@@ -203,6 +203,22 @@ describe("searchListings", () => {
   });
 });
 
+describe("verification details", () => {
+  it("names who checked a listing and when", async () => {
+    prisma.listing.findFirst.mockResolvedValue({
+      ...fullRow,
+      verifiedAt: new Date("2026-11-05T09:00:00Z"),
+      verifiedBy: { user: { name: "Nino" } },
+    });
+    expect((await getListing("20418"))?.verification).toEqual({ by: "Nino", at: "2026-11-05" });
+  });
+
+  it("falls back to mTeam when the broker has no name", async () => {
+    prisma.listing.findFirst.mockResolvedValue({ ...fullRow, verifiedAt: new Date("2026-11-05T09:00:00Z"), verifiedBy: null });
+    expect((await getListing("20418"))?.verification?.by).toBe("mTeam");
+  });
+});
+
 describe("createListing", () => {
   const draft = {
     deal: "rent",

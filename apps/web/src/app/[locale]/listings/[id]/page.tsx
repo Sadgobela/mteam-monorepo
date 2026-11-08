@@ -1,7 +1,7 @@
 import Image from "next/image";
 import { notFound } from "next/navigation";
 import { getListing } from "@mteam/db";
-import { formatPrice, getDictionary } from "@mteam/shared";
+import { formatDay, formatPrice, getDictionary } from "@mteam/shared";
 import { Header } from "@/components/Header";
 import { resolveLocale } from "@/lib/locale";
 import { hasSession } from "@/lib/session";
@@ -106,6 +106,11 @@ export default async function ListingPage({
               <b>mTeam Verified</b>
               <br />
               {t.listing.verifiedNote}
+              {listing.verification && (
+                <div className="meta">
+                  {t.listing.checkedBy.replace("{name}", listing.verification.by).replace("{date}", formatDay(listing.verification.at, locale))}
+                </div>
+              )}
             </div>
           )}
         </aside>

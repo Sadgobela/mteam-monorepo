@@ -21,6 +21,8 @@ export default async function MyListingsPage({ params }: { params: Promise<{ loc
       <main className="page narrow">
         <div className="row">
           <h1 className="heading">{t.my.heading}</h1>
+          <span className="sp" />
+          {user.role !== "USER" && <Link href={`/${locale}/admin`} className="btn ghost">{t.admin.heading}</Link>}
           <Link href={`/${locale}/listings/new`} className="btn">{t.nav.post}</Link>
         </div>
         {mine.length === 0 && <p className="meta">{t.my.empty}</p>}

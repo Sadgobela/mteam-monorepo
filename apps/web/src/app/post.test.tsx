@@ -172,6 +172,12 @@ describe("listing photos", () => {
     ]);
   });
 
+  it("says who checked a verified listing and when", async () => {
+    db.getListing.mockResolvedValue({ ...fixtureListings[0], verification: { by: "Nino", at: "2026-11-05" } });
+    render(await ListingPage({ params: Promise.resolve({ locale: "en", id: "20418" }) }));
+    expect(screen.getByText("Checked by Nino, Nov 5")).toBeInTheDocument();
+  });
+
   it("omits the rooms fact for property without rooms", async () => {
     db.getListing.mockResolvedValue({ ...fixtureListings[0], rooms: 0 });
     render(await ListingPage({ params: Promise.resolve({ locale: "en", id: "20418" }) }));

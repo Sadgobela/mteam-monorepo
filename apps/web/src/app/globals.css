@@ -137,3 +137,10 @@ a.btn { text-decoration: none; display: inline-block; }
 .mine li { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; padding: 12px 14px; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; }
 .mine li > div { flex: 1 1 260px; min-width: 0; }
 .status { font-size: 13px; font-weight: 700; color: var(--brand-deep); }
+.queue { display: grid; gap: 10px; }
+.queue h2 { font-size: 18px; font-weight: 800; }
+.queue-item { display: flex; gap: 12px; }
+.mine .queue-item { flex: 1 1 320px; }
+.queue-item p { margin: 4px 0 0; }
+.ph.thumb { flex: 0 0 96px; width: 96px; height: 72px; aspect-ratio: auto; border-radius: 8px; overflow: hidden; }
+.queue-actions { display: flex; gap: 8px; }

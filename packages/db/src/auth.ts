@@ -79,7 +79,7 @@ export async function verifyLoginCode(phone: string, code: string): Promise<stri
 export async function getSessionUser(token: string) {
   const session = await db().session.findUnique({
     where: { tokenHash: sha256(token) },
-    select: { expiresAt: true, user: { select: { id: true, phone: true, role: true } } },
+    select: { expiresAt: true, user: { select: { id: true, phone: true, role: true, agent: { select: { id: true } } } } },
   });
   return session && session.expiresAt > new Date() ? session.user : null;
 }

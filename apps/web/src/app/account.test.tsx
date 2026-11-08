@@ -136,6 +136,17 @@ describe("MyListingsPage", () => {
     expect(screen.getAllByRole("button", { name: t.my.archive })).toHaveLength(2);
   });
 
+  it("links staff to the admin panel, and nobody else", async () => {
+    db.listMyListings.mockResolvedValue([]);
+    session.currentUser.mockResolvedValue({ id: "u1", role: "AGENT" });
+    const staff = render(await MyListingsPage({ params }));
+    expect(screen.getByRole("link", { name: t.admin.heading })).toHaveAttribute("href", "/en/admin");
+    staff.unmount();
+    session.currentUser.mockResolvedValue({ id: "u1", role: "USER" });
+    render(await MyListingsPage({ params }));
+    expect(screen.queryByRole("link", { name: t.admin.heading })).toBeNull();
+  });
+
   it("explains an empty list", async () => {
     db.listMyListings.mockResolvedValue([]);
     render(await MyListingsPage({ params }));

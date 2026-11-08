@@ -37,6 +37,7 @@ export const publicInclude = {
   agent: { include: { branch: true, user: { select: { name: true, phone: true } } } },
   images: { select: { url: true }, orderBy: { position: "asc" } },
   owner: { select: { phone: true } },
+  verifiedBy: { select: { user: { select: { name: true } } } },
 } satisfies Prisma.ListingInclude;
 
 type ListingRow = Prisma.ListingGetPayload<{ include: typeof publicInclude }>;
@@ -74,6 +75,9 @@ export function toListing(row: ListingRow): Listing {
           branch: row.agent.branch?.name ?? "",
           phone: row.agent.user.phone,
         }
+      : undefined,
+    verification: row.verifiedAt
+      ? { by: row.verifiedBy?.user.name ?? "mTeam", at: row.verifiedAt.toISOString().slice(0, 10) }
       : undefined,
     contactPhone: row.agent?.user.phone ?? row.owner.phone,
     images: row.images.map((image) => image.url),

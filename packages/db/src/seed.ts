@@ -34,7 +34,7 @@ export async function seed(client: PrismaClient): Promise<void> {
   });
 
   for (const { brokered, ...listing } of demoListings) {
-    const data = { ...listing, status: "ACTIVE" as const, ownerId: user.id, agentId: brokered ? agent.id : null };
+    const data = { ...listing, status: "ACTIVE" as const, ownerId: user.id, agentId: brokered ? agent.id : null, verifiedAt: listing.verified ? listing.updatedAt : null, verifiedById: listing.verified ? agent.id : null };
     await client.listing.upsert({ where: { id: listing.id }, update: data, create: data });
   }
 
