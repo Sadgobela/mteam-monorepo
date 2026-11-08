@@ -6,8 +6,8 @@ mTeam-ის უძრავი ქონების პლატფორმ�
 
 ```
 apps/web         Next.js საიტი (ka / en / ru, ნათელი და მუქი თემა)
-packages/shared  ტიპები, თარგმანები, ფორმატირება, სანიმუშო განცხადებები
-packages/db      ბაზის სქემა (Prisma + PostgreSQL)
+packages/shared  ტიპები, თარგმანები, ფორმატირება
+packages/db      ბაზა (Prisma + PostgreSQL): სქემა, migration-ები, seed, მოთხოვნები
 ```
 
 მობილური აპი (`apps/mobile`, Expo) მეორე ეტაპზე დაემატება.
@@ -16,6 +16,11 @@ packages/db      ბაზის სქემა (Prisma + PostgreSQL)
 
 ```bash
 pnpm install
+cp packages/db/.env.example packages/db/.env
+cp packages/db/.env.example apps/web/.env.local
+docker compose up -d                 # PostgreSQL
+pnpm --filter @mteam/db db:deploy    # migration-ები
+pnpm --filter @mteam/db db:seed      # სანიმუშო განცხადებები, მხოლოდ დეველოპმენტისთვის
 pnpm dev          # http://localhost:3000
 pnpm test         # ტესტები, 100%-იანი დაფარვის მოთხოვნით
 pnpm build

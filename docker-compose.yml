@@ -1,0 +1,15 @@
+# Local development database. The credentials match packages/db/.env.example.
+services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: mteam
+      POSTGRES_PASSWORD: mteam
+      POSTGRES_DB: mteam
+    ports:
+      - "127.0.0.1:5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+volumes:
+  pgdata:

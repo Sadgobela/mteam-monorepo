@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { render, screen } from "@testing-library/react";
-import { getDictionary, sampleListings, type Listing } from "@mteam/shared";
+import { getDictionary, type Listing } from "@mteam/shared";
+import { fixtureListings } from "@/test-fixtures";
 import { Header } from "./Header";
 import { ListingCard } from "./ListingCard";
 import { SearchBar } from "./SearchBar";
@@ -26,7 +27,7 @@ describe("SearchBar", () => {
 
 describe("ListingCard", () => {
   it("shows a verified sale listing with floor", () => {
-    const l = sampleListings[0];
+    const l = fixtureListings[0];
     render(<ListingCard listing={l} locale="en" t={t} />);
     expect(screen.getByRole("link")).toHaveAttribute("href", `/en/listings/${l.id}`);
     expect(screen.getByText("mTeam Verified")).toBeInTheDocument();
@@ -34,7 +35,7 @@ describe("ListingCard", () => {
   });
 
   it("shows a rent listing per month, without badge or floor", () => {
-    const l: Listing = { ...sampleListings[1], floor: undefined, verified: false };
+    const l: Listing = { ...fixtureListings[1], floor: undefined, verified: false };
     render(<ListingCard listing={l} locale="en" t={t} />);
     expect(screen.getByText("/ month")).toBeInTheDocument();
     expect(screen.queryByText("mTeam Verified")).toBeNull();

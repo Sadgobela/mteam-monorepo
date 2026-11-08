@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { defaultLocale, formatPrice, getDictionary, getListing, isLocale, locales, sampleListings } from "./index";
+import { defaultLocale, formatPrice, getDictionary, isLocale, locales } from "./index";
 
 describe("formatPrice", () => {
   it("formats each currency", () => {
@@ -22,12 +22,5 @@ describe("i18n", () => {
       Object.entries(o).flatMap(([k, v]) => (typeof v === "object" ? keys(v).map((s) => `${k}.${s}`) : [k]));
     const ka = keys(getDictionary("ka")).sort();
     for (const l of locales) expect(keys(getDictionary(l)).sort()).toEqual(ka);
-  });
-});
-
-describe("sample listings", () => {
-  it("finds a listing by id", () => {
-    expect(getListing(sampleListings[0].id)).toBe(sampleListings[0]);
-    expect(getListing(-1)).toBeUndefined();
   });
 });

@@ -1,12 +1,17 @@
-import { getDictionary, sampleListings } from "@mteam/shared";
+import { countActiveListings, getFeaturedListings } from "@mteam/db";
+import { getDictionary } from "@mteam/shared";
 import { Header } from "@/components/Header";
 import { ListingCard } from "@/components/ListingCard";
 import { SearchBar } from "@/components/SearchBar";
 import { resolveLocale } from "@/lib/locale";
 
+/** Reads live data, so it renders per request and the build needs no database. */
+export const dynamic = "force-dynamic";
+
 export default async function HomePage({ params }: { params: Promise<{ locale: string }> }) {
   const locale = resolveLocale((await params).locale);
   const t = getDictionary(locale);
+  const [listings, activeCount] = await Promise.all([getFeaturedListings(), countActiveListings()]);
   return (
     <>
       <Header locale={locale} t={t} />
@@ -17,7 +22,7 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
           <SearchBar t={t} />
           <div className="trust">
             <span>
-              <b>1,240</b> {t.stats.listings}
+              <b>{activeCount}</b> {t.stats.listings}
             </span>
             <span>
               <b>70+</b> {t.stats.agents}
@@ -30,7 +35,7 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
             <h2>{t.featured}</h2>
           </div>
           <div className="cards">
-            {sampleListings.map((l) => (
+            {listings.map((l) => (
               <ListingCard key={l.id} listing={l} locale={locale} t={t} />
             ))}
           </div>

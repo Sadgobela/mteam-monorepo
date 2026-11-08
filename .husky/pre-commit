@@ -1,0 +1,19 @@
+# Husky runs this with sh -e, and grep exits 1 on no match, hence the || true below.
+# Blocks env files, private keys and hardcoded credentials before they reach git.
+env_files=$(git -c core.quotepath=off diff --cached --name-only --diff-filter=ACMR | grep -E '(^|/)\.env(\..+)?$|\.env$' | grep -vE '\.env\.example$' || true)
+if [ -n "$env_files" ]; then
+  echo "Blocked: env files must not be committed:"
+  echo "$env_files"
+  exit 1
+fi
+
+# The matched line is never printed, so a secret cannot end up in terminal or CI logs.
+secrets=$(git diff --cached --no-color --no-ext-diff -U0 --diff-filter=ACMR \
+  | grep -E '^\+' | grep -vE '^\+\+\+' \
+  | sed -E 's#://(mteam:mteam|user:pass)@localhost#://localhost#g' \
+  | grep -E 'BEGIN [A-Z ]*PRIVATE KEY|gh[pousr]_[A-Za-z0-9]{36}|github_pat_[A-Za-z0-9_]{22,}|AKIA[0-9A-Z]{16}|(^|[^A-Za-z0-9])sk-[A-Za-z0-9_-]{20,}|postgres(ql)?://[^:/]+:[^@/]+@' || true)
+if [ -n "$secrets" ]; then
+  echo "Blocked: staged changes look like they contain a secret (private key, token or database password)."
+  echo "Move it to .env and read it from the environment."
+  exit 1
+fi
