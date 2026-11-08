@@ -1,5 +1,5 @@
-export type DealType = "sale" | "rent" | "daily";
-export type PropertyType = "apartment" | "house" | "commercial" | "land";
+import type { DealType, PropertyType } from "./search";
+
 export type Currency = "USD" | "GEL" | "AED";
 
 export interface Agent {
