@@ -6,7 +6,7 @@ import { useEffect, useRef } from "react";
 export const TILE_URL = "https://tile.openstreetmap.org/{z}/{x}/{y}.png";
 export const TILE_ATTRIBUTION = "© OpenStreetMap contributors";
 export const TBILISI: [number, number] = [41.7151, 44.8271];
-const BRAND = "#6e45a0";
+export const PIN_COLOR = "var(--brand-deep)";
 
 export interface MapPoint {
   id: number;
@@ -31,7 +31,7 @@ export function ListingMap({ points, label }: { points: MapPoint[]; label: strin
         const link = document.createElement("a");
         link.href = point.href;
         link.textContent = point.label;
-        L.circleMarker([point.lat, point.lng], { radius: 9, color: BRAND, fillColor: BRAND, fillOpacity: 0.9 })
+        L.circleMarker([point.lat, point.lng], { radius: 9, color: PIN_COLOR, fillColor: PIN_COLOR, fillOpacity: 0.9 })
           .bindPopup(link)
           .addTo(map);
       }

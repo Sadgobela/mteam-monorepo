@@ -37,9 +37,9 @@ export default async function HomePage({
   const isMap = isResults && display.view === "map";
   const [listings, total] = await Promise.all([
     isResults
-      ? searchListings(filters, isMap ? { sort: display.sort, limit: MAP_LISTINGS } : { sort: display.sort, page: display.page })
+      ? searchListings(filters, isMap ? { sort: display.sort, limit: MAP_LISTINGS, located: true } : { sort: display.sort, page: display.page })
       : searchListings({ verified: true }, { limit: HOME_LISTINGS }),
-    isResults ? countListings(filters) : 0,
+    isResults ? countListings(filters, { located: isMap }) : 0,
   ]);
   const user = await currentUser();
   const favoriteIds = user ? await getFavoriteIds(user.id) : [];

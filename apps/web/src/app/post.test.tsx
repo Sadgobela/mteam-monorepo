@@ -139,7 +139,7 @@ describe("ListingForm", () => {
     const created = vi.fn().mockReturnValueOnce("blob:one").mockReturnValueOnce("blob:two");
     const revoked = vi.fn();
     vi.stubGlobal("URL", Object.assign(URL, { createObjectURL: created, revokeObjectURL: revoked }));
-    const { container } = render(<ListingForm locale="en" t={t} />);
+    const { container, unmount } = render(<ListingForm locale="en" t={t} />);
     const input = screen.getByLabelText(t.post.fields.photos);
 
     expect(container.querySelector(".previews")).toBeNull();
@@ -148,6 +148,8 @@ describe("ListingForm", () => {
     fireEvent.change(input, { target: { files: [new File(["y"], "b.jpg")] } });
     expect(revoked).toHaveBeenCalledWith("blob:one");
     expect(container.querySelector(".previews img")).toHaveAttribute("src", "blob:two");
+    unmount();
+    expect(revoked).toHaveBeenCalledWith("blob:two");
     vi.unstubAllGlobals();
   });
 

@@ -70,9 +70,7 @@ describe("ListingMap", () => {
   it("does not build a map if it left the page before the library loaded", async () => {
     const { unmount } = render(<ListingMap points={points} label="Map" />);
     unmount();
-    await act(async () => {
-      await Promise.resolve();
-    });
+    await act(() => vi.dynamicImportSettled());
     expect(leaflet.api.map).not.toHaveBeenCalled();
   });
 });
@@ -81,7 +79,7 @@ describe("LocationPicker", () => {
   const ready = async () => {
     const view = render(
       <form aria-label="f">
-        <LocationPicker label="Pin" />
+        <LocationPicker label="Pin" clearLabel="Remove" />
       </form>,
     );
     await waitFor(() => expect(leaflet.instance.on).toHaveBeenCalled());
@@ -93,13 +91,39 @@ describe("LocationPicker", () => {
     expect(container.querySelector("input[name=lat]")).toBeNull();
   });
 
-  it("stores the clicked point in hidden fields and moves the pin", async () => {
-    const { container } = await ready();
-    const latlng = { lat: 41.123456789, lng: 44.5 };
+  const click = (lat: number, lng: number, wrapped = { lat, lng }) => {
+    const latlng = { lat, lng, wrap: () => wrapped };
     act(() => leaflet.instance.on.mock.calls[0][1]({ latlng }));
+    return latlng;
+  };
+
+  it("starts with no visible pin", async () => {
+    await ready();
+    expect(leaflet.api.circleMarker.mock.calls[0]).toEqual([[41.7151, 44.8271], expect.objectContaining({ opacity: 0, fillOpacity: 0 })]);
+    expect(screen.queryByRole("button", { name: "Remove" })).toBeNull();
+  });
+
+  it("stores the clicked point in hidden fields and shows the pin", async () => {
+    const { container } = await ready();
+    const latlng = click(41.123456789, 44.5);
     expect(container.querySelector("input[name=lat]")).toHaveValue("41.123457");
     expect(container.querySelector("input[name=lng]")).toHaveValue("44.500000");
     expect(leaflet.marker.setLatLng).toHaveBeenCalledWith(latlng);
+    expect(leaflet.marker.setStyle).toHaveBeenCalledWith({ opacity: 1, fillOpacity: 0.9 });
+  });
+
+  it("wraps a click on a repeated copy of the world into valid coordinates", async () => {
+    const { container } = await ready();
+    click(41, 224.5, { lat: 41, lng: -135.5 });
+    expect(container.querySelector("input[name=lng]")).toHaveValue("-135.500000");
+  });
+
+  it("lets a stray pin be removed", async () => {
+    const { container } = await ready();
+    click(41, 44);
+    act(() => screen.getByRole("button", { name: "Remove" }).click());
+    expect(container.querySelector("input[name=lat]")).toBeNull();
+    expect(leaflet.marker.setStyle).toHaveBeenLastCalledWith({ opacity: 0, fillOpacity: 0 });
   });
 
   it("cleans up, and skips setup if unmounted early", async () => {
@@ -107,11 +131,9 @@ describe("LocationPicker", () => {
     first.unmount();
     expect(leaflet.instance.remove).toHaveBeenCalled();
     vi.clearAllMocks();
-    const second = render(<LocationPicker label="Pin" />);
+    const second = render(<LocationPicker label="Pin" clearLabel="Remove" />);
     second.unmount();
-    await act(async () => {
-      await Promise.resolve();
-    });
+    await act(() => vi.dynamicImportSettled());
     expect(leaflet.api.map).not.toHaveBeenCalled();
   });
 });

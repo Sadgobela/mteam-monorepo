@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import { countListings, searchListings } from "@mteam/db";
 import { renderToStaticMarkup } from "react-dom/server";
 import { fixtureListings } from "@/test-fixtures";
@@ -27,6 +27,8 @@ vi.mock("@/lib/session", () => ({ hasSession: async () => false, currentUser: as
 vi.mock("@/lib/account-actions", () => ({ setFavoriteAction: vi.fn() }));
 vi.mock("@/lib/auth-actions", () => ({ logoutAction: vi.fn() }));
 
+const circleMarker = vi.hoisted(() => vi.fn(() => ({ bindPopup: () => ({ addTo: () => undefined }), addTo: () => undefined })));
+
 vi.mock("leaflet", () => ({
   default: {
     map: () => {
@@ -34,7 +36,7 @@ vi.mock("leaflet", () => ({
       return map;
     },
     tileLayer: () => ({ addTo: () => undefined }),
-    circleMarker: () => ({ bindPopup: () => ({ addTo: () => undefined }), addTo: () => undefined }),
+    circleMarker: circleMarker,
     latLngBounds: (points: unknown) => points,
   },
 }));
@@ -81,7 +83,7 @@ describe("home page", () => {
   it("passes filters and display options to the query and reflects them", async () => {
     await home({ deal: "rent", rooms: "2", sort: "asc", page: "2", bogus: "x" });
     expect(searchListings).toHaveBeenLastCalledWith(expect.objectContaining({ deal: "rent", rooms: 2 }), { sort: "asc", page: 2 });
-    expect(countListings).toHaveBeenLastCalledWith(expect.objectContaining({ deal: "rent", rooms: 2 }));
+    expect(countListings).toHaveBeenLastCalledWith(expect.objectContaining({ deal: "rent", rooms: 2 }), { located: false });
     expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("Search results");
     expect(screen.getByText("Listings found: 57")).toBeInTheDocument();
     expect(screen.getByLabelText("Deal")).toHaveValue("rent");
@@ -121,8 +123,12 @@ describe("home page", () => {
       { ...fixtureListings[1], lat: 41.7 },
       { ...fixtureListings[2], lng: 44.7 },
     ]);
+    circleMarker.mockClear();
     await home({ deal: "sale", view: "map", sort: "asc" });
-    expect(searchListings).toHaveBeenLastCalledWith(expect.anything(), { sort: "asc", limit: 200 });
+    expect(searchListings).toHaveBeenLastCalledWith(expect.anything(), { sort: "asc", limit: 200, located: true });
+    expect(countListings).toHaveBeenLastCalledWith(expect.anything(), { located: true });
+    await waitFor(() => expect(circleMarker).toHaveBeenCalledOnce());
+    expect(circleMarker.mock.calls[0]).toEqual([[41.7, 44.7], expect.anything()]);
     expect(screen.getByRole("region", { name: "Map" })).toBeInTheDocument();
     expect(screen.queryByRole("link", { name: /m²/ })).toBeNull();
     expect(screen.queryByRole("navigation", { name: "Pages" })).toBeNull();

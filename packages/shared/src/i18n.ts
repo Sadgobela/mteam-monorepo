@@ -35,7 +35,7 @@ const ka = {
   },
   post: {
     heading: "განცხადების დამატება",
-    fields: { pin: "მონიშნე რუკაზე, არასავალდებულო", title: "სათაური", description: "აღწერა", district: "უბანი", address: "მისამართი", price: "ფასი", currency: "ვალუტა", area: "ფართი, მ²", rooms: "ოთახები", floor: "სართული", floors: "სართულები სულ", photos: "ფოტოები: 1-დან 10-მდე, JPG, PNG ან WebP, თითო 5 მბ-მდე" },
+    fields: { pinClear: "ნიშნულის მოხსნა", pin: "მონიშნე რუკაზე, არასავალდებულო", title: "სათაური", description: "აღწერა", district: "უბანი", address: "მისამართი", price: "ფასი", currency: "ვალუტა", area: "ფართი, მ²", rooms: "ოთახები", floor: "სართული", floors: "სართულები სულ", photos: "ფოტოები: 1-დან 10-მდე, JPG, PNG ან WebP, თითო 5 მბ-მდე" },
     phoneNotice: "შენი ნომერი განცხადებაზე გამოჩნდება, რომ დაგიკავშირდნენ.",
     submit: "გაგზავნა",
     sent: "განცხადება მიღებულია. მოდერაციის შემდეგ გამოქვეყნდება.",
@@ -84,7 +84,7 @@ const en: Dict = {
   },
   post: {
     heading: "Post a listing",
-    fields: { pin: "Mark it on the map (optional)", title: "Title", description: "Description", district: "District", address: "Address", price: "Price", currency: "Currency", area: "Area, m²", rooms: "Rooms", floor: "Floor", floors: "Total floors", photos: "Photos: 1 to 10, JPG, PNG or WebP, up to 5 MB each" },
+    fields: { pinClear: "Remove the pin", pin: "Mark it on the map (optional)", title: "Title", description: "Description", district: "District", address: "Address", price: "Price", currency: "Currency", area: "Area, m²", rooms: "Rooms", floor: "Floor", floors: "Total floors", photos: "Photos: 1 to 10, JPG, PNG or WebP, up to 5 MB each" },
     phoneNotice: "Your number will be shown on the listing so people can contact you.",
     submit: "Submit",
     sent: "Your listing was received and will be published after moderation.",
@@ -131,7 +131,7 @@ const ru: Dict = {
   },
   post: {
     heading: "Новое объявление",
-    fields: { pin: "Отметьте на карте (необязательно)", title: "Заголовок", description: "Описание", district: "Район", address: "Адрес", price: "Цена", currency: "Валюта", area: "Площадь, м²", rooms: "Комнаты", floor: "Этаж", floors: "Всего этажей", photos: "Фото: от 1 до 10, JPG, PNG или WebP, до 5 МБ каждое" },
+    fields: { pinClear: "Убрать отметку", pin: "Отметьте на карте (необязательно)", title: "Заголовок", description: "Описание", district: "Район", address: "Адрес", price: "Цена", currency: "Валюта", area: "Площадь, м²", rooms: "Комнаты", floor: "Этаж", floors: "Всего этажей", photos: "Фото: от 1 до 10, JPG, PNG или WebP, до 5 МБ каждое" },
     phoneNotice: "Ваш номер будет показан в объявлении, чтобы с вами могли связаться.",
     submit: "Отправить",
     sent: "Объявление получено и будет опубликовано после модерации.",

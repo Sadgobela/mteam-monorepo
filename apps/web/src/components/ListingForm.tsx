@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { startTransition, useActionState, useState, type ChangeEvent, type FormEvent } from "react";
+import { startTransition, useActionState, useEffect, useState, type ChangeEvent, type FormEvent } from "react";
 import {
   citySlugs,
   currencies,
@@ -44,8 +44,9 @@ export function ListingForm({ locale, t }: { locale: Locale; t: Dict }) {
   const [photosRejected, setPhotosRejected] = useState(false);
   const [previews, setPreviews] = useState<string[]>([]);
 
+  useEffect(() => () => previews.forEach((url) => URL.revokeObjectURL(url)), [previews]);
+
   function showPreviews(event: ChangeEvent<HTMLInputElement>) {
-    previews.forEach((url) => URL.revokeObjectURL(url));
     setPreviews(Array.from(event.target.files as FileList).map((file) => URL.createObjectURL(file)));
   }
 
@@ -92,7 +93,7 @@ export function ListingForm({ locale, t }: { locale: Locale; t: Dict }) {
         <Input label={f.floor} name="floor" type="number" min={1} max={200} />
         <Input label={f.floors} name="floors" type="number" min={1} max={200} />
       </div>
-      <LocationPicker label={f.pin} />
+      <LocationPicker label={f.pin} clearLabel={f.pinClear} />
       <Input label={f.photos} name="photos" type="file" required multiple accept="image/jpeg,image/png,image/webp" onChange={showPreviews} />
       {previews.length > 0 && (
         <div className="previews">

@@ -28,7 +28,7 @@ const fullRow = {
   lng: 44.7,
   condition: "New",
   verified: true,
-  agent: { id: "a1", user: { name: "Nino", phone: "+995" }, branch: { name: "Vake" } },
+  agent: { id: "a1", user: { name: "Nino", phone: "+995", role: "AGENT" }, branch: { name: "Vake" } },
   images: [{ url: "https://cdn/a.jpg" }, { url: "https://cdn/b.jpg" }],
   owner: { phone: "+995owner" },
   updatedAt: new Date("2026-11-06T10:00:00Z"),
@@ -103,9 +103,19 @@ describe("getListing", () => {
   it("copes with a broker who has no name or branch", async () => {
     prisma.listing.findFirst.mockResolvedValue({
       ...fullRow,
-      agent: { id: "a2", user: { name: null, phone: "+995" }, branch: null },
+      agent: { id: "a2", user: { name: null, phone: "+995", role: "AGENT" }, branch: null },
     });
     expect((await getListing("20418"))?.agent).toEqual({ id: "a2", name: "", branch: "", phone: "+995" });
+  });
+
+  it("does not publish the phone of someone who is no longer a broker", async () => {
+    prisma.listing.findFirst.mockResolvedValue({
+      ...fullRow,
+      agent: { id: "a3", user: { name: "Ex", phone: "+995private", role: "USER" }, branch: null },
+    });
+    const listing = await getListing("20418");
+    expect(listing?.agent).toBeUndefined();
+    expect(listing?.contactPhone).toBe("+995owner");
   });
 
   it("only looks up published listings and selects no more than the owner's phone", async () => {
@@ -114,7 +124,7 @@ describe("getListing", () => {
     const args = prisma.listing.findFirst.mock.calls[0][0];
     expect(args.where).toEqual({ id: 20418, status: "ACTIVE" });
     expect(args.include.owner).toEqual({ select: { phone: true } });
-    expect(args.include.agent.include.user).toEqual({ select: { name: true, phone: true } });
+    expect(args.include.agent.include.user).toEqual({ select: { name: true, phone: true, role: true } });
   });
 
   it.each(["abc", "", "0", "-1", "1e3", " 12", "1.5", "0012", "2147483648", "99999999999"])(
@@ -174,6 +184,16 @@ describe("searchListings", () => {
 
   it("filters on area, one-sided or both", async () => {
     expect((await whereFor({ areaMin: 40, areaMax: 90 })).area).toEqual({ gte: 40, lte: 90 });
+  });
+
+  it("limits to listings with a location only when asked", async () => {
+    expect((await whereFor({})).lat).toBeUndefined();
+    prisma.listing.findMany.mockClear();
+    prisma.listing.findMany.mockResolvedValue([]);
+    await searchListings({}, { located: true });
+    const where = prisma.listing.findMany.mock.calls[0][0].where;
+    expect(where.lat).toEqual({ not: null });
+    expect(where.lng).toEqual({ not: null });
   });
 
   it("filters to verified listings", async () => {
@@ -280,6 +300,12 @@ describe("countListings", () => {
     await searchListings(filters);
     await countListings(filters);
     expect(prisma.listing.count.mock.calls[0][0].where).toEqual(prisma.listing.findMany.mock.calls[0][0].where);
+  });
+
+  it("can count only located listings", async () => {
+    prisma.listing.count.mockResolvedValue(1);
+    await countListings({}, { located: true });
+    expect(prisma.listing.count.mock.calls[0][0].where).toMatchObject({ lat: { not: null }, lng: { not: null } });
   });
 
   it("counts everything published by default", async () => {

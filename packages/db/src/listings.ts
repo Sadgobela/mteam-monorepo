@@ -34,7 +34,7 @@ const tones = ["violet", "sand", "steel", "rose"] as const;
 
 /** Only what a public page may show: names and emails stay out, and the phone is the listing's contact number. */
 export const publicInclude = {
-  agent: { include: { branch: true, user: { select: { name: true, phone: true } } } },
+  agent: { include: { branch: true, user: { select: { name: true, phone: true, role: true } } } },
   images: { select: { url: true }, orderBy: { position: "asc" } },
   owner: { select: { phone: true } },
   verifiedBy: { select: { user: { select: { name: true } } } },
@@ -50,6 +50,8 @@ const listingIdSchema = z
   .refine((id) => id <= POSTGRES_INT_MAX);
 
 export function toListing(row: ListingRow): Listing {
+  // A listing can outlive its broker's role; a phone is only public while that person is a broker.
+  const agent = row.agent?.user.role === "AGENT" ? row.agent : null;
   return {
     id: row.id,
     deal: deals[row.deal],
@@ -70,18 +72,18 @@ export function toListing(row: ListingRow): Listing {
     condition: row.condition ?? undefined,
     description: row.description,
     verified: row.verified,
-    agent: row.agent
+    agent: agent
       ? {
-          id: row.agent.id,
-          name: row.agent.user.name ?? "",
-          branch: row.agent.branch?.name ?? "",
-          phone: row.agent.user.phone,
+          id: agent.id,
+          name: agent.user.name ?? "",
+          branch: agent.branch?.name ?? "",
+          phone: agent.user.phone,
         }
       : undefined,
     verification: row.verifiedAt
       ? { by: row.verifiedBy?.user.name ?? "mTeam", at: row.verifiedAt.toISOString().slice(0, 10) }
       : undefined,
-    contactPhone: row.agent?.user.phone ?? row.owner.phone,
+    contactPhone: agent?.user.phone ?? row.owner.phone,
     images: row.images.map((image) => image.url),
     // ponytail: placeholder gradient picked from the id, remove once every listing has photos.
     tone: tones[row.id % tones.length],
@@ -100,7 +102,7 @@ function textClause(q: string | undefined): Prisma.ListingWhereInput[] | undefin
   return [{ district: match }, { address: match }, { city: match }, { title: match }];
 }
 
-function whereFor(filters: ListingFilters): Prisma.ListingWhereInput {
+function whereFor(filters: ListingFilters, located = false): Prisma.ListingWhereInput {
   return {
     status: "ACTIVE",
     deal: filters.deal && dbDeals[filters.deal],
@@ -110,6 +112,8 @@ function whereFor(filters: ListingFilters): Prisma.ListingWhereInput {
     verified: filters.verified,
     priceUsd: { gte: filters.priceMin, lte: filters.priceMax },
     area: { gte: filters.areaMin, lte: filters.areaMax },
+    lat: located ? { not: null } : undefined,
+    lng: located ? { not: null } : undefined,
     OR: textClause(filters.q),
   };
 }
@@ -124,10 +128,15 @@ const orderings: Record<SortOrder, Prisma.ListingOrderByWithRelationInput[]> = {
 /** One page of published listings matching the filters. No filters means all of them. */
 export async function searchListings(
   filters: ListingFilters = {},
-  { sort = "new", page = 1, limit = PAGE_SIZE }: { sort?: SortOrder; page?: number; limit?: number } = {},
+  {
+    sort = "new",
+    page = 1,
+    limit = PAGE_SIZE,
+    located = false,
+  }: { sort?: SortOrder; page?: number; limit?: number; located?: boolean } = {},
 ): Promise<Listing[]> {
   const rows = await db().listing.findMany({
-    where: whereFor(filters),
+    where: whereFor(filters, located),
     include: publicInclude,
     orderBy: orderings[sort],
     skip: (page - 1) * limit,
@@ -137,8 +146,8 @@ export async function searchListings(
 }
 
 /** How many published listings match the filters, across all pages. */
-export function countListings(filters: ListingFilters = {}): Promise<number> {
-  return db().listing.count({ where: whereFor(filters) });
+export function countListings(filters: ListingFilters = {}, { located = false }: { located?: boolean } = {}): Promise<number> {
+  return db().listing.count({ where: whereFor(filters, located) });
 }
 
 /** Reads an id from untrusted text. Returns null for anything that is not a possible listing id. */
