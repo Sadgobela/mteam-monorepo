@@ -36,3 +36,4 @@ Development runs entirely locally for now. These must be done before real users 
 - Direct-to-R2 uploads or proxy limits, so the 55 MB request limit is not open to anonymous visitors.
 - Keyed hashing for login codes (`LOGIN_CODE_SECRET`).
 - Moderation panel: new listings stay hidden until then.
+- A real exchange rate: search, sorting and the ₾/$ switch use fixed rates.
