@@ -22,6 +22,7 @@ const ka = {
   perMonth: "/ თვე",
   units: { rooms: "ოთახი", floor: "სართ.", sqm: "მ²" },
   listing: { area: "ფართი", rooms: "ოთახები", floor: "სართული", condition: "მდგომარეობა", call: "დარეკვა", whatsapp: "WhatsApp", book: "ნახვის დაჯავშნა", broker: "mTeam ბროკერი", verifiedNote: "ფოტოები, ფართი და ფასი ბროკერმა ადგილზე გადაამოწმა." },
+  card: { title: "{deal} {rooms} ოთახიანი {type}", titleNoRooms: "{deal} {type}", photos: "ფოტო" },
   login: {
     title: "შესვლა",
     lead: "შეიყვანე მობილურის ნომერი და SMS-ით მიიღებ კოდს.",
@@ -70,6 +71,7 @@ const en: Dict = {
   perMonth: "/ month",
   units: { rooms: "rooms", floor: "floor", sqm: "m²" },
   listing: { area: "Area", rooms: "Rooms", floor: "Floor", condition: "Condition", call: "Call", whatsapp: "WhatsApp", book: "Book a viewing", broker: "mTeam broker", verifiedNote: "Photos, area and price were checked on site by the broker." },
+  card: { title: "{deal}: {rooms}-room {type}", titleNoRooms: "{deal}: {type}", photos: "photos" },
   login: {
     title: "Sign in",
     lead: "Enter your mobile number and we will text you a code.",
@@ -116,6 +118,7 @@ const ru: Dict = {
   perMonth: "/ мес.",
   units: { rooms: "комн.", floor: "этаж", sqm: "м²" },
   listing: { area: "Площадь", rooms: "Комнаты", floor: "Этаж", condition: "Состояние", call: "Позвонить", whatsapp: "WhatsApp", book: "Записаться на просмотр", broker: "Брокер mTeam", verifiedNote: "Фото, площадь и цену брокер проверил на месте." },
+  card: { title: "{deal}: {rooms}-комн. {type}", titleNoRooms: "{deal}: {type}", photos: "фото" },
   login: {
     title: "Вход",
     lead: "Введите номер мобильного, и мы пришлём код по SMS.",

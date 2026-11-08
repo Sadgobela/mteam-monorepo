@@ -52,6 +52,42 @@ describe("SearchBar", () => {
 });
 
 describe("ListingCard", () => {
+  it("leads with the price and builds its title from the facts", () => {
+    render(<ListingCard listing={fixtureListings[0]} locale="en" t={t} />);
+    expect(screen.getByText("$148,000")).toBeInTheDocument();
+    expect(screen.getByText("$1,609 / m²")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "For sale: 3-room apartment" })).toBeInTheDocument();
+    expect(screen.getByText("Nov 6")).toBeInTheDocument();
+    expect(screen.getByText("3 rooms")).toBeInTheDocument();
+  });
+
+  it("shows the price in the chosen currency", () => {
+    render(<ListingCard listing={fixtureListings[0]} locale="en" t={t} cur="gel" />);
+    expect(screen.getByText("₾399,600")).toBeInTheDocument();
+    expect(screen.getByText("₾4,343 / m²")).toBeInTheDocument();
+  });
+
+  it("converts a listing priced in another currency", () => {
+    render(<ListingCard listing={fixtureListings[2]} locale="en" t={t} />);
+    expect(screen.getByText("$394,826")).toBeInTheDocument();
+  });
+
+  it("titles property without rooms by its type alone and shows no price per m² on rentals", () => {
+    render(<ListingCard listing={{ ...fixtureListings[1], type: "land", rooms: 0 }} locale="en" t={t} />);
+    expect(screen.getByRole("heading", { name: "For rent: land" })).toBeInTheDocument();
+    expect(screen.queryByText(/\/ m²/)).toBeNull();
+  });
+
+  it("writes the title in the page language", () => {
+    render(<ListingCard listing={fixtureListings[0]} locale="ka" t={getDictionary("ka")} />);
+    expect(screen.getByRole("heading", { name: "იყიდება 3 ოთახიანი ბინა" })).toBeInTheDocument();
+  });
+
+  it("shows how many photos there are", () => {
+    render(<ListingCard listing={{ ...fixtureListings[0], images: ["https://cdn/a.jpg", "https://cdn/b.jpg"] }} locale="en" t={t} />);
+    expect(screen.getByText("2 photos")).toBeInTheDocument();
+  });
+
   it("shows a verified sale listing with floor", () => {
     const l = fixtureListings[0];
     render(<ListingCard listing={l} locale="en" t={t} />);
