@@ -36,9 +36,9 @@ export default async function ListingPage({
               </>
             ) : (
               listing.images.map((url, index) => (
-                <div key={url} className="ph">
+                <a key={url} className="ph" href={url} target="_blank" rel="noreferrer">
                   <Image src={url} alt={`${listing.title} ${index + 1}`} fill unoptimized priority={index === 0} />
-                </div>
+                </a>
               ))
             )}
           </div>

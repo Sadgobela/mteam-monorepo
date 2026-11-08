@@ -135,6 +135,22 @@ describe("ListingForm", () => {
     getAll.mockRestore();
   });
 
+  it("previews chosen photos and releases the previous ones", () => {
+    const created = vi.fn().mockReturnValueOnce("blob:one").mockReturnValueOnce("blob:two");
+    const revoked = vi.fn();
+    vi.stubGlobal("URL", Object.assign(URL, { createObjectURL: created, revokeObjectURL: revoked }));
+    const { container } = render(<ListingForm locale="en" t={t} />);
+    const input = screen.getByLabelText(t.post.fields.photos);
+
+    expect(container.querySelector(".previews")).toBeNull();
+    fireEvent.change(input, { target: { files: [new File(["x"], "a.jpg")] } });
+    expect(container.querySelector(".previews img")).toHaveAttribute("src", "blob:one");
+    fireEvent.change(input, { target: { files: [new File(["y"], "b.jpg")] } });
+    expect(revoked).toHaveBeenCalledWith("blob:one");
+    expect(container.querySelector(".previews img")).toHaveAttribute("src", "blob:two");
+    vi.unstubAllGlobals();
+  });
+
   it("offers translated choices", () => {
     render(<ListingForm locale="en" t={getDictionary("ru")} />);
     expect(screen.getByRole("option", { name: "Батуми" })).toBeInTheDocument();

@@ -153,3 +153,4 @@ a.btn { text-decoration: none; display: inline-block; }
 .map { height: 520px; border-radius: 14px; border: 1px solid var(--line); z-index: 0; }
 .ldesc .map { height: 280px; }
 .map.small { height: 240px; }
+.previews { display: flex; gap: 8px; flex-wrap: wrap; }

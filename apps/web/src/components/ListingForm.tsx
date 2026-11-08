@@ -1,6 +1,7 @@
 "use client";
 
-import { startTransition, useActionState, useState, type FormEvent } from "react";
+import Image from "next/image";
+import { startTransition, useActionState, useState, type ChangeEvent, type FormEvent } from "react";
 import {
   citySlugs,
   currencies,
@@ -41,6 +42,12 @@ function Input({ label, ...input }: { label: string } & React.InputHTMLAttribute
 export function ListingForm({ locale, t }: { locale: Locale; t: Dict }) {
   const [state, dispatch, pending] = useActionState(createListingAction, {});
   const [photosRejected, setPhotosRejected] = useState(false);
+  const [previews, setPreviews] = useState<string[]>([]);
+
+  function showPreviews(event: ChangeEvent<HTMLInputElement>) {
+    previews.forEach((url) => URL.revokeObjectURL(url));
+    setPreviews(Array.from(event.target.files as FileList).map((file) => URL.createObjectURL(file)));
+  }
 
   // Dispatching by hand stops React from clearing the form, so a server-side error does not lose what was typed.
   function submit(event: FormEvent<HTMLFormElement>) {
@@ -86,7 +93,16 @@ export function ListingForm({ locale, t }: { locale: Locale; t: Dict }) {
         <Input label={f.floors} name="floors" type="number" min={1} max={200} />
       </div>
       <LocationPicker label={f.pin} />
-      <Input label={f.photos} name="photos" type="file" required multiple accept="image/jpeg,image/png,image/webp" />
+      <Input label={f.photos} name="photos" type="file" required multiple accept="image/jpeg,image/png,image/webp" onChange={showPreviews} />
+      {previews.length > 0 && (
+        <div className="previews">
+          {previews.map((url) => (
+            <div key={url} className="ph thumb">
+              <Image src={url} alt="" fill unoptimized />
+            </div>
+          ))}
+        </div>
+      )}
       <p className="meta">{t.post.phoneNotice}</p>
       {error && <p className="note" role="alert">{t.post.errors[error]}</p>}
       <button className="btn" type="submit" disabled={pending}>{t.post.submit}</button>
