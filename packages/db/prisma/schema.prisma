@@ -1,0 +1,145 @@
+// mTeam listings platform: first-version data model.
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  USER   // owner or private person posting listings
+  AGENT  // mTeam broker
+  ADMIN  // moderation
+}
+
+enum DealType {
+  SALE
+  RENT
+  DAILY
+}
+
+enum PropertyType {
+  APARTMENT
+  HOUSE
+  COMMERCIAL
+  LAND
+}
+
+enum Currency {
+  USD
+  GEL
+  AED
+}
+
+enum ListingStatus {
+  DRAFT
+  PENDING   // waiting for moderation
+  ACTIVE
+  ARCHIVED
+  REJECTED
+}
+
+enum LeadStatus {
+  NEW
+  CONTACTED
+  SIGNED
+  CLOSED
+}
+
+model User {
+  id        String    @id @default(cuid())
+  phone     String    @unique // login by SMS code
+  name      String?
+  email     String?
+  role      Role      @default(USER)
+  agent     Agent?
+  listings  Listing[]
+  favorites Favorite[]
+  createdAt DateTime  @default(now())
+}
+
+model Branch {
+  id     String  @id @default(cuid())
+  name   String  // e.g. "Vake", "Dubai"
+  city   String
+  agents Agent[]
+}
+
+model Agent {
+  id       String    @id @default(cuid())
+  user     User      @relation(fields: [userId], references: [id])
+  userId   String    @unique
+  branch   Branch?   @relation(fields: [branchId], references: [id])
+  branchId String?
+  photoUrl String?
+  listings Listing[] @relation("AgentListings")
+  leads    Lead[]
+}
+
+model Listing {
+  id          Int           @id @default(autoincrement())
+  status      ListingStatus @default(PENDING)
+  deal        DealType
+  type        PropertyType
+  title       String
+  description String
+  city        String
+  district    String?
+  address     String?
+  lat         Float?
+  lng         Float?
+  price       Int
+  currency    Currency      @default(USD)
+  area        Float         // m²
+  rooms       Int?
+  floor       Int?
+  floors      Int?
+  condition   String?
+  verified    Boolean       @default(false) // checked on site by an mTeam broker
+  owner       User          @relation(fields: [ownerId], references: [id])
+  ownerId     String
+  agent       Agent?        @relation("AgentListings", fields: [agentId], references: [id])
+  agentId     String?
+  images      ListingImage[]
+  favorites   Favorite[]
+  views       Int           @default(0)
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  @@index([status, deal, city])
+  @@index([price])
+}
+
+model ListingImage {
+  id        String  @id @default(cuid())
+  listing   Listing @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  listingId Int
+  url       String
+  position  Int     @default(0)
+}
+
+model Favorite {
+  user      User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    String
+  listing   Listing @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  listingId Int
+  createdAt DateTime @default(now())
+
+  @@id([userId, listingId])
+}
+
+// "Give it to mTeam": an owner asks mTeam to sell or rent their property.
+model Lead {
+  id        String     @id @default(cuid())
+  name      String
+  phone     String
+  deal      DealType
+  city      String?
+  note      String?
+  status    LeadStatus @default(NEW)
+  agent     Agent?     @relation(fields: [agentId], references: [id])
+  agentId   String?
+  createdAt DateTime   @default(now())
+}
