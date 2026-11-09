@@ -7,7 +7,7 @@ Each stage is its own pull request: tests and build pass, the pages are looked a
 ## Stages
 
 - [ ] **1. Finish search (about 75 minutes).** A row of filter buttons above the results, as Georgian portals have. Price per m². Owners only. Building status. Tbilisi metro stations. Finding a listing by its ID.
-- [ ] **2. Cards and listing page on Ant Design (about 60 minutes).** Page numbers, swiping through photos on a card, loading placeholders, correct "1 photo" wording, listing page and photo viewer polish.
+- [ ] **2. Cards and listing page on Ant Design (about 60 minutes).** Page numbers, swiping through photos on a card, correct "1 photo" wording, listing page and photo viewer polish.
 - [ ] **3. Forms on Ant Design (about 60 minutes).** Posting a listing with searchable city, district and street, photo upload, sign in, leaving a number. Fields that fit the property type.
 - [ ] **4. Account pages on Ant Design (about 30 minutes).** My listings, favourites, brokers, admin.
 - [ ] **5. Full look at every page (about 30 minutes).** Every page in Georgian, English and Russian, light and dark, desktop and phone. Fix what looks wrong.

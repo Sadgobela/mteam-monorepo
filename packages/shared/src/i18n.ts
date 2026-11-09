@@ -19,8 +19,8 @@ const ka = {
   perDay: "/ დღე",
   perMonth: "/ თვე",
   units: { rooms: "ოთახი", floor: "სართ.", sqm: "მ²" },
-  listing: { listedPrice: "ფასი განცხადებაში", checkedBy: "შეამოწმა {name}, {date}", area: "ფართი", rooms: "ოთახები", floor: "სართული", condition: "მდგომარეობა", call: "დარეკვა", whatsapp: "WhatsApp", owner: "მესაკუთრე", broker: "MTeam ბროკერი", verifiedNote: "ფოტოები, ფართი და ფასი ბროკერმა ადგილზე გადაამოწმა." },
-  card: { title: "{deal} {rooms} ოთახიანი {type}", titleNoRooms: "{deal} {type}", photos: "ფოტო" },
+  listing: { path: "გზა", listedPrice: "ფასი განცხადებაში", checkedBy: "შეამოწმა {name}, {date}", area: "ფართი", rooms: "ოთახები", floor: "სართული", condition: "მდგომარეობა", call: "დარეკვა", whatsapp: "WhatsApp", owner: "მესაკუთრე", broker: "MTeam ბროკერი", verifiedNote: "ფოტოები, ფართი და ფასი ბროკერმა ადგილზე გადაამოწმა." },
+  card: { title: "{deal} {rooms} ოთახიანი {type}", titleNoRooms: "{deal} {type}", photo: "ფოტო", photos: "ფოტო" },
   login: {
     title: "შესვლა",
     lead: "შეიყვანე მობილურის ნომერი და SMS-ით მიიღებ კოდს.",
@@ -72,8 +72,8 @@ const en: Dict = {
   perDay: "/ day",
   perMonth: "/ month",
   units: { rooms: "rooms", floor: "floor", sqm: "m²" },
-  listing: { listedPrice: "Listed at", checkedBy: "Checked by {name}, {date}", area: "Area", rooms: "Rooms", floor: "Floor", condition: "Condition", call: "Call", whatsapp: "WhatsApp", owner: "Owner", broker: "MTeam broker", verifiedNote: "Photos, area and price were checked on site by the broker." },
-  card: { title: "{deal}: {rooms}-room {type}", titleNoRooms: "{deal}: {type}", photos: "photos" },
+  listing: { path: "Path", listedPrice: "Listed at", checkedBy: "Checked by {name}, {date}", area: "Area", rooms: "Rooms", floor: "Floor", condition: "Condition", call: "Call", whatsapp: "WhatsApp", owner: "Owner", broker: "MTeam broker", verifiedNote: "Photos, area and price were checked on site by the broker." },
+  card: { title: "{deal}: {rooms}-room {type}", titleNoRooms: "{deal}: {type}", photo: "photo", photos: "photos" },
   login: {
     title: "Sign in",
     lead: "Enter your mobile number and we will text you a code.",
@@ -123,8 +123,8 @@ const ru: Dict = {
   perDay: "/ сутки",
   perMonth: "/ мес.",
   units: { rooms: "комн.", floor: "этаж", sqm: "м²" },
-  listing: { listedPrice: "Цена в объявлении", checkedBy: "Проверил(а) {name}, {date}", area: "Площадь", rooms: "Комнаты", floor: "Этаж", condition: "Состояние", call: "Позвонить", whatsapp: "WhatsApp", owner: "Собственник", broker: "Брокер MTeam", verifiedNote: "Фото, площадь и цену брокер проверил на месте." },
-  card: { title: "{deal}: {rooms}-комн. {type}", titleNoRooms: "{deal}: {type}", photos: "фото" },
+  listing: { path: "Путь", listedPrice: "Цена в объявлении", checkedBy: "Проверил(а) {name}, {date}", area: "Площадь", rooms: "Комнаты", floor: "Этаж", condition: "Состояние", call: "Позвонить", whatsapp: "WhatsApp", owner: "Собственник", broker: "Брокер MTeam", verifiedNote: "Фото, площадь и цену брокер проверил на месте." },
+  card: { title: "{deal}: {rooms}-комн. {type}", titleNoRooms: "{deal}: {type}", photo: "фото", photos: "фото" },
   login: {
     title: "Вход",
     lead: "Введите номер мобильного, и мы пришлём код по SMS.",

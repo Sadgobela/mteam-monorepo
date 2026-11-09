@@ -288,7 +288,7 @@ describe("listing photos", () => {
 
   it("shows the first photo on a card", () => {
     render(<ListingCard listing={withPhotos} locale="en" t={t} />);
-    expect(screen.getByRole("img", { name: withPhotos.title })).toHaveAttribute("src", "https://cdn/a.jpg");
+    expect(screen.getAllByRole("img", { name: withPhotos.title })[0]).toHaveAttribute("src", "https://cdn/a.jpg");
   });
 
   it("omits the room count on a card for property without rooms", () => {

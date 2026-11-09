@@ -59,9 +59,14 @@ export default async function ListingPage({
       <main className="listing">
         <Gallery images={listing.images} title={listing.title} tone={listing.tone} t={t} />
         <div className="lhead">
+          <nav className="crumbs" aria-label={t.listing.path}>
+            <Link href={`/${locale}?deal=${listing.deal}`}>{t.deal[listing.deal]}</Link>
+            <Link href={`/${locale}?deal=${listing.deal}&city=${encodeURIComponent(listing.city)}`}>{placeLabel(listing.city, locale)}</Link>
+            {listing.district && <span>{placeLabel(listing.district, locale)}</span>}
+          </nav>
           <h1>{listing.title}</h1>
           <span className="meta">
-            {listing.address} · ID {listing.id}
+            {listing.address} · ID {listing.id} · {formatDay(listing.updatedAt, locale)}
           </span>
         </div>
         <aside className="side">

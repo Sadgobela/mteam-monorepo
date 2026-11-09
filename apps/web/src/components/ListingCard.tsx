@@ -1,5 +1,5 @@
-import Image from "next/image";
 import Link from "next/link";
+import { CardPhotos } from "./CardPhotos";
 import { priceUnit, convertPrice, formatDay, formatPrice, placeName, type DisplayCurrency, type Dict, type Listing, type Locale } from "@mteam/shared";
 
 /** Built from the listing's facts, so a card reads in the page language whatever language the owner wrote in. */
@@ -30,7 +30,7 @@ export function ListingCard({
   return (
     <Link href={`/${locale}/listings/${listing.id}${cur === "gel" ? "?cur=gel" : ""}`} className="card">
       <div className={`ph ${listing.tone}`}>
-        {listing.images[0] && <Image src={listing.images[0]} alt={listing.title} fill unoptimized />}
+        {listing.images.length > 0 && <CardPhotos images={listing.images.slice(0, 5)} alt={listing.title} />}
         {listing.verified && (
           <span className="badge">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" aria-hidden="true">
@@ -46,7 +46,7 @@ export function ListingCard({
         )}
         {listing.images.length > 0 && (
           <span className="count">
-            {listing.images.length} {t.card.photos}
+            {listing.images.length} {listing.images.length === 1 ? t.card.photo : t.card.photos}
           </span>
         )}
       </div>

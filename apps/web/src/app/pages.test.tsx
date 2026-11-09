@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { countListings, searchListings } from "@mteam/db";
 import { renderToStaticMarkup } from "react-dom/server";
 import { fixtureListings } from "@/test-fixtures";
@@ -231,6 +231,19 @@ describe("listing page", () => {
   it("hides the floor when it is unknown", async () => {
     render(await ListingPage({ params: p({ locale: "en", id: "20440" }), searchParams: p({}) }));
     expect(screen.queryByText("Floor")).toBeNull();
+  });
+
+  it("shows where the listing sits, leaving out a district it does not have", async () => {
+    const { getListing } = await import("@mteam/db");
+    render(await ListingPage({ params: p({ locale: "en", id: "20418" }), searchParams: p({}) }));
+    const path = screen.getByRole("navigation", { name: "Path" });
+    expect(path).toHaveTextContent("For sale");
+    expect(within(path).getAllByRole("link")[1]).toHaveAttribute("href", `/en?deal=sale&city=${encodeURIComponent("თბილისი")}`);
+    expect(path).toHaveTextContent("Vake");
+    cleanup();
+    vi.mocked(getListing).mockResolvedValueOnce({ ...fixtureListings[0], district: "" });
+    render(await ListingPage({ params: p({ locale: "en", id: "20418" }), searchParams: p({}) }));
+    expect(screen.getByRole("navigation", { name: "Path" })).not.toHaveTextContent("Vake");
   });
 
   it("shows building status and metro when the listing has them", async () => {
