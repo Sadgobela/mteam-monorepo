@@ -198,6 +198,17 @@ describe("SearchBar", () => {
     expect(screen.getByLabelText("Floor to")).toHaveValue("9");
   });
 
+  it("marks keyboard use, and forgets it on a mouse press, so only tabbing shows a focus ring", () => {
+    bar();
+    const form = screen.getByRole("search");
+    fireEvent.keyUp(form, { key: "a" });
+    expect(form).not.toHaveAttribute("data-keyboard");
+    fireEvent.keyUp(form, { key: "Tab" });
+    expect(form).toHaveAttribute("data-keyboard");
+    fireEvent.mouseDown(form);
+    expect(form).not.toHaveAttribute("data-keyboard");
+  });
+
   it("always sends deal and the display choices, so an empty search still shows results", async () => {
     bar({}, { sort: "asc", view: "list", cur: "gel", page: 1 });
     submit();

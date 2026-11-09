@@ -45,6 +45,7 @@ export function SearchBar({ locale, t, filters, display }: { locale: Locale; t: 
         value={draft[name]}
         min={0}
         precision={0}
+        controls={false}
         inputMode="numeric"
         onChange={(value) => change({ [name]: value ?? undefined })}
         onPressEnter={search}
@@ -58,13 +59,24 @@ export function SearchBar({ locale, t, filters, display }: { locale: Locale; t: 
 
   return (
     <>
-      <form className="search" role="search" noValidate onSubmit={search}>
+      {/* The focus ring is for keyboard users only. CSS cannot tell: Chrome counts a click on these fields as :focus-visible. */}
+      <form
+        className="search"
+        role="search"
+        noValidate
+        onSubmit={search}
+        onKeyUp={(event) => {
+          if (event.key === "Tab") event.currentTarget.dataset.keyboard = "";
+        }}
+        onMouseDown={(event) => delete event.currentTarget.dataset.keyboard}
+      >
         <label>
           <small>{t.search.deal}</small>
           <Select
             aria-label={t.search.deal}
             variant="borderless"
             allowClear
+            suffixIcon={null}
             placeholder={t.search.any}
             value={draft.deal}
             options={dealTypes.map((d) => ({ value: d, label: t.deal[d] }))}
@@ -77,6 +89,7 @@ export function SearchBar({ locale, t, filters, display }: { locale: Locale; t: 
             aria-label={t.search.type}
             variant="borderless"
             allowClear
+            suffixIcon={null}
             placeholder={t.search.any}
             value={draft.type}
             options={propertyTypes.map((p) => ({ value: p, label: t.propertyType[p] }))}
