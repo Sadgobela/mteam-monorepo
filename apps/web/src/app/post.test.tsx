@@ -184,6 +184,14 @@ describe("ListingForm", () => {
       expect(current()).toBe("1 Location");
     });
 
+    it("treats a district of only spaces as missing", () => {
+      render(<ListingForm locale="en" t={t} />);
+      fill(t.post.fields.district, "   ");
+      fill(t.post.fields.address, "Main 1");
+      next();
+      expect(current()).toBe("1 Location");
+    });
+
     it("advances, moves focus to the new step, and only then offers submit", () => {
       render(<ListingForm locale="en" t={t} />);
       completeFirst();

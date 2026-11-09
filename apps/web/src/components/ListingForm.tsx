@@ -111,8 +111,8 @@ export function ListingForm({ locale, t }: { locale: Locale; t: Dict }) {
             <Choice name="city" label={t.search.city} options={citySlugs.map((c) => ({ value: c, label: t.city[c] }))} />
           </div>
           <div className="form-row">
-            <Input label={f.district} name="district" required maxLength={100} />
-            <Input label={f.address} name="address" required maxLength={200} />
+            <Input label={f.district} name="district" required maxLength={100} pattern=".*\S.*" />
+            <Input label={f.address} name="address" required maxLength={200} pattern=".*\S.*" />
           </div>
           <LocationPicker label={f.pin} clearLabel={f.pinClear} />
         </fieldset>
