@@ -47,7 +47,10 @@ h1, h2, h3 { margin: 0; text-wrap: balance; }
 @media (max-width: 760px) {
   .nav-wide, .nav-sections { display: none; }
   .phone-menu { display: contents; }
+  .nav-main { gap: 8px; }
+  .phone-menu > .btn { width: 44px; padding: 0; font-size: 20px; }
 }
+@media (max-width: 360px) { .brandname { display: none; } }
 .lang { display: flex; gap: 8px; font-size: 13px; font-weight: 600; color: var(--muted); }
 .lang [aria-current] { color: var(--brand-deep); }
 .btn { font: inherit; font-weight: 700; border: 0; border-radius: 10px; padding: 10px 16px; min-height: 44px; display: inline-flex; align-items: center; justify-content: center; cursor: pointer; background: var(--action); color: var(--on-action); white-space: nowrap; }
@@ -139,9 +142,14 @@ html:has(.viewer[open]) { overflow: hidden; }
 .narrow { max-width: 680px; margin: 0 auto; width: 100%; }
 .form { display: grid; gap: 12px; }
 .stepper { list-style: none; margin: 0; padding: 0; display: flex; gap: 8px; }
-.stepper li { flex: 1 1 0; min-width: 0; display: flex; align-items: center; gap: 8px; padding: 8px 10px; border-radius: 10px; background: var(--surface); border: 1px solid var(--line); color: var(--muted); font-size: 13px; font-weight: 600; overflow-wrap: anywhere; }
+.stepper li { flex: 1 1 0; min-width: 0; display: flex; align-items: center; gap: 8px; padding: 8px 10px; border-radius: 10px; background: var(--surface); border: 1px solid var(--line); color: var(--muted); font-size: 13px; font-weight: 600; }
 .stepper li[aria-current] { background: var(--action); border-color: var(--action); color: var(--on-action); }
 .stepper b { flex: none; }
+/* On phones only the current step is named, so a long word never has to break. */
+@media (max-width: 520px) {
+  .stepper li:not([aria-current]) { flex: none; }
+  .stepper li:not([aria-current]) span { display: none; }
+}
 .step { display: grid; gap: 12px; margin: 0; padding: 0; border: 0; min-width: 0; }
 .step:focus { outline: none; }
 /* Kept in layout instead of display: none, so the map on the first step never measures itself at zero size. */
@@ -153,7 +161,6 @@ html:has(.viewer[open]) { overflow: hidden; }
 .field small { color: var(--muted); font-size: 12px; }
 .field input, .field select, .field textarea { font: inherit; width: 100%; padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); color: var(--fg); }
 .ph img { object-fit: cover; }
-a.btn { text-decoration: none; display: inline-block; }
 .narrow h1 { font-size: 24px; }
 .heading { font-size: 22px; font-weight: 800; }
 .tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 12px; }

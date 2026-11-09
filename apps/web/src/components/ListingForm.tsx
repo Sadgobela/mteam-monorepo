@@ -91,7 +91,7 @@ export function ListingForm({ locale, t }: { locale: Locale; t: Dict }) {
       <ol className="stepper">
         {stepNames.map((name, index) => (
           <li key={name} aria-current={index === step ? "step" : undefined}>
-            <b>{index + 1}</b> {name}
+            <b>{index + 1}</b> <span>{name}</span>
           </li>
         ))}
       </ol>

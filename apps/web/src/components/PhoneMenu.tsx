@@ -13,8 +13,8 @@ export function PhoneMenu({ label, children }: { label: string; children: ReactN
 
   return (
     <div className="phone-menu">
-      <button type="button" className="btn ghost" aria-expanded={open} onClick={() => setOpen(!open)}>
-        {label}
+      <button type="button" className="btn ghost" aria-label={label} aria-expanded={open} onClick={() => setOpen(!open)}>
+        ☰
       </button>
       {open && (
         <div className="menu-panel" onClick={closeAfterLeaving}>
