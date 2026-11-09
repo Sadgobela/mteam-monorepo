@@ -20,6 +20,18 @@ export function cityDistricts(city: string): string[] {
   return cityAreas(city).flatMap((area) => area.districts);
 }
 
+/** Tbilisi's metro stations, along each line. */
+export const metroStations = [
+  "ახმეტელის თეატრი", "სარაჯიშვილი", "გურამიშვილი", "ღრმაღელე", "დიდუბე", "გოცირიძე", "ნაძალადევი", "სადგურის მოედანი", "მარჯანიშვილი", "რუსთაველი", "თავისუფლების მოედანი", "ავლაბარი", "300 არაგველი", "ისანი", "სამგორი", "ვარკეთილი",
+  "წერეთელი", "ტექნიკური უნივერსიტეტი", "სამედიცინო უნივერსიტეტი", "დელისი", "ვაჟა-ფშაველა", "სახელმწიფო უნივერსიტეტი",
+];
+
+export const METRO_CITY = "თბილისი";
+
+export function isMetro(name: string): boolean {
+  return metroStations.includes(name);
+}
+
 const GEORGIAN = "აბგდევზთიკლმნოპჟრსტუფქღყშჩცძწჭხჯჰ";
 const table = (letters: string) => {
   const sounds = letters.split(" ");

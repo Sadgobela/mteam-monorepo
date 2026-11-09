@@ -50,6 +50,23 @@ describe("parseListingDraft", () => {
     floors: "12",
   };
 
+  it("keeps metro and building status, and treats blanks as none", () => {
+    const tbilisi = { ...valid, city: "თბილისი", district: "ვაკე" };
+    expect(parseListingDraft({ ...tbilisi, metro: "დელისი", building: "new" })).toMatchObject({ metro: "დელისი", building: "new" });
+    expect(parseListingDraft({ ...tbilisi, metro: "", building: "" })).toMatchObject({ metro: undefined, building: undefined });
+    expect(parseListingDraft({ ...tbilisi, metro: "Atlantis" })).toBeNull();
+    expect(parseListingDraft({ ...tbilisi, building: "castle" })).toBeNull();
+  });
+
+  it("refuses a price per m² too large to store", () => {
+    expect(parseListingDraft({ ...valid, price: "2000000000", area: "0.5" })).toBeNull();
+    expect(parseListingDraft({ ...valid, price: "2000000000", area: "100" })).not.toBeNull();
+  });
+
+  it("allows a metro station only in the city that has a metro", () => {
+    expect(parseListingDraft({ ...valid, metro: "დელისი" })).toBeNull();
+  });
+
   it("keeps a chosen street and treats a blank one as none", () => {
     expect(parseListingDraft({ ...valid, street: "ატენის ქ." })?.street).toBe("ატენის ქ.");
     expect(parseListingDraft({ ...valid, street: "" })?.street).toBeUndefined();

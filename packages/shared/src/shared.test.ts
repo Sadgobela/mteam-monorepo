@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { streetsIn } from "./streets";
-import { cities, cityAreas, cityDistricts, defaultLocale, formatDay, formatPrice, getDictionary, isCity, isLocale, locales, placeLabel, placeName, popularCities, priceUnit } from "./index";
+import { cities, cityAreas, cityDistricts, defaultLocale, formatDay, formatPrice, getDictionary, isCity, isLocale, isMetro, locales, metroStations, placeLabel, placeName, popularCities, priceUnit } from "./index";
 
 describe("formatDay", () => {
   it("writes a short date in the page language, independent of time zone", () => {
@@ -50,6 +50,12 @@ describe("places", () => {
     expect(popularCities).toHaveLength(10);
     expect(isCity("ქუთაისი")).toBe(true);
     expect(isCity("დუბაი")).toBe(false);
+  });
+
+  it("knows Tbilisi's metro stations", () => {
+    expect(metroStations).toHaveLength(22);
+    expect(isMetro("დელისი")).toBe(true);
+    expect(isMetro("Atlantis")).toBe(false);
   });
 
   it("never lists a district twice in one city", () => {

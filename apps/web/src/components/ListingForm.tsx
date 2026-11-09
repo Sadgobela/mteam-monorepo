@@ -5,7 +5,10 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState, type ChangeEvent, type FormEvent, type MouseEvent } from "react";
 import { flushSync } from "react-dom";
 import {
+  buildingStatuses,
   cities,
+  metroStations,
+  METRO_CITY,
   cityDistricts,
   placeLabel,
   currencies,
@@ -170,10 +173,14 @@ export function ListingForm({ locale, t }: { locale: Locale; t: Dict }) {
               <Choice key={`${city}/${district}`} name="street" optional label={f.street} options={[{ value: "", label: "—" }, ...streets.map((name) => ({ value: name, label: placeLabel(name, locale) }))]} />
             )}
             <Input label={f.address} name="address" required maxLength={200} pattern=".*\S.*" />
+            {city === METRO_CITY && (
+              <Choice name="metro" optional label={t.search.metro} options={[{ value: "", label: "—" }, ...metroStations.map((name) => ({ value: name, label: placeLabel(name, locale) }))]} />
+            )}
           </div>
           <LocationPicker label={f.pin} clearLabel={f.pinClear} />
         </fieldset>
         <fieldset {...stepProps(1)}>
+          <Choice name="building" optional label={t.search.status} options={[{ value: "", label: "—" }, ...buildingStatuses.map((status) => ({ value: status, label: t.search.building[status] }))]} />
           <div className="form-row">
             <Input label={f.price} name="price" type="number" required min={1} max={2000000000} />
             <Choice name="currency" label={f.currency} options={currencies.map((c) => ({ value: c, label: c }))} />

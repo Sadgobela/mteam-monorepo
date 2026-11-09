@@ -6,6 +6,26 @@ describe("parseListingFilters", () => {
     expect(parseListingFilters({ city: "თბილისი", district: "ვაკე|ვერა" })).toEqual({ city: "თბილისი", district: ["ვაკე", "ვერა"] });
   });
 
+  it("reads metro, building status, owners and price per m²", () => {
+    expect(parseListingFilters({ metro: "დელისი", building: "old|new|old|castle", owner: "1", sqmMin: "500", sqmMax: "900" })).toMatchObject({
+      metro: "დელისი",
+      building: ["old", "new"],
+      owner: true,
+      sqmMin: 500,
+      sqmMax: 900,
+    });
+  });
+
+  it("keeps a metro station only in the city with a metro, or with no city chosen", () => {
+    expect(parseListingFilters({ city: "თბილისი", metro: "დელისი" }).metro).toBe("დელისი");
+    expect(parseListingFilters({ city: "ბათუმი", metro: "დელისი" }).metro).toBeUndefined();
+    expect(parseListingFilters({ metro: "დელისი" }).metro).toBe("დელისი");
+  });
+
+  it("ignores an unknown metro station or building status", () => {
+    expect(parseListingFilters({ metro: "Atlantis", building: "castle", owner: "yes" })).toMatchObject({ metro: undefined, building: undefined, owner: undefined });
+  });
+
   it("reads streets inside a city, keeping commas in their names and dropping blanks and repeats", () => {
     expect(parseListingFilters({ city: "თბილისი", street: "ა, ქ.|ბ ქ.|ბ ქ.|" }).street).toEqual(["ა, ქ.", "ბ ქ."]);
     expect(parseListingFilters({ city: "თბილისი", street: "|" }).street).toBeUndefined();

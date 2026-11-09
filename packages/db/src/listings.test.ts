@@ -100,6 +100,11 @@ describe("getListing", () => {
     });
   });
 
+  it("maps building status and metro", async () => {
+    prisma.listing.findFirst.mockResolvedValue({ ...fullRow, building: "CONSTRUCTION", metro: "დელისი", street: "ატენის ქ." });
+    expect(await getListing("20418")).toMatchObject({ building: "construction", metro: "დელისი", street: "ატენის ქ." });
+  });
+
   it("copes with a broker who has no name or branch", async () => {
     prisma.listing.findFirst.mockResolvedValue({
       ...fullRow,
@@ -162,7 +167,7 @@ describe("searchListings", () => {
 
   it("applies no filter beyond published when none is given", async () => {
     const where = await whereFor({});
-    expect(JSON.parse(JSON.stringify(where))).toEqual({ status: "ACTIVE", priceUsd: {}, area: {}, floor: {} });
+    expect(JSON.parse(JSON.stringify(where))).toEqual({ status: "ACTIVE", priceUsd: {}, area: {}, floor: {}, pricePerSqmUsd: {} });
   });
 
   it.each([
@@ -210,6 +215,23 @@ describe("searchListings", () => {
     const where = await whereFor({});
     expect(where.district).toBeUndefined();
     expect(where.street).toBeUndefined();
+  });
+
+  it("filters by metro, building status, owners and price per m²", async () => {
+    expect(await whereFor({ metro: "დელისი", building: ["old", "construction"], owner: true, sqmMin: 500, sqmMax: 900 })).toMatchObject({
+      metro: "დელისი",
+      building: { in: ["OLD", "CONSTRUCTION"] },
+      agentId: null,
+      pricePerSqmUsd: { gte: 500, lte: 900 },
+    });
+  });
+
+  it("finds a listing by its number as well as by text", async () => {
+    expect((await whereFor({ q: "20418" })).OR).toContainEqual({ id: 20418 });
+  });
+
+  it("does not treat text as a listing number", async () => {
+    expect((await whereFor({ q: "vake" })).OR).not.toContainEqual(expect.objectContaining({ id: expect.anything() }));
   });
 
   it("filters by exact streets when they are given", async () => {
@@ -286,6 +308,8 @@ describe("createListing", () => {
     expect(prisma.listing.create.mock.calls[0][0].data).toEqual({
       ...draft,
       priceUsd: 333,
+      pricePerSqmUsd: 4,
+      building: undefined,
       deal: "RENT",
       type: "HOUSE",
       city: "ბათუმი",
@@ -299,6 +323,14 @@ describe("createListing", () => {
         ],
       },
     });
+  });
+});
+
+describe("createListing building status", () => {
+  it("stores the status in the database's form", async () => {
+    prisma.listing.create.mockResolvedValue({ id: 8 });
+    await createListing("u1", { deal: "sale", type: "house", city: "ბათუმი", address: "a", title: "t", description: "d", price: 100, currency: "USD", area: 10, building: "new" }, []);
+    expect(prisma.listing.create.mock.calls[0][0].data).toMatchObject({ building: "NEW", pricePerSqmUsd: 10 });
   });
 });
 

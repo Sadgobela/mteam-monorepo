@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { ReactNode } from "react";
 import { getListing } from "@mteam/db";
-import { priceUnit, convertPrice, formatDay, formatPrice, getDictionary, parseListingDisplay } from "@mteam/shared";
+import { placeLabel, priceUnit, convertPrice, formatDay, formatPrice, getDictionary, parseListingDisplay } from "@mteam/shared";
 import { Gallery } from "@/components/Gallery";
 import { Header } from "@/components/Header";
 import { GiveBand } from "@/components/LeadForm";
@@ -138,6 +138,16 @@ export default async function ListingPage({
             {listing.floor && (
               <Fact icon="floor" label={t.listing.floor}>
                 {listing.floor} / {listing.floors}
+              </Fact>
+            )}
+            {listing.building && (
+              <Fact icon="condition" label={t.search.status}>
+                {t.search.building[listing.building]}
+              </Fact>
+            )}
+            {listing.metro && (
+              <Fact icon="floor" label={t.search.metro}>
+                {placeLabel(listing.metro, locale)}
               </Fact>
             )}
             {listing.condition && (

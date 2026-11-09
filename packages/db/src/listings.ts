@@ -1,5 +1,6 @@
-import type { DealType as DbDealType, Prisma, PropertyType as DbPropertyType } from "@prisma/client";
+import type { BuildingStatus as DbBuildingStatus, DealType as DbDealType, Prisma, PropertyType as DbPropertyType } from "@prisma/client";
 import {
+  type BuildingStatus,
   roomOptions,
   type DealType,
   type Listing,
@@ -33,6 +34,8 @@ const dbPropertyTypes: Record<PropertyType, DbPropertyType> = {
   country: "COUNTRY_HOUSE",
   hotel: "HOTEL",
 };
+const buildings: Record<DbBuildingStatus, BuildingStatus> = { OLD: "old", NEW: "new", CONSTRUCTION: "construction" };
+const dbBuildings: Record<BuildingStatus, DbBuildingStatus> = { old: "OLD", new: "NEW", construction: "CONSTRUCTION" };
 const tones = ["violet", "sand", "steel", "rose"] as const;
 
 /** Only what a public page may show: names and emails stay out, and the phone is the listing's contact number. */
@@ -65,6 +68,8 @@ export function toListing(row: ListingRow): Listing {
     district: row.district ?? "",
     address: row.address ?? "",
     street: row.street ?? undefined,
+    metro: row.metro ?? undefined,
+    building: row.building ? buildings[row.building] : undefined,
     rooms: row.rooms ?? 0,
     price: row.price,
     currency: row.currency,
@@ -103,7 +108,8 @@ function textClause(q: string | undefined): Prisma.ListingWhereInput[] | undefin
   if (q === undefined) return undefined;
   // Without escaping, % and _ would act as LIKE wildcards.
   const match = { contains: q.replace(/[\\%_]/g, "\\$&"), mode: "insensitive" } as const;
-  return [{ district: match }, { address: match }, { street: match }, { city: match }, { title: match }];
+  const byId = /^\d{1,9}$/.test(q) ? [{ id: Number(q) }] : [];
+  return [{ district: match }, { address: match }, { street: match }, { city: match }, { title: match }, ...byId];
 }
 
 function whereFor(filters: ListingFilters, located = false): Prisma.ListingWhereInput {
@@ -114,6 +120,10 @@ function whereFor(filters: ListingFilters, located = false): Prisma.ListingWhere
     city: filters.city,
     district: filters.district && { in: filters.district },
     street: filters.street && { in: filters.street },
+    metro: filters.metro,
+    building: filters.building && { in: filters.building.map((status) => dbBuildings[status]) },
+    agentId: filters.owner ? null : undefined,
+    pricePerSqmUsd: { gte: filters.sqmMin, lte: filters.sqmMax },
     rooms: roomsClause(filters.rooms),
     verified: filters.verified,
     priceUsd: { gte: filters.priceMin, lte: filters.priceMax },
@@ -177,6 +187,8 @@ export async function createListing(ownerId: string, draft: ListingDraft, imageU
     data: {
       ...draft,
       priceUsd: priceInUsd(draft.price, draft.currency),
+      pricePerSqmUsd: Math.round(priceInUsd(draft.price, draft.currency) / draft.area),
+      building: draft.building && dbBuildings[draft.building],
       deal: dbDeals[draft.deal],
       type: dbPropertyTypes[draft.type],
       status: "PENDING",

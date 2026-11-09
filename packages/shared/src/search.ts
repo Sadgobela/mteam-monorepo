@@ -1,11 +1,15 @@
 import { z } from "zod";
-import { cityDistricts, isCity } from "./places";
+import { cityDistricts, isCity, isMetro, METRO_CITY } from "./places";
 
 export const dealTypes = ["sale", "rent", "daily", "pledge", "lease"] as const;
 export type DealType = (typeof dealTypes)[number];
 
 export const propertyTypes = ["apartment", "house", "country", "commercial", "land", "hotel"] as const;
 export type PropertyType = (typeof propertyTypes)[number];
+
+export const buildingStatuses = ["old", "new", "construction"] as const;
+export type BuildingStatus = (typeof buildingStatuses)[number];
+const isBuildingStatus = (value: string): value is BuildingStatus => (buildingStatuses as readonly string[]).includes(value);
 
 export const currencies = ["USD", "GEL"] as const;
 export type Currency = (typeof currencies)[number];
@@ -14,7 +18,7 @@ export type Currency = (typeof currencies)[number];
 export const roomOptions = [1, 2, 3, 4] as const;
 
 /** In USD. Keeps a bound well inside the Int price column. */
-const MAX_PRICE = 100_000_000;
+export const MAX_PRICE = 100_000_000;
 
 const price = z
   .string()
@@ -48,6 +52,23 @@ const filtersSchema = z.object({
   /** Exact names. They only mean something inside a city. */
   district: nameList,
   street: nameList,
+  metro: z.string().refine(isMetro).optional().catch(undefined),
+  building: z
+    .string()
+    .max(60)
+    .transform((value) => {
+      const known = [...new Set(value.split("|").filter(isBuildingStatus))];
+      return known.length > 0 ? known : undefined;
+    })
+    .optional()
+    .catch(undefined),
+  owner: z
+    .literal("1")
+    .transform(() => true)
+    .optional()
+    .catch(undefined),
+  sqmMin: price,
+  sqmMax: price,
   priceMin: price,
   priceMax: price,
   rooms: z
@@ -85,7 +106,12 @@ export function parseListingFilters(query: Record<string, string | string[] | un
   const known = cityDistricts(filters.city);
   const district = [...new Set(filters.district?.filter((name) => known.includes(name)))];
   const street = [...new Set(filters.street?.filter(Boolean))];
-  return { ...filters, district: district.length > 0 ? district : undefined, street: street.length > 0 ? street : undefined };
+  return {
+    ...filters,
+    district: district.length > 0 ? district : undefined,
+    street: street.length > 0 ? street : undefined,
+    metro: filters.city === METRO_CITY ? filters.metro : undefined,
+  };
 }
 
 export const sortOrders = ["new", "asc", "desc"] as const;

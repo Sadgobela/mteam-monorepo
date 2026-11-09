@@ -100,6 +100,13 @@ h1, h2, h3 { margin: 0; text-wrap: balance; }
 .loc-head { font-weight: 700; }
 .loc-foot { display: flex; justify-content: flex-end; gap: 8px; margin-top: 12px; }
 @media (max-width: 640px) { .loc { grid-template-columns: minmax(0, 1fr); grid-template-rows: 150px minmax(0, 1fr); } }
+.pills { display: flex; flex-wrap: wrap; gap: 8px; }
+.pills .pill { font-weight: 600; }
+.pills .pill.active { border-color: var(--action); color: var(--brand-deep); background: var(--brand-soft); }
+.pill-panel { width: 280px; max-width: calc(100vw - 48px); }
+.status-boxes { display: grid; gap: 8px; }
+.more-panel .chip-row { display: block; }
+.more-panel .wide, .pill-panel .wide { grid-column: 1 / -1; }
 .more-panel { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 12px; padding-block: 8px; }
 .more-panel .field .ant-segmented-block .ant-segmented-item { flex: 1 1 auto; }
 :root .more-panel .ant-segmented .ant-segmented-item-label { padding-inline: 2px; font-size: 13px; }

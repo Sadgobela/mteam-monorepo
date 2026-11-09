@@ -1,4 +1,4 @@
-import type { Currency, DealType, PropertyType } from "./search";
+import type { Currency, DealType, PropertyType, BuildingStatus } from "./search";
 
 
 export interface Agent {
@@ -17,6 +17,8 @@ export interface Listing {
   district: string;
   address: string;
   street?: string;
+  metro?: string;
+  building?: BuildingStatus;
   price: number;
   currency: Currency;
   lat?: number;
