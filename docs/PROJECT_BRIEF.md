@@ -24,6 +24,7 @@ Today mTeam posts its listings on existing portals (ss.ge, myhome.ge style). We 
 - One monorepo (`mteam-monorepo`): pnpm + Turborepo. Next.js handles the site, admin and API. Split out `apps/api` only if load requires it.
 - Stack: Next.js (TypeScript), PostgreSQL + Prisma, Cloudflare R2 for photos.
 - Design: variant A from the mockup (light, search first, brand purple `#986DC6` from the logo as the accent), with both light and dark themes (follows the system setting, plus a manual toggle). Mockup: https://claude.ai/artifact/427T2eaNdjMvWsQz5jUhUh
+- Logo: the designer's official files, purple `#986DC6` on light backgrounds and white on dark or purple ones. The site draws it from those vectors in `apps/web/src/components/Logo.tsx`.
 - UI: familiar layout where people navigate, following what users know from myhome.ge and ss.ge, and a unique mTeam product where they decide. See `docs/UI_PLAN.md`. Their branding, assets and wording are never copied.
 - Testing: tests from day one, with 100% coverage enforced.
 - Working style: Irakli wants recommendations and alternative versions proposed proactively, and wants tokens kept low (agree on designs before building).

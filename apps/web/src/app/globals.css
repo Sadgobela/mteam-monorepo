@@ -5,19 +5,19 @@
 :root {
   --brand: #986dc6; --brand-deep: #6e45a0; --brand-soft: #f1eaf8;
   --bg: #faf8fc; --surface: #ffffff; --fg: #1f1828; --muted: #6b6176; --line: #e6dfee;
-  --viewer: #100b17; --focus: #c9a24a; --wa: #1f9d57; --action: #6e45a0; --on-action: #ffffff;
+  --logo: #986dc6; --viewer: #100b17; --focus: #c9a24a; --wa: #1f9d57; --action: #6e45a0; --on-action: #ffffff;
   --sans: "Noto Sans Georgian", system-ui, sans-serif;
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
     --brand: #a57fd0; --brand-deep: #c8aee6; --brand-soft: #2a2136;
-    --bg: #141019; --surface: #1d1724; --fg: #f1ecf6; --muted: #a79db3; --line: #332a3e; --focus: #d9b65e; --action: #a57fd0; --on-action: #1f1828;
+    --bg: #141019; --surface: #1d1724; --fg: #f1ecf6; --muted: #a79db3; --line: #332a3e; --focus: #d9b65e; --action: #a57fd0; --on-action: #1f1828; --logo: #ffffff;
     color-scheme: dark;
   }
 }
 :root[data-theme="dark"] {
   --brand: #a57fd0; --brand-deep: #c8aee6; --brand-soft: #2a2136;
-  --bg: #141019; --surface: #1d1724; --fg: #f1ecf6; --muted: #a79db3; --line: #332a3e; --focus: #d9b65e; --action: #a57fd0; --on-action: #1f1828;
+  --bg: #141019; --surface: #1d1724; --fg: #f1ecf6; --muted: #a79db3; --line: #332a3e; --focus: #d9b65e; --action: #a57fd0; --on-action: #1f1828; --logo: #ffffff;
   color-scheme: dark;
 }
 
@@ -31,8 +31,7 @@ h1, h2, h3 { margin: 0; text-wrap: balance; }
 .nav-main, .links { max-width: 1240px; margin: 0 auto; padding-inline: max(16px, env(safe-area-inset-left, 0px)); }
 .nav-main { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; padding-block: 12px 8px; }
 .brand { display: flex; align-items: center; gap: 10px; }
-.logo { display: inline-grid; place-items: center; width: 36px; height: 36px; border-radius: 8px; background: #986dc6; }
-.brandname { font-weight: 800; font-size: 19px; }
+.logo { display: block; color: var(--logo); }
 .links { display: flex; gap: 20px; flex-wrap: wrap; color: var(--muted); font-weight: 500; padding-bottom: 10px; }
 .links .accent { color: var(--brand-deep); font-weight: 700; }
 .sp { flex: 1; }
@@ -50,7 +49,7 @@ h1, h2, h3 { margin: 0; text-wrap: balance; }
   .nav-main { gap: 8px; }
   .phone-menu > .btn { width: 44px; padding: 0; font-size: 20px; }
 }
-@media (max-width: 360px) { .brandname { display: none; } }
+@media (max-width: 360px) { .logo { width: 36px; } }
 .lang { display: flex; gap: 8px; font-size: 13px; font-weight: 600; color: var(--muted); }
 .lang [aria-current] { color: var(--brand-deep); }
 .btn { font: inherit; font-weight: 700; border: 0; border-radius: 10px; padding: 10px 16px; min-height: 44px; display: inline-flex; align-items: center; justify-content: center; cursor: pointer; background: var(--action); color: var(--on-action); white-space: nowrap; }
