@@ -13,7 +13,7 @@ vi.mock("aws4fetch", () => ({
 }));
 
 import sharp from "sharp";
-import { readPhotos, uploadPhoto } from "./photos";
+import { oneAtATime, readPhotos, uploadPhoto } from "./photos";
 
 const blank = (width = 8, height = 6) => sharp({ create: { width, height, channels: 3, background: "#986dc6" } });
 const file = (bytes: Uint8Array | number[], name = "a.jpg", type = "image/jpeg") => new File([new Uint8Array(bytes)], name, { type });
@@ -61,6 +61,18 @@ describe("readPhotos", () => {
     expect([result.width, result.height, result.orientation]).toEqual([6, 8, undefined]);
   });
 
+  it("accepts a photo with a minor flaw that browsers display normally", async () => {
+    const scan = jpeg.indexOf(Buffer.from([0xff, 0xda]));
+    const flawed = Buffer.concat([jpeg.subarray(0, scan), Buffer.from([1, 2, 3]), jpeg.subarray(scan)]);
+    await expect(sharp(flawed, { failOn: "warning" }).toBuffer()).rejects.toThrow(/extraneous/);
+    expect(await readPhotos([file(flawed)])).toHaveLength(1);
+  });
+
+  it("rejects a photo cut off part way through", async () => {
+    const whole = await sharp(Buffer.alloc(900 * 900 * 3, 120), { raw: { width: 900, height: 900, channels: 3 } }).jpeg().toBuffer();
+    expect(await readPhotos([file(whole.subarray(0, 200))])).toBeNull();
+  });
+
   it("rejects a file that starts like an image but is not one", async () => {
     expect(await readPhotos([file([0xff, 0xd8, 0xff, 0xe0, 1, 2, 3, 4])])).toBeNull();
   });
@@ -96,6 +108,31 @@ describe("readPhotos", () => {
     const atLimit = Buffer.concat([jpeg, Buffer.alloc(FIVE_MB - jpeg.length)]);
     expect(await readPhotos([file(atLimit)])).toHaveLength(1);
     expect(await readPhotos([file(Buffer.concat([atLimit, Buffer.alloc(1)]))])).toBeNull();
+  });
+});
+
+describe("oneAtATime", () => {
+  it("starts a job only after the one before it has finished", async () => {
+    const order: string[] = [];
+    let finishFirst = () => {};
+    const first = oneAtATime(async () => {
+      order.push("first started");
+      await new Promise<void>((resolve) => (finishFirst = resolve));
+      order.push("first finished");
+    });
+    const second = oneAtATime(async () => {
+      order.push("second started");
+    });
+    await new Promise((resolve) => setTimeout(resolve, 10));
+    expect(order).toEqual(["first started"]);
+    finishFirst();
+    await Promise.all([first, second]);
+    expect(order).toEqual(["first started", "first finished", "second started"]);
+  });
+
+  it("carries on after a job fails", async () => {
+    await expect(oneAtATime(async () => Promise.reject(new Error("bad")))).rejects.toThrow("bad");
+    expect(await oneAtATime(async () => "next")).toBe("next");
   });
 });
 

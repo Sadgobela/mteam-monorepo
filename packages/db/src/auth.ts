@@ -1,4 +1,5 @@
 import { createHash, createHmac, randomBytes, randomInt } from "node:crypto";
+import { isIPv6 } from "node:net";
 import { z } from "zod";
 import { db } from "./client";
 
@@ -13,7 +14,14 @@ const ADDRESS_WINDOW_MS = 60 * 60_000;
 
 const smsEnvSchema = z.object({ SMS_PROVIDER: z.literal("console") });
 
-const codeSecretSchema = z.object({ LOGIN_CODE_SECRET: z.string().min(32) });
+const EXAMPLE_SECRET = "replace-with-openssl-rand-hex-32";
+
+const codeSecretSchema = z.object({
+  LOGIN_CODE_SECRET: z
+    .string()
+    .min(32)
+    .refine((secret) => process.env.NODE_ENV !== "production" || secret !== EXAMPLE_SECRET),
+});
 
 const sha256 = (value: string) => createHash("sha256").update(value).digest("hex");
 
@@ -27,10 +35,22 @@ function assertCodesCanBeSent(): void {
   if (process.env.NODE_ENV === "production") throw new Error("SMS_PROVIDER=console is not allowed in production");
 }
 
+/** One customer on IPv6 is given a whole /64 block and can use a new address for every request, so the block is what gets counted. */
+function addressBucket(ip: string): string {
+  const embedded = /^::ffff:(\d+\.\d+\.\d+\.\d+)$/i.exec(ip);
+  if (embedded) return embedded[1];
+  if (!isIPv6(ip)) return ip;
+  const groups = (part: string) => (part ? part.split(":") : []);
+  const [left, right = ""] = ip.split("::");
+  const zeros = new Array(8 - groups(left).length - groups(right).length).fill("0");
+  const block = [...groups(left), ...zeros, ...groups(right)].slice(0, 4);
+  return `${block.map((group) => parseInt(group, 16).toString(16)).join(":")}::/64`;
+}
+
 /** Counts one code request against an address and says whether it is within the limit. Single conditional writes, like the phone limit. */
 async function claimAddressQuota(ip: string, now: number): Promise<boolean> {
   const limits = db().codeRequestLimit;
-  const ipHash = keyedHash(`ip:${ip}`);
+  const ipHash = keyedHash(`ip:${addressBucket(ip)}`);
   const opened = new Date(now);
   const claimed =
     (

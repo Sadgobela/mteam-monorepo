@@ -25,13 +25,25 @@ function detectFormat(bytes: Uint8Array) {
 /** A few megabytes of compressed image can decode to far more memory than the file suggests. Phone cameras stay below this. */
 const MAX_INPUT_PIXELS = 50_000_000;
 
+// ponytail: one queue per process, so memory stays bounded while posts wait their turn. Add per-user limits if posting volume needs them.
+let queue: Promise<unknown> = Promise.resolve();
+
+/** Runs jobs one after another. A small file can decode to hundreds of megabytes, so parallel posts must not decode together. */
+export function oneAtATime<T>(job: () => Promise<T>): Promise<T> {
+  const run = queue.then(job);
+  queue = run.catch(() => undefined);
+  return run;
+}
+
 /**
  * Re-encoded rather than trimmed, which leaves no GPS position or other hidden field behind. The rotation those fields
  * carried is applied first, or phone photos would come out sideways. Returns null if the file does not decode as an image.
  */
 async function withoutMetadata(bytes: Uint8Array): Promise<Uint8Array<ArrayBuffer> | null> {
   try {
-    return new Uint8Array(await sharp(bytes, { limitInputPixels: MAX_INPUT_PIXELS }).rotate().toBuffer());
+    // failOn "error": a browser shows a photo with a minor flaw without complaint, so it should not be refused here.
+    const encoded = await oneAtATime(() => sharp(bytes, { limitInputPixels: MAX_INPUT_PIXELS, failOn: "error" }).rotate().toBuffer());
+    return new Uint8Array(encoded);
   } catch {
     return null;
   }

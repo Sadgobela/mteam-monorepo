@@ -85,6 +85,22 @@ describe("requestLoginCode", () => {
     };
     const ipHash = keyed("ip:203.0.113.7");
 
+    it.each([
+      ["2001:db8:1:2:aaaa::1", "2001:db8:1:2::/64"],
+      ["2001:0DB8:0001:0002:ffff:ffff:ffff:ffff", "2001:db8:1:2::/64"],
+      ["2001:db8::1", "2001:db8:0:0::/64"],
+      ["2001:db8:1:3::", "2001:db8:1:3::/64"],
+      ["::1", "0:0:0:0::/64"],
+      ["::ffff:203.0.113.7", "203.0.113.7"],
+      ["203.0.113.7", "203.0.113.7"],
+      ["unknown", "unknown"],
+    ])("counts %s under %s", async (ip, bucket) => {
+      quota(0, 1, 0);
+      outcome(0, 0, 1);
+      await requestLoginCode(phone, ip);
+      expect(prisma.codeRequestLimit.updateMany.mock.calls[0][0].where.ipHash).toBe(keyed(`ip:${bucket}`));
+    });
+
     it("opens a new window for an address it has not seen, storing only a keyed hash", async () => {
       quota(0, 0, 1);
       outcome(0, 0, 1);
@@ -158,6 +174,23 @@ describe("verifyLoginCode", () => {
     vi.stubEnv("LOGIN_CODE_SECRET", undefined as unknown as string);
     await expect(verifyLoginCode(phone, "123456")).rejects.toThrow();
     expect(prisma.loginCode.updateMany).not.toHaveBeenCalled();
+  });
+
+  it("refuses the published example secret in production", async () => {
+    vi.stubEnv("NODE_ENV", "production");
+    vi.stubEnv("LOGIN_CODE_SECRET", "replace-with-openssl-rand-hex-32");
+    await expect(verifyLoginCode(phone, "123456")).rejects.toThrow();
+    expect(prisma.loginCode.updateMany).not.toHaveBeenCalled();
+  });
+
+  it("accepts a real secret in production and the example one locally", async () => {
+    open();
+    prisma.loginCode.deleteMany.mockResolvedValue({ count: 0 });
+    vi.stubEnv("NODE_ENV", "production");
+    expect(await verifyLoginCode(phone, "123456")).toBeNull();
+    vi.stubEnv("NODE_ENV", "development");
+    vi.stubEnv("LOGIN_CODE_SECRET", "replace-with-openssl-rand-hex-32");
+    expect(await verifyLoginCode(phone, "123456")).toBeNull();
   });
 
   it("depends on the secret, so a leaked hash cannot be checked without it", async () => {
