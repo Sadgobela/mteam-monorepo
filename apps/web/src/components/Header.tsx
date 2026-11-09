@@ -1,7 +1,7 @@
-import Image from "next/image";
 import Link from "next/link";
 import { locales, type Dict, type Locale } from "@mteam/shared";
 import { logoutAction } from "@/lib/auth-actions";
+import { Logo } from "./Logo";
 import { PhoneMenu } from "./PhoneMenu";
 import { ThemeToggle } from "./ThemeToggle";
 
@@ -48,10 +48,7 @@ export function Header({ locale, t, signedIn }: { locale: Locale; t: Dict; signe
     <header className="nav">
       <div className="nav-main">
         <Link href={`/${locale}`} className="brand" aria-label="MTeam">
-          <span className="logo">
-            <Image src="/logo-mark.png" alt="" width={26} height={25} />
-          </span>
-          <span className="brandname">MTeam</span>
+          <Logo />
         </Link>
         <span className="sp" />
         <Link href={`/${locale}/listings/new`} className="btn">{t.nav.post}</Link>

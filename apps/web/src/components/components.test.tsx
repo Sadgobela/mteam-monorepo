@@ -20,6 +20,13 @@ describe("Header", () => {
     expect(screen.getByRole("link", { name: "KA" })).not.toHaveAttribute("aria-current");
   });
 
+  it("links the drawn logo home, with a name screen readers can announce", () => {
+    render(<Header locale="en" t={t} signedIn={false} />);
+    const home = screen.getByRole("link", { name: "MTeam" });
+    expect(home).toHaveAttribute("href", "/en");
+    expect(home.querySelectorAll("svg path")).toHaveLength(2);
+  });
+
   describe("phone menu", () => {
     const menu = () => screen.getByRole("button", { name: "Menu" });
     const panel = (container: HTMLElement) => container.querySelector(".menu-panel") as HTMLElement;
