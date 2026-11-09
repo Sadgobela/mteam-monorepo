@@ -32,7 +32,7 @@ export function SearchBar({ locale, t, filters, display }: { locale: Locale; t: 
     // "deal" is always sent, even empty: it is how the home page knows a search was made.
     const params = new URLSearchParams({ deal: filtersToSearch.deal ?? "", cur: display.cur, view: display.view, sort: display.sort });
     for (const [key, value] of Object.entries(filtersToSearch)) {
-      if (key !== "deal" && value !== undefined) params.set(key, value === true ? "1" : String(value));
+      if (key !== "deal" && value !== undefined) params.set(key, Array.isArray(value) ? value.join("|") : value === true ? "1" : String(value));
     }
     setMoreOpen(false);
     setLocationOpen(false);
@@ -44,7 +44,7 @@ export function SearchBar({ locale, t, filters, display }: { locale: Locale; t: 
     run(draft);
   }
 
-  function applyLocation(picked: Pick<ListingFilters, "city" | "district">) {
+  function applyLocation(picked: Pick<ListingFilters, "city" | "district" | "street">) {
     const next = { ...draft, ...picked };
     setDraft(next);
     run(next);
@@ -65,7 +65,8 @@ export function SearchBar({ locale, t, filters, display }: { locale: Locale; t: 
     </label>
   );
 
-  const place = draft.city && placeLabel(draft.city, locale) + (draft.district ? ` +${draft.district.length}` : "");
+  const placeCount = (draft.district?.length ?? 0) + (draft.street?.length ?? 0);
+  const place = draft.city && placeLabel(draft.city, locale) + (placeCount > 0 ? ` +${placeCount}` : "");
   const lastRoom = roomOptions[roomOptions.length - 1];
   const extraFilters = Object.keys(moreFields).filter((key) => draft[key as keyof typeof moreFields] !== undefined).length;
 

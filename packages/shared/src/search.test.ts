@@ -3,7 +3,13 @@ import { convertPrice, parseListingDisplay, parseListingFilters, priceInUsd } fr
 
 describe("parseListingFilters", () => {
   it("reads several districts inside a city", () => {
-    expect(parseListingFilters({ city: "თბილისი", district: "ვაკე,ვერა" })).toEqual({ city: "თბილისი", district: ["ვაკე", "ვერა"] });
+    expect(parseListingFilters({ city: "თბილისი", district: "ვაკე|ვერა" })).toEqual({ city: "თბილისი", district: ["ვაკე", "ვერა"] });
+  });
+
+  it("reads streets inside a city, keeping commas in their names and dropping blanks and repeats", () => {
+    expect(parseListingFilters({ city: "თბილისი", street: "ა, ქ.|ბ ქ.|ბ ქ.|" }).street).toEqual(["ა, ქ.", "ბ ქ."]);
+    expect(parseListingFilters({ city: "თბილისი", street: "|" }).street).toBeUndefined();
+    expect(parseListingFilters({ street: "ა ქ." }).street).toBeUndefined();
   });
 
   it("ignores districts without a city, and a city that does not exist", () => {
@@ -12,9 +18,9 @@ describe("parseListingFilters", () => {
   });
 
   it("keeps only real districts of that city, once each", () => {
-    expect(parseListingFilters({ city: "თბილისი", district: "ვაკე,ვაკე,,Atlantis" }).district).toEqual(["ვაკე"]);
+    expect(parseListingFilters({ city: "თბილისი", district: "ვაკე|ვაკე||Atlantis" }).district).toEqual(["ვაკე"]);
     expect(parseListingFilters({ city: "ბათუმი", district: "ვაკე" }).district).toBeUndefined();
-    expect(parseListingFilters({ city: "თბილისი", district: ",,," }).district).toBeUndefined();
+    expect(parseListingFilters({ city: "თბილისი", district: "|||" }).district).toBeUndefined();
   });
 
   it("ignores an empty or absurdly long district list", () => {

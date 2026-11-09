@@ -31,19 +31,23 @@ const wholeNumber = z
   .optional()
   .catch(undefined);
 
+/** Separated by "|", because some street names contain commas. */
+const nameList = z
+  .string()
+  .min(1)
+  .max(4000)
+  .transform((value) => value.split("|"))
+  .optional()
+  .catch(undefined);
+
 const filtersSchema = z.object({
   deal: z.enum(dealTypes).optional().catch(undefined),
   type: z.enum(propertyTypes).optional().catch(undefined),
   /** A city's name exactly as it is stored on listings. */
   city: z.string().refine(isCity).optional().catch(undefined),
-  /** Comma-separated district names, exact. They only mean something inside a city. */
-  district: z
-    .string()
-    .min(1)
-    .max(4000)
-    .transform((value) => value.split(","))
-    .optional()
-    .catch(undefined),
+  /** Exact names. They only mean something inside a city. */
+  district: nameList,
+  street: nameList,
   priceMin: price,
   priceMax: price,
   rooms: z
@@ -77,10 +81,11 @@ export type ListingFilters = z.infer<typeof filtersSchema>;
 /** Reads filters from a URL's query. A missing or invalid value simply means that filter is off. */
 export function parseListingFilters(query: Record<string, string | string[] | undefined>): ListingFilters {
   const filters = filtersSchema.parse(query);
-  if (!filters.city) return { ...filters, district: undefined };
+  if (!filters.city) return { ...filters, district: undefined, street: undefined };
   const known = cityDistricts(filters.city);
   const district = [...new Set(filters.district?.filter((name) => known.includes(name)))];
-  return { ...filters, district: district.length > 0 ? district : undefined };
+  const street = [...new Set(filters.street?.filter(Boolean))];
+  return { ...filters, district: district.length > 0 ? district : undefined, street: street.length > 0 ? street : undefined };
 }
 
 export const sortOrders = ["new", "asc", "desc"] as const;

@@ -60,6 +60,7 @@ export function toListing(row: ListingRow): Listing {
     // The posting form requires district and address; rooms is 0 for property without rooms, and the UI hides it.
     district: row.district ?? "",
     address: row.address ?? "",
+    street: row.street ?? undefined,
     rooms: row.rooms ?? 0,
     price: row.price,
     currency: row.currency,
@@ -98,7 +99,7 @@ function textClause(q: string | undefined): Prisma.ListingWhereInput[] | undefin
   if (q === undefined) return undefined;
   // Without escaping, % and _ would act as LIKE wildcards.
   const match = { contains: q.replace(/[\\%_]/g, "\\$&"), mode: "insensitive" } as const;
-  return [{ district: match }, { address: match }, { city: match }, { title: match }];
+  return [{ district: match }, { address: match }, { street: match }, { city: match }, { title: match }];
 }
 
 function whereFor(filters: ListingFilters, located = false): Prisma.ListingWhereInput {
@@ -108,6 +109,7 @@ function whereFor(filters: ListingFilters, located = false): Prisma.ListingWhere
     type: filters.type && dbPropertyTypes[filters.type],
     city: filters.city,
     district: filters.district && { in: filters.district },
+    street: filters.street && { in: filters.street },
     rooms: roomsClause(filters.rooms),
     verified: filters.verified,
     priceUsd: { gte: filters.priceMin, lte: filters.priceMax },

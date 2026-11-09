@@ -49,6 +49,7 @@ const draftSchema = z
     city: z.string().refine(isCity),
     district: text(100).optional(),
     address: text(200),
+    street: z.union([z.literal("").transform(() => undefined), text(120)]).optional(),
     title: text(120),
     description: text(5000),
     price: whole(1, 2_000_000_000),

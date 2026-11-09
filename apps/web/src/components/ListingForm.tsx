@@ -20,14 +20,28 @@ import {
 import { z } from "zod";
 import { LocationPicker } from "./LocationPicker";
 
+type StreetsModule = typeof import("@mteam/shared/streets");
+
 const postErrorSchema = z.object({ error: z.enum(["invalid", "photos", "save"]) });
 type PostError = z.infer<typeof postErrorSchema>["error"];
 
-function Choice({ name, label, options }: { name: string; label: string; options: { value: string; label: string }[] }) {
+function Choice({
+  name,
+  label,
+  options,
+  optional = false,
+  onChange,
+}: {
+  name: string;
+  label: string;
+  options: { value: string; label: string }[];
+  optional?: boolean;
+  onChange?: (value: string) => void;
+}) {
   return (
     <label className="field">
       <small>{label}</small>
-      <select name={name} required>
+      <select name={name} required={!optional} onChange={(event) => onChange?.(event.target.value)}>
         {options.map((option) => (
           <option key={option.value} value={option.value}>
             {option.label}
@@ -55,6 +69,13 @@ export function ListingForm({ locale, t }: { locale: Locale; t: Dict }) {
   const [step, setStep] = useState(0);
   const [city, setCity] = useState(cities[0]);
   const districts = cityDistricts(city);
+  const [district, setDistrict] = useState("");
+  const [streetsModule, setStreetsModule] = useState<StreetsModule | null>(null);
+  const streets = streetsModule?.streetsIn(city, district ? [district] : []) ?? [];
+
+  useEffect(() => {
+    void import("@mteam/shared/streets").then(setStreetsModule);
+  }, []);
 
   useEffect(() => () => previews.forEach((url) => URL.revokeObjectURL(url)), [previews]);
 
@@ -129,7 +150,10 @@ export function ListingForm({ locale, t }: { locale: Locale; t: Dict }) {
             <Choice name="type" label={t.search.type} options={propertyTypes.map((p) => ({ value: p, label: t.propertyType[p] }))} />
             <label className="field">
               <small>{t.search.city}</small>
-              <select name="city" required value={city} onChange={(event) => setCity(event.target.value)}>
+              <select name="city" required value={city} onChange={(event) => {
+                  setCity(event.target.value);
+                  setDistrict("");
+                }}>
                 {cities.map((name) => (
                   <option key={name} value={name}>
                     {placeLabel(name, locale)}
@@ -140,7 +164,10 @@ export function ListingForm({ locale, t }: { locale: Locale; t: Dict }) {
           </div>
           <div className="form-row">
             {districts.length > 0 && (
-              <Choice key={city} name="district" label={f.district} options={[{ value: "", label: f.district }, ...districts.map((name) => ({ value: name, label: placeLabel(name, locale) }))]} />
+              <Choice key={city} name="district" label={f.district} options={[{ value: "", label: f.district }, ...districts.map((name) => ({ value: name, label: placeLabel(name, locale) }))]} onChange={setDistrict} />
+            )}
+            {streets.length > 0 && (
+              <Choice key={`${city}/${district}`} name="street" optional label={f.street} options={[{ value: "", label: "—" }, ...streets.map((name) => ({ value: name, label: placeLabel(name, locale) }))]} />
             )}
             <Input label={f.address} name="address" required maxLength={200} pattern=".*\S.*" />
           </div>
