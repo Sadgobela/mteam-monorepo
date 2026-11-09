@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, within } from "@testing-library/react";
 import { getDictionary, type Listing } from "@mteam/shared";
 import { fixtureListings } from "@/test-fixtures";
 import { FilterChips } from "./FilterChips";
@@ -18,6 +18,45 @@ describe("Header", () => {
     expect(screen.getByRole("link", { name: "mTeam Verified" })).toHaveAttribute("href", "/en?verified=1");
     expect(screen.getByRole("link", { name: "EN" })).toHaveAttribute("aria-current", "true");
     expect(screen.getByRole("link", { name: "KA" })).not.toHaveAttribute("aria-current");
+  });
+
+  describe("phone menu", () => {
+    const menu = () => screen.getByRole("button", { name: "Menu" });
+    const panel = (container: HTMLElement) => container.querySelector(".menu-panel") as HTMLElement;
+
+    it("starts closed and opens with the same navigation", () => {
+      const { container } = render(<Header locale="en" t={t} signedIn={false} />);
+      expect(menu()).toHaveAttribute("aria-expanded", "false");
+      expect(panel(container)).toBeNull();
+      fireEvent.click(menu());
+      expect(menu()).toHaveAttribute("aria-expanded", "true");
+      expect(within(panel(container)).getByRole("link", { name: "For rent" })).toHaveAttribute("href", "/en?deal=rent");
+      expect(within(panel(container)).getByRole("link", { name: "Sign in" })).toBeInTheDocument();
+      expect(within(panel(container)).getByRole("link", { name: "RU" })).toBeInTheDocument();
+    });
+
+    it("closes when a link is followed, because a same-page link would otherwise leave it open", () => {
+      const { container } = render(<Header locale="en" t={t} signedIn={false} />);
+      fireEvent.click(menu());
+      fireEvent.click(within(panel(container)).getByRole("link", { name: "For rent" }));
+      expect(panel(container)).toBeNull();
+    });
+
+    it("stays open while the theme is changed", () => {
+      const { container } = render(<Header locale="en" t={t} signedIn={false} />);
+      fireEvent.click(menu());
+      fireEvent.click(within(panel(container)).getByRole("button", { name: /mode/ }));
+      expect(panel(container)).not.toBeNull();
+    });
+
+    it("closes with a second press and offers the signed-in links", () => {
+      const { container } = render(<Header locale="en" t={t} signedIn />);
+      fireEvent.click(menu());
+      expect(within(panel(container)).getByRole("link", { name: "My listings" })).toBeInTheDocument();
+      expect(within(panel(container)).getByRole("button", { name: "Sign out" })).toBeInTheDocument();
+      fireEvent.click(menu());
+      expect(panel(container)).toBeNull();
+    });
   });
 });
 
