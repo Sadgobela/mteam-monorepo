@@ -118,6 +118,7 @@ model Listing {
   city        String
   district    String?
   address     String?
+  street      String?
   lat         Float?
   lng         Float?
   price       Int

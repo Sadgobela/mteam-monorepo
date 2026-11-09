@@ -15,11 +15,13 @@ export function FilterChips({
   filters: ListingFilters;
 }) {
   const number = (value: number | undefined, label: string) => (value === undefined ? undefined : `${label} ${value}`);
+  const list = (names: string[] | undefined) => names && placeLabel(names[0], locale) + (names.length > 1 ? ` +${names.length - 1}` : "");
   const chips: [string, string | undefined][] = [
     ["deal", filters.deal && t.deal[filters.deal]],
     ["type", filters.type && t.propertyType[filters.type]],
     ["city", filters.city && placeLabel(filters.city, locale)],
-    ["district", filters.district && placeLabel(filters.district[0], locale) + (filters.district.length > 1 ? ` +${filters.district.length - 1}` : "")],
+    ["district", list(filters.district)],
+    ["street", list(filters.street)],
     ["q", filters.q],
     ["verified", filters.verified ? "MTeam Verified" : undefined],
     ["rooms", number(filters.rooms, t.search.rooms)],
@@ -35,7 +37,7 @@ export function FilterChips({
   return (
     <div className="chips">
       {active.map(([key, label]) => (
-        <Link key={key} href={resultsHref(locale, query, { [key]: "", page: "1" })} aria-label={`${t.results.removeFilter}: ${label}`}>
+        <Link key={key} href={resultsHref(locale, query, { [key]: "", page: "1", ...(key === "district" && { street: "" }) })} aria-label={`${t.results.removeFilter}: ${label}`}>
           {label} <span aria-hidden="true">×</span>
         </Link>
       ))}

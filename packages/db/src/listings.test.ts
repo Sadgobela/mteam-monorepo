@@ -206,13 +206,19 @@ describe("searchListings", () => {
     expect((await whereFor({ city: "თბილისი", district: ["ვაკე", "ვერა"] })).district).toEqual({ in: ["ვაკე", "ვერა"] });
   });
 
-  it("does not filter by district otherwise", async () => {
-    expect((await whereFor({})).district).toBeUndefined();
+  it("does not filter by district or street otherwise", async () => {
+    const where = await whereFor({});
+    expect(where.district).toBeUndefined();
+    expect(where.street).toBeUndefined();
+  });
+
+  it("filters by exact streets when they are given", async () => {
+    expect((await whereFor({ city: "თბილისი", street: ["ატენის ქ."] })).street).toEqual({ in: ["ატენის ქ."] });
   });
 
   it("matches text across location and title, case-insensitively", async () => {
     const match = { contains: "vake", mode: "insensitive" };
-    expect((await whereFor({ q: "vake" })).OR).toEqual([{ district: match }, { address: match }, { city: match }, { title: match }]);
+    expect((await whereFor({ q: "vake" })).OR).toEqual([{ district: match }, { address: match }, { street: match }, { city: match }, { title: match }]);
   });
 
   it("translates deal, type and city to stored values and stays published-only", async () => {

@@ -50,6 +50,11 @@ describe("parseListingDraft", () => {
     floors: "12",
   };
 
+  it("keeps a chosen street and treats a blank one as none", () => {
+    expect(parseListingDraft({ ...valid, street: "ატენის ქ." })?.street).toBe("ატენის ქ.");
+    expect(parseListingDraft({ ...valid, street: "" })?.street).toBeUndefined();
+  });
+
   it("converts a valid form and trims text", () => {
     expect(parseListingDraft(valid)).toEqual({
       ...valid,

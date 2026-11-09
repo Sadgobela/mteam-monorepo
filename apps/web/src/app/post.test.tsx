@@ -169,6 +169,19 @@ describe("ListingForm", () => {
       expect(current()).toBe("1 Location");
     });
 
+    it("offers the district's streets once one is chosen, and keeps them optional", async () => {
+      render(<ListingForm locale="en" t={t} />);
+      expect(screen.queryByLabelText(t.post.fields.street)).toBeNull();
+      fill(t.post.fields.district, "ვაკე");
+      fireEvent.change(await screen.findByLabelText(t.post.fields.street), { target: { value: "ჭავჭავაძე ი. გამზირი" } });
+      expect(screen.getByLabelText(t.post.fields.street)).toHaveValue("ჭავჭავაძე ი. გამზირი");
+      expect(screen.getByLabelText(t.post.fields.street)).not.toBeRequired();
+      fill(t.search.city, "რუსთავი");
+      expect((await screen.findByLabelText(t.post.fields.street)).querySelectorAll("option").length).toBe(116);
+      fill(t.search.city, "ბათუმი");
+      expect(screen.queryByLabelText(t.post.fields.street)).toBeNull();
+    });
+
     it("offers the chosen city's districts, and none where it has none", () => {
       render(<ListingForm locale="en" t={t} />);
       expect(screen.getByRole("option", { name: "Vake" })).toBeInTheDocument();

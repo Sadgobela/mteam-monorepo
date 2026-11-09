@@ -92,6 +92,7 @@ h1, h2, h3 { margin: 0; text-wrap: balance; }
 .loc-city { display: block; width: 100%; padding: 8px 10px; border: 0; border-radius: 8px; background: transparent; color: var(--fg); font: inherit; text-align: start; cursor: pointer; transition: background-color 0.2s, color 0.2s; }
 .loc-city[aria-pressed="true"] { background: var(--brand-soft); color: var(--brand-deep); font-weight: 700; }
 @media (hover: hover) { .loc-city:hover { background: var(--brand-soft); } }
+.loc-tabs { position: sticky; top: 0; z-index: 1; margin-bottom: 10px; }
 .loc-columns { columns: 3 170px; column-gap: 16px; }
 .loc-columns > .ant-checkbox-wrapper { display: flex; padding-block: 4px; break-inside: avoid; }
 .loc-group { display: grid; gap: 6px; padding-bottom: 14px; break-inside: avoid; }
@@ -186,6 +187,8 @@ html:has(.viewer[open]) { overflow: hidden; }
 .step-nav { display: flex; gap: 8px; }
 .step-nav .btn { flex: 1 1 0; }
 .form-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; }
+/* Two columns on a phone, so an odd last field would leave a hole beside it. */
+@media (max-width: 520px) { .form-row > :last-child:nth-child(odd) { grid-column: 1 / -1; } }
 .field { display: grid; gap: 4px; }
 .field small { color: var(--muted); font-size: 12px; }
 .field input, .field select, .field textarea { font: inherit; width: 100%; padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); color: var(--fg); }

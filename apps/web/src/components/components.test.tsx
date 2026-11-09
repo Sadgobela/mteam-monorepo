@@ -259,7 +259,7 @@ describe("SearchBar", () => {
       tick("Vera");
       apply();
       await waitFor(() => expect(push).toHaveBeenCalled());
-      expect(Object.fromEntries(pushed())).toMatchObject({ city: "თბილისი", district: "ვაკე,ვერა" });
+      expect(Object.fromEntries(pushed())).toMatchObject({ city: "თბილისი", district: "ვაკე|ვერა" });
       expect(screen.getByRole("button", { name: "Location: Tbilisi +2" })).toBeInTheDocument();
       await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
     });
@@ -342,6 +342,109 @@ describe("SearchBar", () => {
       expect(pushed().has("district")).toBe(false);
     });
 
+    const showStreets = async (count: number) => {
+      fireEvent.click(await picker().findByText(`Streets (${count})`));
+      await waitFor(() => expect(document.querySelector(".loc-columns input")).not.toBeNull());
+    };
+
+    it("offers the ticked district's streets and searches the chosen one", async () => {
+      bar();
+      openPicker();
+      city("Tbilisi");
+      expect(picker().queryByText(/^Streets/)).toBeNull();
+      tick("Vake");
+      await showStreets(57);
+      tick("Chavchavadze I. Ave.");
+      fireEvent.click(picker().getByText("Districts"));
+      expect(districtBox("Vake")).toBeChecked();
+      apply();
+      await waitFor(() => expect(push).toHaveBeenCalled());
+      expect(Object.fromEntries(pushed())).toMatchObject({ district: "ვაკე", street: "ჭავჭავაძე ი. გამზირი" });
+      expect(screen.getByRole("button", { name: "Location: Tbilisi +2" })).toBeInTheDocument();
+    });
+
+    it("unticks a street, and narrows the list as you type", async () => {
+      bar();
+      openPicker();
+      city("Rustavi");
+      await showStreets(115);
+      const first = (document.querySelector(".loc-columns label") as HTMLElement).textContent as string;
+      tick(first);
+      expect(districtBox(first)).toBeChecked();
+      tick(first);
+      expect(districtBox(first)).not.toBeChecked();
+      fireEvent.change(picker().getByRole("textbox"), { target: { value: first } });
+      expect(document.querySelectorAll(".loc-columns label")).toHaveLength(1);
+    });
+
+    it("keeps every ticked street, because listings without a street must stay out", async () => {
+      bar();
+      openPicker();
+      city("Gudauri");
+      await showStreets(4);
+      for (const input of document.querySelectorAll<HTMLInputElement>(".loc-columns input")) fireEvent.click(input);
+      apply();
+      await waitFor(() => expect(push).toHaveBeenCalled());
+      expect(pushed().get("street")?.split("|")).toHaveLength(4);
+    });
+
+    it("keeps a street filter when applied before the street list has arrived", async () => {
+      bar({ city: "რუსთავი", street: ["ატენის ქ."] });
+      openPicker();
+      apply();
+      await waitFor(() => expect(push).toHaveBeenCalled());
+      expect(pushed().get("street")).toBe("ატენის ქ.");
+    });
+
+    it("keeps the district when every one is ticked but a street depends on it", async () => {
+      bar();
+      openPicker();
+      city("Gurjaani");
+      tick("Gurjaani (Sopeli)");
+      fireEvent.click(await picker().findByText(/^Streets/));
+      await waitFor(() => expect(document.querySelector(".loc-columns label")?.textContent).not.toBe("Gurjaani (Sopeli)"));
+      tick((document.querySelector(".loc-columns label") as HTMLElement).textContent as string);
+      apply();
+      await waitFor(() => expect(push).toHaveBeenCalled());
+      expect(pushed().get("district")).toBe("გურჯაანი (სოფელი)");
+      expect(pushed().has("street")).toBe(true);
+    });
+
+    it("goes back to districts when the city changes", async () => {
+      bar();
+      openPicker();
+      city("Tbilisi");
+      tick("Vake");
+      await showStreets(57);
+      city("Batumi");
+      tick("Makhinjauri");
+      await picker().findByText(/^Streets/);
+      expect(districtBox("Makhinjauri")).toBeChecked();
+    });
+
+    it("drops a street whose district was unticked", async () => {
+      bar({ city: "თბილისი", district: ["ვაკე"], street: ["ჭავჭავაძე ი. გამზირი"] });
+      openPicker();
+      await picker().findByText("Streets (57)");
+      tick("Vake");
+      await waitFor(() => expect(picker().queryByText(/^Streets/)).toBeNull());
+      apply();
+      await waitFor(() => expect(push).toHaveBeenCalled());
+      expect(pushed().has("street")).toBe(false);
+    });
+
+    it("forgets chosen streets when the city changes or the picker is cleared", async () => {
+      bar({ city: "რუსთავი", street: ["ატენის ქ."] });
+      openPicker();
+      await picker().findByText("Streets (115)");
+      city("Batumi");
+      city("Rustavi");
+      await showStreets(115);
+      footer("Clear");
+      expect(picker().queryByText(/^Streets/)).toBeNull();
+      expect(picker().getByText("Choose a city to see its districts.")).toBeInTheDocument();
+    });
+
     it("forgets ticked districts when the city changes, not when it is pressed again", () => {
       bar({ city: "თბილისი", district: ["ვაკე"] });
       openPicker();
@@ -415,9 +518,11 @@ describe("SearchBar", () => {
 describe("FilterChips districts", () => {
   it("names one district, and counts the rest", () => {
     const { rerender } = render(<FilterChips locale="en" t={t} query={{ district: "ვაკე" }} filters={{ district: ["ვაკე"] }} />);
-    expect(screen.getByRole("link", { name: "Remove filter: Vake" })).toHaveAttribute("href", "/en?district=&page=1");
+    expect(screen.getByRole("link", { name: "Remove filter: Vake" })).toHaveAttribute("href", "/en?district=&page=1&street=");
     rerender(<FilterChips locale="en" t={t} query={{}} filters={{ district: ["ვაკე", "ვერა", "ისანი"] }} />);
     expect(screen.getByRole("link", { name: "Remove filter: Vake +2" })).toBeInTheDocument();
+    rerender(<FilterChips locale="en" t={t} query={{ street: "ატენის ქ." }} filters={{ street: ["ატენის ქ."] }} />);
+    expect(screen.getByRole("link", { name: "Remove filter: Atenis St." })).toHaveAttribute("href", "/en?street=&page=1");
   });
 });
 

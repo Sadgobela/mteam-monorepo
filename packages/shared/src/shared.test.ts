@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { streetsIn } from "./streets";
 import { cities, cityAreas, cityDistricts, defaultLocale, formatDay, formatPrice, getDictionary, isCity, isLocale, locales, placeLabel, placeName, popularCities, priceUnit } from "./index";
 
 describe("formatDay", () => {
@@ -68,8 +69,33 @@ describe("places", () => {
     expect(placeLabel("ვაკე-საბურთალო", "en")).toBe("Vake-Saburtalo");
     expect(placeLabel("ჩუღურეთი", "ru")).toBe("Чугурети");
     expect(placeLabel("გორის მუნიციპალიტეტი", "en")).toBe("Goris Municipality");
-    expect(placeLabel("ონის რაიონი", "ru")).toBe("Онис Район");
+    expect(placeLabel("ონის რაიონი", "ru")).toBe("Онис район");
     expect(placeLabel("Old town", "en")).toBe("Old Town");
+    expect(placeLabel("რუსთაველის გამზირი", "en")).toBe("Rustavelis Ave.");
+    expect(placeLabel("ატენის ქ.", "ru")).toBe("Атенис ул.");
+  });
+});
+
+describe("streetsIn", () => {
+  it("gives a whole city's streets when they are not split by district", () => {
+    expect(streetsIn("რუსთავი", [])).toHaveLength(115);
+  });
+
+  it("gives only the chosen districts' streets, and none before one is chosen", () => {
+    expect(streetsIn("თბილისი", ["ვაკე"])).toContain("ჭავჭავაძე ი. გამზირი");
+    expect(streetsIn("თბილისი", ["ვაკე", "ვაშლიჯვარი"]).length).toBeGreaterThan(streetsIn("თბილისი", ["ვაკე"]).length);
+    expect(streetsIn("თბილისი", [])).toEqual([]);
+    expect(streetsIn("თბილისი", ["მუხათგვერდი"])).toEqual([]);
+  });
+
+  it("has nothing for a place without streets", () => {
+    expect(streetsIn("Atlantis", [])).toEqual([]);
+  });
+
+  it("sorts in Georgian alphabetical order without repeats", () => {
+    const names = streetsIn("თბილისი", ["ვაკე", "ვერა"]);
+    expect(new Set(names).size).toBe(names.length);
+    expect([...names].sort((a, b) => a.localeCompare(b, "ka"))).toEqual(names);
   });
 });
 

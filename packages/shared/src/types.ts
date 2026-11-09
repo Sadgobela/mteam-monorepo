@@ -16,6 +16,7 @@ export interface Listing {
   city: string;
   district: string;
   address: string;
+  street?: string;
   price: number;
   currency: Currency;
   lat?: number;
