@@ -81,7 +81,7 @@ export function toListing(row: ListingRow): Listing {
         }
       : undefined,
     verification: row.verifiedAt
-      ? { by: row.verifiedBy?.user.name ?? "mTeam", at: row.verifiedAt.toISOString().slice(0, 10) }
+      ? { by: row.verifiedBy?.user.name ?? "MTeam", at: row.verifiedAt.toISOString().slice(0, 10) }
       : undefined,
     contactPhone: agent?.user.phone ?? row.owner.phone,
     images: row.images.map((image) => image.url),
@@ -120,7 +120,7 @@ function whereFor(filters: ListingFilters, located = false): Prisma.ListingWhere
 }
 
 const orderings: Record<SortOrder, Prisma.ListingOrderByWithRelationInput[]> = {
-  // Verified first is mTeam's default: trust leads, not paid placement.
+  // Verified first is MTeam's default: trust leads, not paid placement.
   new: [{ verified: "desc" }, { id: "desc" }],
   asc: [{ priceUsd: "asc" }, { id: "desc" }],
   desc: [{ priceUsd: "desc" }, { id: "desc" }],
@@ -165,7 +165,7 @@ export async function getListing(rawId: string): Promise<Listing | undefined> {
   return row ? toListing(row) : undefined;
 }
 
-/** Saves a user's listing. It stays PENDING and unverified until mTeam reviews it. */
+/** Saves a user's listing. It stays PENDING and unverified until MTeam reviews it. */
 export async function createListing(ownerId: string, draft: ListingDraft, imageUrls: string[]): Promise<number> {
   const { id } = await db().listing.create({
     data: {

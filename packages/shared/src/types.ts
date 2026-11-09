@@ -27,7 +27,7 @@ export interface Listing {
   floors?: number;
   condition?: string;
   description: string;
-  /** Checked on site by an mTeam broker. */
+  /** Checked on site by an MTeam broker. */
   verified: boolean;
   agent?: Agent;
   /** Who checked the listing on site, and when. */

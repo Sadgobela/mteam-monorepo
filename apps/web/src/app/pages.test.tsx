@@ -67,17 +67,17 @@ describe("home page", () => {
   it("shows verified listings and the main entry points", async () => {
     await home();
     expect(searchListings).toHaveBeenLastCalledWith({ verified: true }, { limit: 4 });
-    expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("Verified by mTeam");
+    expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("Verified by MTeam");
     expect(screen.getAllByRole("link", { name: /m²/ })).toHaveLength(fixtureListings.length);
-    expect(screen.getByRole("link", { name: /Give it to mTeam/ })).toHaveAttribute("href", "#give");
-    expect(screen.getByRole("heading", { level: 2, name: /Give it to mTeam/ })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /Give it to MTeam/ })).toHaveAttribute("href", "#give");
+    expect(screen.getByRole("heading", { level: 2, name: /Give it to MTeam/ })).toBeInTheDocument();
     expect(screen.queryByText(/Listings found/)).toBeNull();
     expect(screen.queryByRole("navigation", { name: "Pages" })).toBeNull();
   });
 
   it("treats only invalid filters as the home page", async () => {
     await home({ type: "projects" });
-    expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("Verified by mTeam");
+    expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("Verified by MTeam");
   });
 
   it("passes filters and display options to the query and reflects them", async () => {
@@ -172,7 +172,7 @@ describe("home page", () => {
 
   it("treats a repeated deal as no search, because its links could not keep it", async () => {
     render(await HomePage({ params: p({ locale: "en" }), searchParams: p({ deal: ["a", "b"] }) }));
-    expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("Verified by mTeam");
+    expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("Verified by MTeam");
   });
 
   it("has no pager when everything fits on one page", async () => {
@@ -209,7 +209,7 @@ describe("listing page", () => {
     expect(screen.getByText("Condition")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Call" })).toHaveAttribute("href", "tel:+995555000000");
     expect(screen.getByRole("link", { name: "WhatsApp" })).toHaveAttribute("href", "https://wa.me/995555000000");
-    expect(screen.getByText(/mTeam broker/)).toBeInTheDocument();
+    expect(screen.getByText(/MTeam broker/)).toBeInTheDocument();
     expect(screen.getByText(/checked on site/)).toBeInTheDocument();
   });
 
@@ -217,7 +217,7 @@ describe("listing page", () => {
     render(await ListingPage({ params: p({ locale: "en", id: "20422" }), searchParams: p({}) }));
     expect(screen.queryByText("Condition")).toBeNull();
     expect(screen.getByText("Owner")).toBeInTheDocument();
-    expect(screen.queryByText(/mTeam broker/)).toBeNull();
+    expect(screen.queryByText(/MTeam broker/)).toBeNull();
     expect(screen.getByRole("link", { name: "WhatsApp" })).toBeInTheDocument();
     expect(screen.queryByText(/checked on site/)).toBeNull();
   });
@@ -258,9 +258,9 @@ describe("listing page", () => {
     expect(screen.queryByText(/\/ m²/)).toBeNull();
   });
 
-  it("offers owners Give it to mTeam", async () => {
+  it("offers owners Give it to MTeam", async () => {
     render(await ListingPage({ params: p({ locale: "en", id: "20418" }), searchParams: p({}) }));
-    expect(screen.getByRole("heading", { name: /Give it to mTeam/ })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: /Give it to MTeam/ })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Leave your number" })).toBeInTheDocument();
   });
 

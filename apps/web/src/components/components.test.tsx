@@ -15,7 +15,7 @@ describe("Header", () => {
   it("shows navigation and marks the current language", () => {
     render(<Header locale="en" t={t} signedIn={false} />);
     expect(screen.getByRole("link", { name: "For sale" })).toHaveAttribute("href", "/en?deal=sale");
-    expect(screen.getByRole("link", { name: "mTeam Verified" })).toHaveAttribute("href", "/en?verified=1");
+    expect(screen.getByRole("link", { name: "MTeam Verified" })).toHaveAttribute("href", "/en?verified=1");
     expect(screen.getByRole("link", { name: "EN" })).toHaveAttribute("aria-current", "true");
     expect(screen.getByRole("link", { name: "KA" })).not.toHaveAttribute("aria-current");
   });
@@ -107,7 +107,7 @@ describe("FilterChips", () => {
     expect(screen.getByRole("link", { name: "Remove filter: Dubai" })).toHaveAttribute("href", "/en?deal=rent&city=&page=1");
     expect(screen.getByRole("link", { name: "Remove filter: Area from, m² 40" })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Remove filter: marina" })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Remove filter: mTeam Verified" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Remove filter: MTeam Verified" })).toBeInTheDocument();
   });
 });
 
@@ -223,7 +223,7 @@ describe("ListingCard", () => {
     const l = fixtureListings[0];
     render(<ListingCard listing={l} locale="en" t={t} />);
     expect(screen.getByRole("link")).toHaveAttribute("href", `/en/listings/${l.id}`);
-    expect(screen.getByText("mTeam Verified")).toBeInTheDocument();
+    expect(screen.getByText("MTeam Verified")).toBeInTheDocument();
     expect(screen.getByText(/7\/12 floor/)).toBeInTheDocument();
   });
 
@@ -231,7 +231,7 @@ describe("ListingCard", () => {
     const l: Listing = { ...fixtureListings[1], floor: undefined, verified: false };
     render(<ListingCard listing={l} locale="en" t={t} />);
     expect(screen.getByText("/ month")).toBeInTheDocument();
-    expect(screen.queryByText("mTeam Verified")).toBeNull();
+    expect(screen.queryByText("MTeam Verified")).toBeNull();
     expect(screen.queryByText(/floor/)).toBeNull();
   });
 });

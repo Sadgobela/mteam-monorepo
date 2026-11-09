@@ -245,9 +245,9 @@ describe("verification details", () => {
     expect((await getListing("20418"))?.verification).toEqual({ by: "Nino", at: "2026-11-05" });
   });
 
-  it("falls back to mTeam when the broker has no name", async () => {
+  it("falls back to MTeam when the broker has no name", async () => {
     prisma.listing.findFirst.mockResolvedValue({ ...fullRow, verifiedAt: new Date("2026-11-05T09:00:00Z"), verifiedBy: null });
-    expect((await getListing("20418"))?.verification?.by).toBe("mTeam");
+    expect((await getListing("20418"))?.verification?.by).toBe("MTeam");
   });
 });
 

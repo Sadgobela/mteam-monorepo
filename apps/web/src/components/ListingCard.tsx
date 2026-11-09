@@ -36,7 +36,7 @@ export function ListingCard({
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" aria-hidden="true">
               <path d="M5 12.5l4.5 4.5L19 7.5" />
             </svg>
-            mTeam Verified
+            MTeam Verified
           </span>
         )}
         {listing.verification && (
