@@ -52,6 +52,15 @@ h1, h2, h3 { margin: 0; text-wrap: balance; }
 @media (max-width: 360px) { .logo { width: 36px; } }
 .lang { display: flex; gap: 8px; font-size: 13px; font-weight: 600; color: var(--muted); }
 .lang [aria-current] { color: var(--brand-deep); }
+/* Ant Design reads these, so its controls follow both themes without waiting for JavaScript. */
+:root .mteam {
+  --ant-color-text: var(--fg); --ant-color-text-heading: var(--fg); --ant-color-text-label: var(--muted); --ant-color-text-description: var(--muted); --ant-color-icon: var(--muted); --ant-color-icon-hover: var(--fg);
+  --ant-color-text-secondary: var(--muted); --ant-color-text-tertiary: var(--muted); --ant-color-text-quaternary: var(--muted); --ant-color-text-placeholder: var(--muted);
+  --ant-color-bg-container: var(--surface); --ant-color-bg-elevated: var(--surface); --ant-color-bg-layout: var(--bg);
+  --ant-color-border: var(--line); --ant-color-border-secondary: var(--line); --ant-color-split: var(--line);
+  --ant-control-item-bg-hover: var(--brand-soft); --ant-control-item-bg-active: var(--brand-soft); --ant-control-item-bg-active-hover: var(--brand-soft); --ant-color-primary-bg: var(--brand-soft); --ant-color-primary-bg-hover: var(--brand-soft); --ant-color-link: var(--brand-deep); --ant-color-link-hover: var(--brand-deep); --ant-color-link-active: var(--brand-deep); --ant-color-fill-tertiary: var(--brand-soft); --ant-color-fill-secondary: var(--brand-soft); --ant-color-fill: var(--brand-soft);
+}
+
 .btn { font: inherit; font-weight: 700; border: 0; border-radius: 10px; padding: 10px 16px; min-height: 44px; display: inline-flex; align-items: center; justify-content: center; cursor: pointer; background: var(--action); color: var(--on-action); white-space: nowrap; }
 .btn.ghost { background: transparent; color: var(--fg); border: 1px solid var(--line); }
 .btn.wa { background: var(--wa); color: #fff; }
