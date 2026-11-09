@@ -19,41 +19,16 @@ import {
   propertyTypes,
   type Dict,
   type Locale,
+  type PropertyType,
 } from "@mteam/shared";
 import { z } from "zod";
+import { FormSelect } from "./FormSelect";
 import { LocationPicker } from "./LocationPicker";
 
 type StreetsModule = typeof import("@mteam/shared/streets");
 
 const postErrorSchema = z.object({ error: z.enum(["invalid", "photos", "save"]) });
 type PostError = z.infer<typeof postErrorSchema>["error"];
-
-function Choice({
-  name,
-  label,
-  options,
-  optional = false,
-  onChange,
-}: {
-  name: string;
-  label: string;
-  options: { value: string; label: string }[];
-  optional?: boolean;
-  onChange?: (value: string) => void;
-}) {
-  return (
-    <label className="field">
-      <small>{label}</small>
-      <select name={name} required={!optional} onChange={(event) => onChange?.(event.target.value)}>
-        {options.map((option) => (
-          <option key={option.value} value={option.value}>
-            {option.label}
-          </option>
-        ))}
-      </select>
-    </label>
-  );
-}
 
 function Input({ label, ...input }: { label: string } & React.InputHTMLAttributes<HTMLInputElement>) {
   return (
@@ -71,6 +46,8 @@ export function ListingForm({ locale, t }: { locale: Locale; t: Dict }) {
   const [previews, setPreviews] = useState<string[]>([]);
   const [step, setStep] = useState(0);
   const [city, setCity] = useState(cities[0]);
+  const [type, setType] = useState<PropertyType>(propertyTypes[0]);
+  const showsRooms = type !== "land" && type !== "commercial";
   const districts = cityDistricts(city);
   const [district, setDistrict] = useState("");
   const [streetsModule, setStreetsModule] = useState<StreetsModule | null>(null);
@@ -149,47 +126,44 @@ export function ListingForm({ locale, t }: { locale: Locale; t: Dict }) {
       <div className="steps">
         <fieldset {...stepProps(0)}>
           <div className="form-row">
-            <Choice name="deal" label={t.search.deal} options={dealTypes.map((d) => ({ value: d, label: t.deal[d] }))} />
-            <Choice name="type" label={t.search.type} options={propertyTypes.map((p) => ({ value: p, label: t.propertyType[p] }))} />
-            <label className="field">
-              <small>{t.search.city}</small>
-              <select name="city" required value={city} onChange={(event) => {
-                  setCity(event.target.value);
-                  setDistrict("");
-                }}>
-                {cities.map((name) => (
-                  <option key={name} value={name}>
-                    {placeLabel(name, locale)}
-                  </option>
-                ))}
-              </select>
-            </label>
+            <FormSelect name="deal" label={t.search.deal} initial={dealTypes[0]} options={dealTypes.map((d) => ({ value: d, label: t.deal[d] }))} />
+            <FormSelect name="type" label={t.search.type} initial={type} options={propertyTypes.map((p) => ({ value: p, label: t.propertyType[p] }))} onChange={(value) => setType(value as PropertyType)} />
+            <FormSelect
+              name="city"
+              label={t.search.city}
+              initial={cities[0]}
+              options={cities.map((name) => ({ value: name, label: placeLabel(name, locale) }))}
+              onChange={(value) => {
+                setCity(value);
+                setDistrict("");
+              }}
+            />
           </div>
           <div className="form-row">
             {districts.length > 0 && (
-              <Choice key={city} name="district" label={f.district} options={[{ value: "", label: f.district }, ...districts.map((name) => ({ value: name, label: placeLabel(name, locale) }))]} onChange={setDistrict} />
+              <FormSelect key={city} name="district" label={f.district} options={districts.map((name) => ({ value: name, label: placeLabel(name, locale) }))} onChange={setDistrict} />
             )}
             {streets.length > 0 && (
-              <Choice key={`${city}/${district}`} name="street" optional label={f.street} options={[{ value: "", label: "—" }, ...streets.map((name) => ({ value: name, label: placeLabel(name, locale) }))]} />
+              <FormSelect key={`${city}/${district}`} name="street" optional label={f.street} options={streets.map((name) => ({ value: name, label: placeLabel(name, locale) }))} />
             )}
             <Input label={f.address} name="address" required maxLength={200} pattern=".*\S.*" />
             {city === METRO_CITY && (
-              <Choice name="metro" optional label={t.search.metro} options={[{ value: "", label: "—" }, ...metroStations.map((name) => ({ value: name, label: placeLabel(name, locale) }))]} />
+              <FormSelect name="metro" optional label={t.search.metro} options={metroStations.map((name) => ({ value: name, label: placeLabel(name, locale) }))} />
             )}
           </div>
           <LocationPicker label={f.pin} clearLabel={f.pinClear} />
         </fieldset>
         <fieldset {...stepProps(1)}>
-          <Choice name="building" optional label={t.search.status} options={[{ value: "", label: "—" }, ...buildingStatuses.map((status) => ({ value: status, label: t.search.building[status] }))]} />
+          {type !== "land" && <FormSelect name="building" optional label={t.search.status} options={buildingStatuses.map((status) => ({ value: status, label: t.search.building[status] }))} />}
           <div className="form-row">
             <Input label={f.price} name="price" type="number" required min={1} max={2000000000} />
-            <Choice name="currency" label={f.currency} options={currencies.map((c) => ({ value: c, label: c }))} />
+            <FormSelect name="currency" label={f.currency} initial={currencies[0]} options={currencies.map((c) => ({ value: c, label: c }))} />
             <Input label={f.area} name="area" type="number" required min={0.01} step={0.01} />
           </div>
           <div className="form-row">
-            <Input label={f.rooms} name="rooms" type="number" min={1} max={50} />
-            <Input label={f.floor} name="floor" type="number" min={1} max={200} />
-            <Input label={f.floors} name="floors" type="number" min={1} max={200} />
+            {showsRooms && <Input label={f.rooms} name="rooms" type="number" min={1} max={50} required={type !== "hotel"} />}
+            {type !== "land" && <Input label={f.floor} name="floor" type="number" min={1} max={200} />}
+            {type !== "land" && <Input label={f.floors} name="floors" type="number" min={1} max={200} />}
           </div>
           <Input label={f.title} name="title" required maxLength={120} />
           <label className="field">
