@@ -138,6 +138,16 @@ html:has(.viewer[open]) { overflow: hidden; }
 
 .narrow { max-width: 680px; margin: 0 auto; width: 100%; }
 .form { display: grid; gap: 12px; }
+.stepper { list-style: none; margin: 0; padding: 0; display: flex; gap: 8px; }
+.stepper li { flex: 1 1 0; min-width: 0; display: flex; align-items: center; gap: 8px; padding: 8px 10px; border-radius: 10px; background: var(--surface); border: 1px solid var(--line); color: var(--muted); font-size: 13px; font-weight: 600; overflow-wrap: anywhere; }
+.stepper li[aria-current] { background: var(--action); border-color: var(--action); color: var(--on-action); }
+.stepper b { flex: none; }
+.step { display: grid; gap: 12px; margin: 0; padding: 0; border: 0; min-width: 0; }
+.step:focus { outline: none; }
+/* Kept in layout instead of display: none, so the map on the first step never measures itself at zero size. */
+.step.off { visibility: hidden; height: 0; overflow: hidden; }
+.step-nav { display: flex; gap: 8px; }
+.step-nav .btn { flex: 1 1 0; }
 .form-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; }
 .field { display: grid; gap: 4px; }
 .field small { color: var(--muted); font-size: 12px; }
