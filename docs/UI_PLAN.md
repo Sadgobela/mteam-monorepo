@@ -45,6 +45,8 @@ Agreed on 2026-11-09. Each stage is merged on its own.
 - [ ] Stage 3: forms (posting, sign in, leaving a number)
 - [ ] Stage 4: my listings, favourites, brokers, admin
 
+Locations and deal types follow what Georgian portals offer (checked on myhome.ge, 2026-11-09): five deal types and 126 cities and municipalities with their districts, kept in `packages/shared/src/geo.ts`. Streets (about 2,750) are not in the list; the address stays free text. In English and Russian, place names are spelled out letter by letter from Georgian.
+
 Since stage 1 the search bar and the sort, view and currency switches need JavaScript. Listings, cards and paging are still plain links.
 
 ## Plan
