@@ -1,4 +1,4 @@
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { deleteSession, getSessionUser } from "@mteam/db";
 
 const COOKIE = "mteam_session";
@@ -13,6 +13,12 @@ export async function currentUser() {
 /** Only for choosing what the header shows: it saves a query but does not prove the session is valid. */
 export async function hasSession(): Promise<boolean> {
   return (await cookies()).has(COOKIE);
+}
+
+/** Where a request came from. The last entry is the one our own proxy added; anything before it can be made up by the client. */
+export async function clientIp(): Promise<string> {
+  const forwarded = (await headers()).get("x-forwarded-for") ?? "";
+  return forwarded.slice(forwarded.lastIndexOf(",") + 1).trim() || "unknown";
 }
 
 export async function startSession(token: string): Promise<void> {

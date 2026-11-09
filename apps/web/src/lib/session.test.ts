@@ -4,13 +4,29 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 const store = vi.hoisted(() => ({ get: vi.fn(), has: vi.fn(), set: vi.fn(), delete: vi.fn() }));
 const db = vi.hoisted(() => ({ getSessionUser: vi.fn(), deleteSession: vi.fn() }));
 
-vi.mock("next/headers", () => ({ cookies: async () => store }));
+const requestHeaders = vi.hoisted(() => ({ get: vi.fn() }));
+
+vi.mock("next/headers", () => ({ cookies: async () => store, headers: async () => requestHeaders }));
 vi.mock("@mteam/db", () => db);
 
-import { currentUser, endSession, hasSession, startSession } from "./session";
+import { clientIp, currentUser, endSession, hasSession, startSession } from "./session";
 
 beforeEach(() => vi.resetAllMocks());
 afterEach(() => vi.unstubAllEnvs());
+
+describe("clientIp", () => {
+  it.each([
+    ["203.0.113.7", "203.0.113.7"],
+    ["1.1.1.1, 203.0.113.7", "203.0.113.7"],
+    ["forged, 203.0.113.7 ", "203.0.113.7"],
+    ["", "unknown"],
+    [null, "unknown"],
+  ])("reads %j as %s, trusting only the entry our proxy added", async (header, expected) => {
+    requestHeaders.get.mockReturnValue(header);
+    expect(await clientIp()).toBe(expected);
+    expect(requestHeaders.get).toHaveBeenCalledWith("x-forwarded-for");
+  });
+});
 
 describe("currentUser", () => {
   it("validates the cookie against the database", async () => {

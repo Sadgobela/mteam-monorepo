@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const prisma = vi.hoisted(() => ({
   loginCode: { createMany: vi.fn(), updateMany: vi.fn(), deleteMany: vi.fn() },
+  codeRequestLimit: { createMany: vi.fn(), updateMany: vi.fn() },
   user: { upsert: vi.fn() },
   session: { create: vi.fn(), findUnique: vi.fn(), deleteMany: vi.fn() },
 }));
@@ -20,6 +21,8 @@ const log = vi.spyOn(console, "info").mockImplementation(() => undefined);
 beforeEach(() => {
   vi.clearAllMocks();
   prisma.loginCode.updateMany.mockReset();
+  prisma.codeRequestLimit.updateMany.mockReset();
+  prisma.codeRequestLimit.updateMany.mockResolvedValue({ count: 1 });
   vi.useFakeTimers({ now: new Date("2026-11-09T10:00:00Z") });
   vi.stubEnv("SMS_PROVIDER", "console");
   vi.stubEnv("LOGIN_CODE_SECRET", secret);
@@ -39,7 +42,7 @@ describe("requestLoginCode", () => {
 
   it("creates a row holding only a hash of a six-digit code for a new phone", async () => {
     outcome(0, 0, 1);
-    expect(await requestLoginCode(phone)).toBe(true);
+    expect(await requestLoginCode(phone, "203.0.113.7")).toBe(true);
 
     const code = sentCode();
     expect(code).toMatch(/^\d{6}$/);
@@ -56,7 +59,7 @@ describe("requestLoginCode", () => {
 
   it("clears the guesses only once the hour has passed", async () => {
     outcome(1, 0, 0);
-    expect(await requestLoginCode(phone)).toBe(true);
+    expect(await requestLoginCode(phone, "203.0.113.7")).toBe(true);
     const { where, data } = prisma.loginCode.updateMany.mock.calls[0][0];
     expect(where).toEqual({ phone, sentAt: { lte: new Date("2026-11-09T09:00:00Z") } });
     expect(data.attempts).toBe(0);
@@ -66,7 +69,7 @@ describe("requestLoginCode", () => {
 
   it("resends after a minute but carries the guesses over", async () => {
     outcome(0, 1, 0);
-    expect(await requestLoginCode(phone)).toBe(true);
+    expect(await requestLoginCode(phone, "203.0.113.7")).toBe(true);
     const { where, data } = prisma.loginCode.updateMany.mock.calls[1][0];
     expect(where).toEqual({ phone, sentAt: { lte: new Date("2026-11-09T09:59:00Z") }, attempts: { lt: 5 } });
     expect(data).not.toHaveProperty("attempts");
@@ -74,9 +77,58 @@ describe("requestLoginCode", () => {
     expect(prisma.loginCode.createMany).not.toHaveBeenCalled();
   });
 
+  describe("per-address limit", () => {
+    const quota = (stale: number, below: number, created: number) => {
+      prisma.codeRequestLimit.updateMany.mockReset();
+      prisma.codeRequestLimit.updateMany.mockResolvedValueOnce({ count: stale }).mockResolvedValueOnce({ count: below });
+      prisma.codeRequestLimit.createMany.mockResolvedValue({ count: created });
+    };
+    const ipHash = keyed("ip:203.0.113.7");
+
+    it("opens a new window for an address it has not seen, storing only a keyed hash", async () => {
+      quota(0, 0, 1);
+      outcome(0, 0, 1);
+      expect(await requestLoginCode(phone, "203.0.113.7")).toBe(true);
+      expect(prisma.codeRequestLimit.createMany.mock.calls[0][0]).toEqual({
+        data: [{ ipHash, windowStart: new Date("2026-11-09T10:00:00Z"), count: 1 }],
+        skipDuplicates: true,
+      });
+    });
+
+    it("restarts the count once the hour has passed", async () => {
+      quota(1, 0, 0);
+      outcome(0, 0, 1);
+      expect(await requestLoginCode(phone, "203.0.113.7")).toBe(true);
+      expect(prisma.codeRequestLimit.updateMany.mock.calls[0][0]).toEqual({
+        where: { ipHash, windowStart: { lte: new Date("2026-11-09T09:00:00Z") } },
+        data: { windowStart: new Date("2026-11-09T10:00:00Z"), count: 1 },
+      });
+      expect(prisma.codeRequestLimit.updateMany).toHaveBeenCalledOnce();
+    });
+
+    it("counts a request only while the address is under the limit", async () => {
+      quota(0, 1, 0);
+      outcome(0, 0, 1);
+      expect(await requestLoginCode(phone, "203.0.113.7")).toBe(true);
+      expect(prisma.codeRequestLimit.updateMany.mock.calls[1][0]).toEqual({
+        where: { ipHash, count: { lt: 20 } },
+        data: { count: { increment: 1 } },
+      });
+      expect(prisma.codeRequestLimit.createMany).not.toHaveBeenCalled();
+    });
+
+    it("sends nothing and leaves the phone's code alone once the address is over the limit", async () => {
+      quota(0, 0, 0);
+      expect(await requestLoginCode(phone, "203.0.113.7")).toBe(false);
+      expect(log).not.toHaveBeenCalled();
+      expect(prisma.loginCode.updateMany).not.toHaveBeenCalled();
+      expect(prisma.loginCode.createMany).not.toHaveBeenCalled();
+    });
+  });
+
   it("sends nothing when too soon or locked", async () => {
     outcome(0, 0, 0);
-    expect(await requestLoginCode(phone)).toBe(false);
+    expect(await requestLoginCode(phone, "203.0.113.7")).toBe(false);
     expect(log).not.toHaveBeenCalled();
   });
 
@@ -87,7 +139,7 @@ describe("requestLoginCode", () => {
     ["with a secret too short to protect anything", "LOGIN_CODE_SECRET", "short"],
   ])("refuses to issue a code %s, before any write", async (_name, key, value) => {
     vi.stubEnv(key, value as string);
-    await expect(requestLoginCode(phone)).rejects.toThrow();
+    await expect(requestLoginCode(phone, "203.0.113.7")).rejects.toThrow();
     expect(log).not.toHaveBeenCalled();
     expect(prisma.loginCode.updateMany).not.toHaveBeenCalled();
     expect(prisma.loginCode.createMany).not.toHaveBeenCalled();

@@ -7,6 +7,9 @@ const RESEND_AFTER_MS = 60_000;
 const MAX_ATTEMPTS = 5;
 const ATTEMPT_WINDOW_MS = 60 * 60_000;
 const SESSION_TTL_MS = 30 * 24 * 60 * 60_000;
+// Generous, because Georgian mobile carriers put many customers behind one address. It exists to cap what a script can cost in SMS.
+const CODES_PER_ADDRESS = 20;
+const ADDRESS_WINDOW_MS = 60 * 60_000;
 
 const smsEnvSchema = z.object({ SMS_PROVIDER: z.literal("console") });
 
@@ -18,21 +21,41 @@ const sha256 = (value: string) => createHash("sha256").update(value).digest("hex
 const keyedHash = (value: string) => createHmac("sha256", codeSecretSchema.parse(process.env).LOGIN_CODE_SECRET).update(value).digest("hex");
 const hashCode = (phone: string, code: string) => keyedHash(`${phone}:${code}`);
 
-// ponytail: console only, for local testing. A real provider goes here, together with a per-IP request limit, before launch.
+// ponytail: console only, for local testing. A real provider goes here before launch.
 function assertCodesCanBeSent(): void {
   smsEnvSchema.parse(process.env);
   if (process.env.NODE_ENV === "production") throw new Error("SMS_PROVIDER=console is not allowed in production");
 }
 
+/** Counts one code request against an address and says whether it is within the limit. Single conditional writes, like the phone limit. */
+async function claimAddressQuota(ip: string, now: number): Promise<boolean> {
+  const limits = db().codeRequestLimit;
+  const ipHash = keyedHash(`ip:${ip}`);
+  const opened = new Date(now);
+  const claimed =
+    (
+      await limits.updateMany({
+        where: { ipHash, windowStart: { lte: new Date(now - ADDRESS_WINDOW_MS) } },
+        data: { windowStart: opened, count: 1 },
+      })
+    ).count ||
+    (await limits.updateMany({ where: { ipHash, count: { lt: CODES_PER_ADDRESS } }, data: { count: { increment: 1 } } })).count ||
+    (await limits.createMany({ data: [{ ipHash, windowStart: opened, count: 1 }], skipDuplicates: true })).count;
+  return claimed > 0;
+}
+
 /**
- * Issues a code for a normalized phone. Returns false if one was sent less than a minute ago,
- * or if the guesses are used up, which locks the phone for an hour from the last code.
+ * Issues a code for a normalized phone. Returns false if the address has asked for too many,
+ * if one was sent to this phone less than a minute ago, or if the guesses are used up,
+ * which locks the phone for an hour from the last code.
  * Each step is a single conditional write, so parallel requests cannot pass the limit.
  */
-export async function requestLoginCode(phone: string): Promise<boolean> {
+export async function requestLoginCode(phone: string, ip: string): Promise<boolean> {
   assertCodesCanBeSent();
   const client = db();
   const now = Date.now();
+  if (!(await claimAddressQuota(ip, now))) return false;
+
   const code = String(randomInt(100_000, 1_000_000));
   const fresh = { codeHash: hashCode(phone, code), sentAt: new Date(now), expiresAt: new Date(now + CODE_TTL_MS) };
 

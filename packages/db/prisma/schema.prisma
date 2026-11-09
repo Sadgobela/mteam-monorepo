@@ -70,6 +70,13 @@ model LoginCode {
   expiresAt DateTime
 }
 
+// How many login codes an address has asked for in the current window. The address is stored only as a keyed hash.
+model CodeRequestLimit {
+  ipHash      String   @id
+  count       Int
+  windowStart DateTime
+}
+
 // Only a hash of the token is stored, so a database leak does not expose sessions.
 model Session {
   tokenHash String   @id
