@@ -1,9 +1,10 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { getDictionary, type Listing } from "@mteam/shared";
 import { fixtureListings } from "@/test-fixtures";
 import { Select } from "antd";
 import { AntProvider } from "./AntProvider";
+import { LanguageMenu } from "./LanguageMenu";
 import { FilterChips } from "./FilterChips";
 import { Header } from "./Header";
 import { ListingCard } from "./ListingCard";
@@ -23,8 +24,7 @@ describe("Header", () => {
     render(<Header locale="en" t={t} signedIn={false} />);
     expect(screen.getByRole("link", { name: "For sale" })).toHaveAttribute("href", "/en?deal=sale");
     expect(screen.getByRole("link", { name: "MTeam Verified" })).toHaveAttribute("href", "/en?verified=1");
-    expect(screen.getByRole("link", { name: "EN" })).toHaveAttribute("aria-current", "true");
-    expect(screen.getByRole("link", { name: "KA" })).not.toHaveAttribute("aria-current");
+    expect(screen.getByRole("button", { name: "Language: English" })).toHaveTextContent("EN");
   });
 
   it("links the drawn logo home, with a name screen readers can announce", () => {
@@ -47,7 +47,7 @@ describe("Header", () => {
       expect(menu()).toHaveAttribute("aria-expanded", "true");
       expect(within(panel()).getByRole("link", { name: "For rent" })).toHaveAttribute("href", "/en?deal=rent");
       expect(within(panel()).getByRole("link", { name: "Sign in" })).toBeInTheDocument();
-      expect(within(panel()).getByRole("link", { name: "RU" })).toBeInTheDocument();
+      expect(within(panel()).getByRole("button", { name: "Language: English" })).toBeInTheDocument();
     });
 
     it("closes when a link is followed, because a same-page link would otherwise leave it open", () => {
@@ -102,6 +102,45 @@ describe("AntProvider", () => {
       </AntProvider>,
     );
     expect(container.querySelector(`[aria-label="${getDictionary("ka").search.clear}"]`)).not.toBeNull();
+  });
+});
+
+describe("LanguageMenu", () => {
+  const open = (locale: "ka" | "en" = "en") => {
+    render(<LanguageMenu locale={locale} label="Language" />);
+    fireEvent.click(screen.getByRole("button", { name: /^Language/ }));
+  };
+  const option = (name: string) => screen.getByRole("link", { name, hidden: true });
+
+  afterEach(() => window.history.pushState({}, "", "/"));
+
+  it("names the current language and offers all three in their own script, each with a flag", () => {
+    open();
+    expect(screen.getByRole("button", { name: "Language: English" })).toBeInTheDocument();
+    for (const name of ["ქართული", "English", "Русский"]) expect(option(name).querySelector("svg.flag")).not.toBeNull();
+    expect(option("Русский")).toHaveAttribute("href", "/ru");
+  });
+
+  it("keeps the page for a middle-click or long-press too, which never fire click", () => {
+    window.history.pushState({}, "", "/en/brokers?x=1");
+    open();
+    fireEvent.pointerDown(option("ქართული"));
+    expect(option("ქართული")).toHaveAttribute("href", "/ka/brokers?x=1");
+  });
+
+  it("marks the current language as selected", () => {
+    open("ka");
+    expect(option("ქართული").closest("li")).toHaveClass("ant-dropdown-menu-item-selected");
+    expect(option("English").closest("li")).not.toHaveClass("ant-dropdown-menu-item-selected");
+  });
+
+  it("keeps the page and its filters when the language changes", () => {
+    window.history.pushState({}, "", "/en/listings/5?cur=gel&deal=rent");
+    open();
+    // Cancelled after the component's handler, because jsdom cannot navigate.
+    option("Русский").addEventListener("click", (event) => event.preventDefault());
+    fireEvent.click(option("Русский"));
+    expect(option("Русский")).toHaveAttribute("href", "/ru/listings/5?cur=gel&deal=rent");
   });
 });
 

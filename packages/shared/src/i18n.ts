@@ -2,16 +2,19 @@ export const locales = ["ka", "en", "ru"] as const;
 export type Locale = (typeof locales)[number];
 export const defaultLocale: Locale = "ka";
 
+/** Each language in its own script, the same on every page. */
+export const languageNames: Record<Locale, string> = { ka: "ქართული", en: "English", ru: "Русский" };
+
 export function isLocale(value: string): value is Locale {
   return (locales as readonly string[]).includes(value);
 }
 
 const ka = {
-  nav: { menu: "მენიუ", sale: "იყიდება", rent: "ქირავდება", daily: "დღიურად", brokers: "ბროკერები", favorites: "რჩეულები", my: "ჩემი განცხადებები", login: "შესვლა", logout: "გასვლა", post: "+ განცხადება" },
+  nav: { menu: "მენიუ", language: "ენა", sale: "იყიდება", rent: "ქირავდება", daily: "დღიურად", brokers: "ბროკერები", favorites: "რჩეულები", my: "ჩემი განცხადებები", login: "შესვლა", logout: "გასვლა", post: "+ განცხადება" },
   search: { floorMin: "სართულიდან", floorMax: "სართულამდე", areaMin: "ფართი, მ² დან", areaMax: "ფართი, მ² მდე", location: "მდებარეობა", locationHint: "ქალაქი, რაიონი, უბანი", verifiedOnly: "მხოლოდ Verified", more: "სხვა ფილტრები", locationTitle: "მდებარეობის არჩევა", locationFilter: "მოძებნე ქალაქი ან უბანი", chooseCity: "აირჩიე ქალაქი და გამოჩნდება მისი უბნები.", keyword: "ქუჩა ან სიტყვა", clear: "გასუფთავება", tabDistricts: "უბნები", tabStreets: "ქუჩები", deal: "გარიგება", city: "ქალაქი", type: "ტიპი", priceMin: "ფასი, $ დან", priceMax: "ფასი, $ მდე", rooms: "ოთახები", any: "ყველა", submit: "ძებნა", results: "ძებნის შედეგები", empty: "ამ ფილტრებით განცხადება ვერ მოიძებნა." },
   results: { map: "რუკა", removeFilter: "ფილტრის მოხსნა", found: "მოიძებნა {count} განცხადება", sort: "დალაგება", sortNew: "ახალი", sortAsc: "ფასი ↑", sortDesc: "ფასი ↓", view: "ხედი", grid: "ბადე", list: "სია", currency: "ვალუტა", pages: "გვერდები", previous: "← წინა", next: "შემდეგი →" },
   home: { leadInvalid: "შეამოწმე სახელი და ნომერი, მაგალითად 555 12 34 56.", leadFailed: "ვერ შევინახეთ. სცადე თავიდან.", leadGoal: "რა გსურს?", leadName: "სახელი", leadSell: "მინდა გაყიდვა", leadRent: "მინდა გაქირავება", leadSubmit: "დაგვიტოვე ნომერი", leadSent: "მადლობა! ბროკერი მალე დაგიკავშირდება.", heading: "MTeam-ის მიერ გადამოწმებული", verifiedTitle: "გადამოწმებული განცხადებები", verifiedLead: "ადგილზე ნანახი ბროკერის მიერ", giveTitle: "მიეცი MTeam-ს", giveLead: "გაყიდვას ან გაქირავებას ჩვენ მივხედავთ", postTitle: "დაამატე განცხადება", postLead: "ფოტოებით, რამდენიმე წუთში", bandTitle: "გაქვს ბინა? მიეცი MTeam-ს", bandText: "საკომისიოს მხოლოდ მესაკუთრე იხდის. გაქირავებისას: დამქირავებელი ერთ წელიწადში, ან საკომისიოს ნახევარი უკან." },
-  propertyType: { apartment: "ბინა", house: "სახლი", commercial: "კომერციული", land: "მიწა" },
+  propertyType: { apartment: "ბინა", house: "სახლი", commercial: "კომერციული", land: "მიწა", country: "აგარაკი", hotel: "სასტუმრო" },
   deal: { sale: "იყიდება", rent: "ქირავდება", daily: "დღიურად", pledge: "გირავდება", lease: "გაიცემა იჯარით" },
   perDay: "/ დღე",
   perMonth: "/ თვე",
@@ -60,12 +63,12 @@ const ka = {
 type Dict = typeof ka;
 
 const en: Dict = {
-  nav: { menu: "Menu", sale: "For sale", rent: "For rent", daily: "Daily", brokers: "Brokers", favorites: "Favourites", my: "My listings", login: "Sign in", logout: "Sign out", post: "+ Post a listing" },
+  nav: { menu: "Menu", language: "Language", sale: "For sale", rent: "For rent", daily: "Daily", brokers: "Brokers", favorites: "Favourites", my: "My listings", login: "Sign in", logout: "Sign out", post: "+ Post a listing" },
   search: { floorMin: "Floor from", floorMax: "Floor to", areaMin: "Area from, m²", areaMax: "Area to, m²", location: "Location", locationHint: "City, district", verifiedOnly: "Verified only", more: "More filters", locationTitle: "Choose a location", locationFilter: "Find a city or district", chooseCity: "Choose a city to see its districts.", keyword: "Street or keyword", clear: "Clear", tabDistricts: "Districts", tabStreets: "Streets", deal: "Deal", city: "City", type: "Type", priceMin: "Price from, $", priceMax: "Price to, $", rooms: "Rooms", any: "Any", submit: "Search", results: "Search results", empty: "No listings match these filters." },
   results: { map: "Map", removeFilter: "Remove filter", found: "Listings found: {count}", sort: "Sort", sortNew: "Newest", sortAsc: "Price ↑", sortDesc: "Price ↓", view: "View", grid: "Grid", list: "List", currency: "Currency", pages: "Pages", previous: "← Previous", next: "Next →" },
   home: { leadInvalid: "Check your name and number, for example 555 12 34 56.", leadFailed: "We could not save that. Please try again.", leadGoal: "What would you like?", leadName: "Your name", leadSell: "I want to sell", leadRent: "I want to rent out", leadSubmit: "Leave your number", leadSent: "Thank you! A broker will contact you soon.", heading: "Verified by MTeam", verifiedTitle: "Verified listings", verifiedLead: "Seen on site by a broker", giveTitle: "Give it to MTeam", giveLead: "We handle the sale or rental", postTitle: "Post a listing", postLead: "With photos, in a few minutes", bandTitle: "Own a property? Give it to MTeam", bandText: "Only the owner pays commission. For rentals: a tenant within one year, or half the fee back." },
-  propertyType: { apartment: "Apartment", house: "House", commercial: "Commercial", land: "Land" },
-  deal: { sale: "For sale", rent: "For rent", daily: "Daily", pledge: "For pledge", lease: "For lease" },
+  propertyType: { apartment: "Apartment", house: "House", commercial: "Commercial", land: "Land", country: "Country house", hotel: "Hotel" },
+  deal: { sale: "For sale", rent: "For rent", daily: "Daily", pledge: "Leasehold mortgage", lease: "For lease" },
   perDay: "/ day",
   perMonth: "/ month",
   units: { rooms: "rooms", floor: "floor", sqm: "m²" },
@@ -111,12 +114,12 @@ const en: Dict = {
 };
 
 const ru: Dict = {
-  nav: { menu: "Меню", sale: "Продажа", rent: "Аренда", daily: "Посуточно", brokers: "Брокеры", favorites: "Избранное", my: "Мои объявления", login: "Войти", logout: "Выйти", post: "+ Объявление" },
+  nav: { menu: "Меню", language: "Язык", sale: "Продажа", rent: "Аренда", daily: "Посуточно", brokers: "Брокеры", favorites: "Избранное", my: "Мои объявления", login: "Войти", logout: "Выйти", post: "+ Объявление" },
   search: { floorMin: "Этаж от", floorMax: "Этаж до", areaMin: "Площадь от, м²", areaMax: "Площадь до, м²", location: "Местоположение", locationHint: "Город, район", verifiedOnly: "Только Verified", more: "Другие фильтры", locationTitle: "Выберите местоположение", locationFilter: "Найти город или район", chooseCity: "Выберите город, чтобы увидеть его районы.", keyword: "Улица или слово", clear: "Очистить", tabDistricts: "Районы", tabStreets: "Улицы", deal: "Сделка", city: "Город", type: "Тип", priceMin: "Цена от, $", priceMax: "Цена до, $", rooms: "Комнаты", any: "Все", submit: "Найти", results: "Результаты поиска", empty: "По этим фильтрам объявлений нет." },
   results: { map: "Карта", removeFilter: "Убрать фильтр", found: "Найдено объявлений: {count}", sort: "Сортировка", sortNew: "Новые", sortAsc: "Цена ↑", sortDesc: "Цена ↓", view: "Вид", grid: "Сетка", list: "Список", currency: "Валюта", pages: "Страницы", previous: "← Назад", next: "Дальше →" },
   home: { leadInvalid: "Проверьте имя и номер, например 555 12 34 56.", leadFailed: "Не удалось сохранить. Попробуйте ещё раз.", leadGoal: "Что вы хотите?", leadName: "Имя", leadSell: "Хочу продать", leadRent: "Хочу сдать", leadSubmit: "Оставить номер", leadSent: "Спасибо! Брокер скоро свяжется с вами.", heading: "Проверено MTeam", verifiedTitle: "Проверенные объявления", verifiedLead: "Брокер видел объект на месте", giveTitle: "Доверьте MTeam", giveLead: "Продажу или аренду мы возьмём на себя", postTitle: "Добавить объявление", postLead: "С фото, за несколько минут", bandTitle: "Есть недвижимость? Доверьте её MTeam", bandText: "Комиссию платит только собственник. При аренде: арендатор в течение года или половина комиссии обратно." },
-  propertyType: { apartment: "Квартира", house: "Дом", commercial: "Коммерческая", land: "Участок" },
-  deal: { sale: "Продажа", rent: "Аренда", daily: "Посуточно", pledge: "Залог", lease: "Долгосрочная аренда" },
+  propertyType: { apartment: "Квартира", house: "Дом", commercial: "Коммерческая", land: "Участок", country: "Дача", hotel: "Гостиница" },
+  deal: { sale: "Продажа", rent: "Аренда", daily: "Посуточно", pledge: "Ипотека под аренду", lease: "Лизинг" },
   perDay: "/ сутки",
   perMonth: "/ мес.",
   units: { rooms: "комн.", floor: "этаж", sqm: "м²" },

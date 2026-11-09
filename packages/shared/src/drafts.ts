@@ -67,7 +67,7 @@ const draftSchema = z
   })
   // Exact names, or searching by district would miss the listing. Places without districts have none to give.
   .refine((d) => (cityDistricts(d.city).length === 0 ? d.district === undefined : cityDistricts(d.city).includes(d.district ?? "")))
-  .refine((d) => d.rooms !== undefined || d.type === "commercial" || d.type === "land")
+  .refine((d) => d.rooms !== undefined || d.type === "commercial" || d.type === "land" || d.type === "hotel")
   .refine((d) => (d.lat === undefined) === (d.lng === undefined))
   .refine((d) => (d.floor === undefined) === (d.floors === undefined) && (d.floor ?? 0) <= (d.floors ?? 0));
 

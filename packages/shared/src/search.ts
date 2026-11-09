@@ -4,7 +4,7 @@ import { cityDistricts, isCity } from "./places";
 export const dealTypes = ["sale", "rent", "daily", "pledge", "lease"] as const;
 export type DealType = (typeof dealTypes)[number];
 
-export const propertyTypes = ["apartment", "house", "commercial", "land"] as const;
+export const propertyTypes = ["apartment", "house", "country", "commercial", "land", "hotel"] as const;
 export type PropertyType = (typeof propertyTypes)[number];
 
 export const currencies = ["USD", "GEL"] as const;

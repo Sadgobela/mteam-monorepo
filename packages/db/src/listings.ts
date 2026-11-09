@@ -21,6 +21,8 @@ const propertyTypes: Record<DbPropertyType, PropertyType> = {
   HOUSE: "house",
   COMMERCIAL: "commercial",
   LAND: "land",
+  COUNTRY_HOUSE: "country",
+  HOTEL: "hotel",
 };
 const dbDeals: Record<DealType, DbDealType> = { sale: "SALE", rent: "RENT", daily: "DAILY", pledge: "PLEDGE", lease: "LEASE" };
 const dbPropertyTypes: Record<PropertyType, DbPropertyType> = {
@@ -28,6 +30,8 @@ const dbPropertyTypes: Record<PropertyType, DbPropertyType> = {
   house: "HOUSE",
   commercial: "COMMERCIAL",
   land: "LAND",
+  country: "COUNTRY_HOUSE",
+  hotel: "HOTEL",
 };
 const tones = ["violet", "sand", "steel", "rose"] as const;
 
