@@ -195,7 +195,7 @@ describe("listing photos", () => {
 
   it("shows every photo on the listing page", async () => {
     db.getListing.mockResolvedValue(withPhotos);
-    render(await ListingPage({ params: Promise.resolve({ locale: "en", id: "20418" }) }));
+    render(await ListingPage({ params: Promise.resolve({ locale: "en", id: "20418" }), searchParams: Promise.resolve({}) }));
     expect(screen.getAllByRole("img", { name: new RegExp(withPhotos.title) }).map((i) => i.getAttribute("src"))).toEqual([
       "https://cdn/a.jpg",
       "https://cdn/b.jpg",
@@ -204,23 +204,23 @@ describe("listing photos", () => {
 
   it("says who checked a verified listing and when", async () => {
     db.getListing.mockResolvedValue({ ...fixtureListings[0], verification: { by: "Nino", at: "2026-11-05" } });
-    render(await ListingPage({ params: Promise.resolve({ locale: "en", id: "20418" }) }));
+    render(await ListingPage({ params: Promise.resolve({ locale: "en", id: "20418" }), searchParams: Promise.resolve({}) }));
     expect(screen.getByText("Checked by Nino, Nov 5")).toBeInTheDocument();
   });
 
   it("shows a map only when the listing has a location", async () => {
     db.getListing.mockResolvedValue({ ...fixtureListings[0], lat: 41.7, lng: 44.7 });
-    const pinned = render(await ListingPage({ params: Promise.resolve({ locale: "en", id: "20418" }) }));
+    const pinned = render(await ListingPage({ params: Promise.resolve({ locale: "en", id: "20418" }), searchParams: Promise.resolve({}) }));
     expect(screen.getByRole("region", { name: t.results.map })).toBeInTheDocument();
     pinned.unmount();
     db.getListing.mockResolvedValue({ ...fixtureListings[0], lat: 41.7 });
-    render(await ListingPage({ params: Promise.resolve({ locale: "en", id: "20418" }) }));
+    render(await ListingPage({ params: Promise.resolve({ locale: "en", id: "20418" }), searchParams: Promise.resolve({}) }));
     expect(screen.queryByRole("region", { name: t.results.map })).toBeNull();
   });
 
   it("omits the rooms fact for property without rooms", async () => {
     db.getListing.mockResolvedValue({ ...fixtureListings[0], rooms: 0 });
-    render(await ListingPage({ params: Promise.resolve({ locale: "en", id: "20418" }) }));
+    render(await ListingPage({ params: Promise.resolve({ locale: "en", id: "20418" }), searchParams: Promise.resolve({}) }));
     expect(screen.queryByText(t.listing.rooms)).toBeNull();
   });
 });

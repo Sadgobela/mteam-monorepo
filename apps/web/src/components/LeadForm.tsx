@@ -30,3 +30,14 @@ export function LeadForm({ t }: { t: Dict }) {
     </form>
   );
 }
+
+/** The "Give it to mTeam" offer for owners, with the promises stated plainly. */
+export function GiveBand({ t }: { t: Dict }) {
+  return (
+    <section id="give" className="band">
+      <h2>{t.home.bandTitle}</h2>
+      <p>{t.home.bandText}</p>
+      <LeadForm t={t} />
+    </section>
+  );
+}

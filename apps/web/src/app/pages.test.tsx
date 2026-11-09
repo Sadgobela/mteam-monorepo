@@ -203,7 +203,7 @@ describe("rendering", () => {
 
 describe("listing page", () => {
   it("shows a full listing with agent and verification", async () => {
-    render(await ListingPage({ params: p({ locale: "en", id: "20418" }) }));
+    render(await ListingPage({ params: p({ locale: "en", id: "20418" }), searchParams: p({}) }));
     expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("ვაკეში");
     expect(screen.getByText("Floor")).toBeInTheDocument();
     expect(screen.getByText("Condition")).toBeInTheDocument();
@@ -214,7 +214,7 @@ describe("listing page", () => {
   });
 
   it("hides missing details, agent and badge", async () => {
-    render(await ListingPage({ params: p({ locale: "en", id: "20422" }) }));
+    render(await ListingPage({ params: p({ locale: "en", id: "20422" }), searchParams: p({}) }));
     expect(screen.queryByText("Condition")).toBeNull();
     expect(screen.getByText("Owner")).toBeInTheDocument();
     expect(screen.queryByText(/mTeam broker/)).toBeNull();
@@ -223,11 +223,43 @@ describe("listing page", () => {
   });
 
   it("hides the floor when it is unknown", async () => {
-    render(await ListingPage({ params: p({ locale: "en", id: "20440" }) }));
+    render(await ListingPage({ params: p({ locale: "en", id: "20440" }), searchParams: p({}) }));
     expect(screen.queryByText("Floor")).toBeNull();
   });
 
+  it("shows the price with a currency switch in the contact box", async () => {
+    const view = await ListingPage({ params: p({ locale: "en", id: "20418" }), searchParams: p({}) });
+    render(view);
+    expect(screen.getByText("$148,000")).toBeInTheDocument();
+    expect(screen.getByText("$1,609 / m²")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "₾" })).toHaveAttribute("href", "/en/listings/20418?cur=gel");
+    expect(screen.getByRole("link", { name: "$" })).toHaveAttribute("aria-current", "true");
+  });
+
+  it("converts the price when ₾ is chosen", async () => {
+    render(await ListingPage({ params: p({ locale: "en", id: "20418" }), searchParams: p({ cur: "gel" }) }));
+    expect(screen.getByText("₾399,600")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "₾" })).toHaveAttribute("aria-current", "true");
+  });
+
+  it("shows a rental per month and without a price per m²", async () => {
+    render(await ListingPage({ params: p({ locale: "en", id: "20422" }), searchParams: p({}) }));
+    expect(screen.getByText("/ month")).toBeInTheDocument();
+    expect(screen.queryByText(/\/ m²/)).toBeNull();
+  });
+
+  it("offers owners Give it to mTeam", async () => {
+    render(await ListingPage({ params: p({ locale: "en", id: "20418" }), searchParams: p({}) }));
+    expect(screen.getByRole("heading", { name: /Give it to mTeam/ })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Leave your number" })).toBeInTheDocument();
+  });
+
+  it("draws an icon beside each fact", async () => {
+    const { container } = render(await ListingPage({ params: p({ locale: "en", id: "20418" }), searchParams: p({}) }));
+    expect(container.querySelectorAll(".facts dt svg")).toHaveLength(4);
+  });
+
   it("shows 404 for an unknown listing", async () => {
-    await expect(ListingPage({ params: p({ locale: "en", id: "1" }) })).rejects.toThrow("NEXT_NOT_FOUND");
+    await expect(ListingPage({ params: p({ locale: "en", id: "1" }), searchParams: p({}) })).rejects.toThrow("NEXT_NOT_FOUND");
   });
 });
