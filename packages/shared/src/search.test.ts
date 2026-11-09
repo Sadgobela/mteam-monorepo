@@ -1,11 +1,25 @@
 import { describe, expect, it } from "vitest";
-import { cityNames, convertPrice, parseListingDisplay, parseListingFilters, priceInUsd } from "./index";
+import { convertPrice, parseListingDisplay, parseListingFilters, priceInUsd } from "./index";
 
 describe("parseListingFilters", () => {
+  it("reads several districts inside a city", () => {
+    expect(parseListingFilters({ city: "თბილისი", district: "ვაკე,ვერა" })).toEqual({ city: "თბილისი", district: ["ვაკე", "ვერა"] });
+  });
+
+  it("ignores districts without a city, and a city that does not exist", () => {
+    expect(parseListingFilters({ district: "ვაკე" }).district).toBeUndefined();
+    expect(parseListingFilters({ city: "Atlantis", district: "ვაკე" })).toEqual({ city: undefined, district: undefined });
+  });
+
+  it("ignores an empty or absurdly long district list", () => {
+    expect(parseListingFilters({ city: "თბილისი", district: "" }).district).toBeUndefined();
+    expect(parseListingFilters({ city: "თბილისი", district: "a".repeat(4001) }).district).toBeUndefined();
+  });
+
   it("reads every filter", () => {
     expect(
-      parseListingFilters({ deal: "rent", type: "house", city: "batumi", priceMin: "1000", priceMax: "2000", rooms: "3", q: " vake ", verified: "1", areaMin: "40", areaMax: "90", floorMin: "3", floorMax: "9" }),
-    ).toEqual({ deal: "rent", type: "house", city: "batumi", priceMin: 1000, priceMax: 2000, rooms: 3, q: "vake", verified: true, areaMin: 40, areaMax: 90, floorMin: 3, floorMax: 9 });
+      parseListingFilters({ deal: "rent", type: "house", city: "ბათუმი", priceMin: "1000", priceMax: "2000", rooms: "3", q: " vake ", verified: "1", areaMin: "40", areaMax: "90", floorMin: "3", floorMax: "9" }),
+    ).toEqual({ deal: "rent", type: "house", city: "ბათუმი", priceMin: 1000, priceMax: 2000, rooms: 3, q: "vake", verified: true, areaMin: 40, areaMax: 90, floorMin: 3, floorMax: 9 });
   });
 
   it("treats a query with no filters as no filters", () => {
@@ -23,7 +37,7 @@ describe("parseListingFilters", () => {
   it.each([
     ["deal", "barter"],
     ["type", "projects"],
-    ["city", "თბილისი"],
+    ["city", "Atlantis"],
     ["rooms", "0"],
     ["rooms", "5"],
     ["rooms", "1.5"],
@@ -101,8 +115,3 @@ describe("currency conversion", () => {
   });
 });
 
-describe("cityNames", () => {
-  it("matches the city names stored on listings", () => {
-    expect(cityNames).toEqual({ tbilisi: "თბილისი", batumi: "ბათუმი" });
-  });
-});

@@ -10,8 +10,7 @@ function cardTitle(listing: Listing, locale: Locale, t: Dict): string {
     .replace("{rooms}", String(listing.rooms))
     .replace("{type}", t.propertyType[listing.type].toLowerCase());
   // After a comma, because "in Vake" would need a different grammatical case for every place in Georgian and Russian.
-  const place = placeName(listing, locale, t);
-  return place ? `${title}, ${place}` : title;
+  return `${title}, ${placeName(listing, locale)}`;
 }
 
 export function ListingCard({
@@ -87,7 +86,7 @@ export function ListingCard({
         )}
         <div className="cfoot meta">
           <span>
-            {listing.address}, {listing.district}
+            {[listing.address, listing.district].filter(Boolean).join(", ")}
           </span>
           <span>{formatDay(listing.updatedAt, locale)}</span>
         </div>

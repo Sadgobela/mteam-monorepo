@@ -1,6 +1,5 @@
 import type { DealType as DbDealType, Prisma, PropertyType as DbPropertyType } from "@prisma/client";
 import {
-  cityNames,
   roomOptions,
   type DealType,
   type Listing,
@@ -107,7 +106,8 @@ function whereFor(filters: ListingFilters, located = false): Prisma.ListingWhere
     status: "ACTIVE",
     deal: filters.deal && dbDeals[filters.deal],
     type: filters.type && dbPropertyTypes[filters.type],
-    city: filters.city && cityNames[filters.city],
+    city: filters.city,
+    district: filters.district && { in: filters.district },
     rooms: roomsClause(filters.rooms),
     verified: filters.verified,
     priceUsd: { gte: filters.priceMin, lte: filters.priceMax },
@@ -173,7 +173,6 @@ export async function createListing(ownerId: string, draft: ListingDraft, imageU
       priceUsd: priceInUsd(draft.price, draft.currency),
       deal: dbDeals[draft.deal],
       type: dbPropertyTypes[draft.type],
-      city: cityNames[draft.city],
       status: "PENDING",
       verified: false,
       ownerId,

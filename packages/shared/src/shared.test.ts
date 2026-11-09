@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { defaultLocale, districtOptions, formatDay, formatPrice, getDictionary, isLocale, locales, placeName, priceUnit } from "./index";
+import { cities, cityAreas, cityDistricts, defaultLocale, formatDay, formatPrice, getDictionary, isCity, isLocale, locales, placeLabel, placeName, popularCities, priceUnit } from "./index";
 
 describe("formatDay", () => {
   it("writes a short date in the page language, independent of time zone", () => {
@@ -42,37 +42,37 @@ describe("priceUnit", () => {
   });
 });
 
-describe("districtOptions", () => {
-  it("labels districts in the page language and keeps the stored name as the value", () => {
-    expect(districtOptions("en")).toContainEqual({ value: "ვაკე", label: "Vake" });
-    expect(districtOptions("ru")).toContainEqual({ value: "ვაკე", label: "Ваке" });
-    expect(districtOptions("ka")).toContainEqual({ value: "ვაკე", label: "ვაკე" });
+describe("places", () => {
+  it("lists every city once, popular ones first", () => {
+    expect(new Set(cities).size).toBe(cities.length);
+    expect(popularCities[0]).toBe("თბილისი");
+    expect(popularCities).toHaveLength(10);
+    expect(isCity("ქუთაისი")).toBe(true);
+    expect(isCity("დუბაი")).toBe(false);
+  });
+
+  it("gives a city's groups and plain districts, and nothing for an unknown city", () => {
+    expect(cityAreas("თბილისი").find((area) => area.name === "ვაკე-საბურთალო")?.districts).toContain("ვაკე");
+    expect(cityAreas("ბათუმი")).toContainEqual({ name: "მახინჯაური", districts: ["მახინჯაური"] });
+    expect(cityDistricts("თბილისი")).toContain("ვერა");
+    expect(cityDistricts("რუსთავი")).toEqual([]);
+    expect(cityDistricts("Atlantis")).toEqual([]);
+  });
+
+  it("spells place names in the page language", () => {
+    expect(placeLabel("ვაკე", "ka")).toBe("ვაკე");
+    expect(placeLabel("ვაკე-საბურთალო", "en")).toBe("Vake-Saburtalo");
+    expect(placeLabel("ჩუღურეთი", "ru")).toBe("Чугурети");
+    expect(placeLabel("გორის მუნიციპალიტეტი", "en")).toBe("Goris Municipality");
+    expect(placeLabel("ონის რაიონი", "ru")).toBe("Онис Район");
+    expect(placeLabel("Old town", "en")).toBe("Old Town");
   });
 });
 
 describe("placeName", () => {
-  const place = (city: string, district: string, locale: "ka" | "en" | "ru") => placeName({ city, district }, locale, getDictionary(locale));
-
-  it("shows the district as written on the Georgian page", () => {
-    expect(place("თბილისი", " ვაკე ", "ka")).toBe("ვაკე");
-    expect(place("თბილისი", "სადღაც", "ka")).toBe("სადღაც");
-  });
-
-  it("translates a known district", () => {
-    expect(place("თბილისი", "ვაკე", "en")).toBe("Vake");
-    expect(place("თბილისი", "საბურთალო", "ru")).toBe("Сабуртало");
-  });
-
-  it("falls back to the translated city", () => {
-    expect(place("ბათუმი", "სადღაც", "en")).toBe("Batumi");
-    expect(place("თბილისი", "", "ka")).toBe("თბილისი");
-  });
-
-  it("is not fooled by a district named after a built-in property", () => {
-    expect(place("თბილისი", "constructor", "en")).toBe("Tbilisi");
-  });
-
-  it("gives nothing for a city it does not know", () => {
-    expect(place("Kutaisi", "სადღაც", "en")).toBeUndefined();
+  it("names the district, or the city when there is none", () => {
+    expect(placeName({ city: "თბილისი", district: "ვაკე" }, "en")).toBe("Vake");
+    expect(placeName({ city: "ბათუმი", district: " " }, "ru")).toBe("Батуми");
+    expect(placeName({ city: "რუსთავი", district: "" }, "ka")).toBe("რუსთავი");
   });
 });

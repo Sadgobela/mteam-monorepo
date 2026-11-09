@@ -37,8 +37,8 @@ describe("parseListingDraft", () => {
   const valid = {
     deal: "sale",
     type: "apartment",
-    city: "batumi",
-    district: " Old town ",
+    city: "ბათუმი",
+    district: " ძველი ბათუმის უბანი ",
     address: "Main 1",
     title: "Flat",
     description: "Sunny",
@@ -53,7 +53,7 @@ describe("parseListingDraft", () => {
   it("converts a valid form and trims text", () => {
     expect(parseListingDraft(valid)).toEqual({
       ...valid,
-      district: "Old town",
+      district: "ძველი ბათუმის უბანი",
       price: 148000,
       area: 92.5,
       rooms: 3,
@@ -102,6 +102,9 @@ describe("parseListingDraft", () => {
     ["blank title", { title: "   " }],
     ["long title", { title: "x".repeat(121) }],
     ["NUL byte in text", { title: "a\0b" }],
+    ["district from another city", { district: "ვაკე" }],
+    ["no district where the city has them", { district: undefined }],
+    ["district where the city has none", { city: "რუსთავი" }],
     ["unknown deal", { deal: "barter" }],
     ["unknown city", { city: "kutaisi" }],
     ["unknown currency", { currency: "EUR" }],

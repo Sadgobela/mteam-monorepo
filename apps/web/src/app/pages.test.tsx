@@ -195,7 +195,7 @@ describe("home page", () => {
 
   it("says so when nothing matches", async () => {
     vi.mocked(searchListings).mockResolvedValueOnce([]);
-    await home({ city: "batumi" });
+    await home({ city: "ბათუმი" });
     expect(screen.getByText("No listings match these filters.")).toBeInTheDocument();
     expect(screen.queryByRole("link", { name: /m²/ })).toBeNull();
   });

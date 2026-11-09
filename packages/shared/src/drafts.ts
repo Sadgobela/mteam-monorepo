@@ -1,5 +1,6 @@
 import { z } from "zod";
-import { citySlugs, currencies, dealTypes, propertyTypes } from "./search";
+import { cityDistricts, isCity } from "./places";
+import { currencies, dealTypes, propertyTypes } from "./search";
 
 /** Georgian mobile numbers only, in any common spelling. Returns +9955XXXXXXXX, or null. */
 export function parsePhone(input: string): string | null {
@@ -45,8 +46,8 @@ const draftSchema = z
   .object({
     deal: z.enum(dealTypes),
     type: z.enum(propertyTypes),
-    city: z.enum(citySlugs),
-    district: text(100),
+    city: z.string().refine(isCity),
+    district: text(100).optional(),
     address: text(200),
     title: text(120),
     description: text(5000),
@@ -63,6 +64,8 @@ const draftSchema = z
     lat: coordinate(90),
     lng: coordinate(180),
   })
+  // Exact names, or searching by district would miss the listing. Places without districts have none to give.
+  .refine((d) => (cityDistricts(d.city).length === 0 ? d.district === undefined : cityDistricts(d.city).includes(d.district ?? "")))
   .refine((d) => d.rooms !== undefined || d.type === "commercial" || d.type === "land")
   .refine((d) => (d.lat === undefined) === (d.lng === undefined))
   .refine((d) => (d.floor === undefined) === (d.floors === undefined) && (d.floor ?? 0) <= (d.floors ?? 0));
