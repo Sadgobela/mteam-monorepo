@@ -102,7 +102,7 @@ describe("parseListingDraft", () => {
     ["blank title", { title: "   " }],
     ["long title", { title: "x".repeat(121) }],
     ["NUL byte in text", { title: "a\0b" }],
-    ["unknown deal", { deal: "lease" }],
+    ["unknown deal", { deal: "barter" }],
     ["unknown city", { city: "kutaisi" }],
     ["unknown currency", { currency: "EUR" }],
     ["zero price", { price: "0" }],

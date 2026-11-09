@@ -12,7 +12,6 @@ describe("formatPrice", () => {
   it("formats each currency", () => {
     expect(formatPrice(148000, "USD")).toBe("$148,000");
     expect(formatPrice(250, "GEL")).toBe("₾250");
-    expect(formatPrice(1450000, "AED")).toBe("AED 1,450,000");
   });
 });
 

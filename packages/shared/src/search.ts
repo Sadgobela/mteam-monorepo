@@ -6,14 +6,14 @@ export type DealType = (typeof dealTypes)[number];
 export const propertyTypes = ["apartment", "house", "commercial", "land"] as const;
 export type PropertyType = (typeof propertyTypes)[number];
 
-export const currencies = ["USD", "GEL", "AED"] as const;
+export const currencies = ["USD", "GEL"] as const;
 export type Currency = (typeof currencies)[number];
 
-export const citySlugs = ["tbilisi", "batumi", "dubai"] as const;
+export const citySlugs = ["tbilisi", "batumi"] as const;
 export type CitySlug = (typeof citySlugs)[number];
 
 /** A city's name exactly as it is stored on listings. */
-export const cityNames: Record<CitySlug, string> = { tbilisi: "თბილისი", batumi: "ბათუმი", dubai: "დუბაი" };
+export const cityNames: Record<CitySlug, string> = { tbilisi: "თბილისი", batumi: "ბათუმი" };
 
 /** Room counts offered in search. The last one means "this many or more". */
 export const roomOptions = [1, 2, 3, 4] as const;
@@ -97,8 +97,8 @@ export function parseListingDisplay(query: Record<string, string | string[] | un
   return displaySchema.parse(query);
 }
 
-// ponytail: fixed rates. AED is pegged to USD; GEL drifts, so use a stored daily rate before launch.
-const unitsPerUsd: Record<Currency, number> = { USD: 1, GEL: 2.7, AED: 3.6725 };
+// ponytail: fixed rate. GEL drifts, so use a stored daily rate before launch.
+const unitsPerUsd: Record<Currency, number> = { USD: 1, GEL: 2.7 };
 
 export function priceInUsd(price: number, currency: Currency): number {
   return Math.round(price / unitsPerUsd[currency]);

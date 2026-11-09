@@ -30,7 +30,6 @@ enum PropertyType {
 enum Currency {
   USD
   GEL
-  AED
 }
 
 enum ListingStatus {
@@ -90,7 +89,7 @@ model Session {
 
 model Branch {
   id     String  @id @default(cuid())
-  name   String  // e.g. "Vake", "Dubai"
+  name   String  // e.g. "Vake", "Batumi"
   city   String
   agents Agent[]
 }

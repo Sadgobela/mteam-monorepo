@@ -17,7 +17,7 @@ Today mTeam posts its listings on existing portals (ss.ge, myhome.ge style). We 
 ## Scope
 **Version 1 (web):** search with filters (sale / rent / daily, type, city and district, price, area, rooms) plus a map; a listing page with gallery and call / WhatsApp buttons; sign-up with a phone code; posting a listing, "my listings", favourites; broker profiles; an admin panel for moderation; ka / en / ru.
 
-**Phase 2:** mobile app (Expo, `apps/mobile`, same API), saved searches with notifications, paid VIP listings, an internal CRM for brokers, a Dubai section, importing listings from other sites.
+**Phase 2:** mobile app (Expo, `apps/mobile`, same API), saved searches with notifications, paid VIP listings, an internal CRM for brokers, importing listings from other sites.
 
 ## Decisions
 - Web first, mobile later. The web version must also work well on phones.
@@ -28,6 +28,7 @@ Today mTeam posts its listings on existing portals (ss.ge, myhome.ge style). We 
 - Logo: the designer's official files, purple `#986DC6` on light backgrounds and white on dark or purple ones. The site draws it from those vectors in `apps/web/src/components/Logo.tsx`.
 - UI: familiar layout where people navigate, following what users know from myhome.ge and ss.ge, and a unique mTeam product where they decide. See `docs/UI_PLAN.md`. Their branding, assets and wording are never copied.
 - Testing: tests from day one, with 100% coverage enforced.
+- Market: the site serves Georgia only. The Dubai section and AED prices were removed on 2026-11-09 at Irakli's request.
 - UI library: Ant Design 6 for interactive controls (dropdowns, panels, switches, forms), themed with MTeam's colours so it never looks like a default admin panel. Chosen by Irakli on 2026-11-09.
 - Working style: Irakli wants recommendations and alternative versions proposed proactively, and wants tokens kept low (agree on designs before building).
 

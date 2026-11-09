@@ -22,10 +22,6 @@ const districtNames = new Map<string, { en: string; ru: string }>([
   ["ვაშლიჯვარი", { en: "Vashlijvari", ru: "Вашлиджвари" }],
   ["ძველი ბათუმი", { en: "Old Batumi", ru: "Старый Батуми" }],
   ["ახალი ბულვარი", { en: "New Boulevard", ru: "Новый бульвар" }],
-  ["Dubai Marina", { en: "Dubai Marina", ru: "Дубай Марина" }],
-  ["Downtown Dubai", { en: "Downtown Dubai", ru: "Даунтаун Дубай" }],
-  ["Business Bay", { en: "Business Bay", ru: "Бизнес Бэй" }],
-  ["Palm Jumeirah", { en: "Palm Jumeirah", ru: "Пальма Джумейра" }],
 ]);
 
 /** Districts to suggest in search. The value is the stored name, which is what search matches. */

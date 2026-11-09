@@ -21,7 +21,7 @@ describe("parseListingFilters", () => {
   });
 
   it.each([
-    ["deal", "lease"],
+    ["deal", "barter"],
     ["type", "projects"],
     ["city", "თბილისი"],
     ["rooms", "0"],
@@ -89,7 +89,7 @@ describe("currency conversion", () => {
   it("normalizes each currency to USD", () => {
     expect(priceInUsd(1000, "USD")).toBe(1000);
     expect(priceInUsd(2700, "GEL")).toBe(1000);
-    expect(priceInUsd(1450000, "AED")).toBe(394826);
+    expect(priceInUsd(270000, "GEL")).toBe(100000);
   });
 
   it("converts for display", () => {
@@ -97,12 +97,12 @@ describe("currency conversion", () => {
     expect(convertPrice(1000, "USD", "gel")).toBe(2700);
     expect(convertPrice(2700, "GEL", "usd")).toBe(1000);
     expect(convertPrice(2700, "GEL", "gel")).toBe(2700);
-    expect(convertPrice(1450000, "AED", "usd")).toBe(394826);
+    expect(convertPrice(270000, "GEL", "usd")).toBe(100000);
   });
 });
 
 describe("cityNames", () => {
   it("matches the city names stored on listings", () => {
-    expect(cityNames).toEqual({ tbilisi: "თბილისი", batumi: "ბათუმი", dubai: "დუბაი" });
+    expect(cityNames).toEqual({ tbilisi: "თბილისი", batumi: "ბათუმი" });
   });
 });

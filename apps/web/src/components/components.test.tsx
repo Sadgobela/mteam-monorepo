@@ -129,7 +129,7 @@ describe("FilterChips", () => {
   const all = {
     deal: "rent",
     type: "land",
-    city: "dubai",
+    city: "batumi",
     q: "marina",
     verified: true,
     rooms: 2,
@@ -147,10 +147,10 @@ describe("FilterChips", () => {
   });
 
   it("shows each active filter as a link that removes only it", () => {
-    render(<FilterChips locale="en" t={t} query={{ deal: "rent", city: "dubai", page: "3" }} filters={all} />);
+    render(<FilterChips locale="en" t={t} query={{ deal: "rent", city: "batumi", page: "3" }} filters={all} />);
     expect(screen.getAllByRole("link")).toHaveLength(12);
     expect(screen.getByRole("link", { name: "Remove filter: Floor from 3" })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Remove filter: Dubai" })).toHaveAttribute("href", "/en?deal=rent&city=&page=1");
+    expect(screen.getByRole("link", { name: "Remove filter: Batumi" })).toHaveAttribute("href", "/en?deal=rent&city=&page=1");
     expect(screen.getByRole("link", { name: "Remove filter: Area from, m² 40" })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Remove filter: marina" })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Remove filter: MTeam Verified" })).toBeInTheDocument();
@@ -183,14 +183,14 @@ describe("SearchBar", () => {
   });
 
   it("shows the active filters and counts the ones behind the button", () => {
-    bar({ deal: "rent", city: "dubai", type: "land", priceMin: 1000, priceMax: 2000, rooms: 4, q: "vake", verified: true, areaMin: 40, floorMax: 9 });
+    bar({ deal: "rent", city: "batumi", type: "land", priceMin: 1000, priceMax: 2000, rooms: 4, q: "vake", verified: true, areaMin: 40, floorMax: 9 });
     expect(screen.getByText("For rent")).toBeInTheDocument();
     expect(screen.getByText("Land")).toBeInTheDocument();
     expect(box("Location")).toHaveValue("vake");
     expect(screen.getByLabelText("Verified only")).toBeChecked();
     expect(document.querySelector(".ant-badge-count")).toHaveAttribute("title", "6");
     openMore();
-    expect(screen.getByRole("radio", { name: "Dubai" })).toBeChecked();
+    expect(screen.getByRole("radio", { name: "Batumi" })).toBeChecked();
     expect(screen.getByRole("radio", { name: "4+" })).toBeChecked();
     expect(screen.getByLabelText("Price from, $")).toHaveValue("1000");
     expect(screen.getByLabelText("Price to, $")).toHaveValue("2000");
@@ -261,7 +261,7 @@ describe("SearchBar", () => {
   });
 
   it("turns panel choices back off one at a time", async () => {
-    bar({ city: "dubai", rooms: 2, priceMin: 100 });
+    bar({ city: "batumi", rooms: 2, priceMin: 100 });
     openMore();
     const panel = within(screen.getByRole("dialog"));
     fireEvent.click(within(panel.getByRole("radiogroup", { name: "City" })).getByRole("radio", { name: "Any" }));
@@ -273,7 +273,7 @@ describe("SearchBar", () => {
   });
 
   it("clears only the panel's filters and can be dismissed without searching", async () => {
-    bar({ deal: "sale", city: "dubai", priceMax: 100 });
+    bar({ deal: "sale", city: "batumi", priceMax: 100 });
     openMore();
     fireEvent.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Clear" }));
     expect(screen.getByLabelText("Price to, $")).toHaveValue("");
@@ -311,7 +311,7 @@ describe("ListingCard", () => {
 
   it("converts a listing priced in another currency", () => {
     render(<ListingCard listing={fixtureListings[2]} locale="en" t={t} />);
-    expect(screen.getByText("$394,826")).toBeInTheDocument();
+    expect(screen.getByText("$100,000")).toBeInTheDocument();
   });
 
   it("titles property without rooms by its type alone and shows no price per m² on rentals", () => {

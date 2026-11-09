@@ -1,7 +1,7 @@
 import type { Locale } from "./i18n";
 import type { Currency } from "./search";
 
-const symbols: Record<Currency, string> = { USD: "$", GEL: "₾", AED: "AED " };
+const symbols: Record<Currency, string> = { USD: "$", GEL: "₾" };
 
 export function formatPrice(value: number, currency: Currency): string {
   return symbols[currency] + new Intl.NumberFormat("en-US").format(value);

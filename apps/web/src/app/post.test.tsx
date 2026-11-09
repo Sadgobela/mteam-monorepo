@@ -226,7 +226,6 @@ describe("ListingForm", () => {
   it("offers translated choices", () => {
     render(<ListingForm locale="en" t={getDictionary("ru")} />);
     expect(screen.getByRole("option", { name: "Батуми" })).toBeInTheDocument();
-    expect(screen.getByRole("option", { name: "AED" })).toBeInTheDocument();
   });
 });
 
