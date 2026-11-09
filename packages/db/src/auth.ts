@@ -1,4 +1,5 @@
-import { createHash, randomBytes, randomInt } from "node:crypto";
+import { createHash, createHmac, randomBytes, randomInt } from "node:crypto";
+import { isIPv6 } from "node:net";
 import { z } from "zod";
 import { db } from "./client";
 
@@ -7,27 +8,74 @@ const RESEND_AFTER_MS = 60_000;
 const MAX_ATTEMPTS = 5;
 const ATTEMPT_WINDOW_MS = 60 * 60_000;
 const SESSION_TTL_MS = 30 * 24 * 60 * 60_000;
+// Generous, because Georgian mobile carriers put many customers behind one address. It exists to cap what a script can cost in SMS.
+const CODES_PER_ADDRESS = 20;
+const ADDRESS_WINDOW_MS = 60 * 60_000;
 
 const smsEnvSchema = z.object({ SMS_PROVIDER: z.literal("console") });
 
-const sha256 = (value: string) => createHash("sha256").update(value).digest("hex");
-const hashCode = (phone: string, code: string) => sha256(`${phone}:${code}`);
+const EXAMPLE_SECRET = "replace-with-openssl-rand-hex-32";
 
-// ponytail: console only, for local testing. A real provider goes here, together with a per-IP request limit, before launch.
+const codeSecretSchema = z.object({
+  LOGIN_CODE_SECRET: z
+    .string()
+    .min(32)
+    .refine((secret) => process.env.NODE_ENV !== "production" || secret !== EXAMPLE_SECRET),
+});
+
+const sha256 = (value: string) => createHash("sha256").update(value).digest("hex");
+
+/** Keyed, because there are only a million possible codes: a plain hash could be reversed from a leaked database in moments. */
+const keyedHash = (value: string) => createHmac("sha256", codeSecretSchema.parse(process.env).LOGIN_CODE_SECRET).update(value).digest("hex");
+const hashCode = (phone: string, code: string) => keyedHash(`${phone}:${code}`);
+
+// ponytail: console only, for local testing. A real provider goes here before launch.
 function assertCodesCanBeSent(): void {
   smsEnvSchema.parse(process.env);
   if (process.env.NODE_ENV === "production") throw new Error("SMS_PROVIDER=console is not allowed in production");
 }
 
+/** One customer on IPv6 is given a whole /64 block and can use a new address for every request, so the block is what gets counted. */
+function addressBucket(ip: string): string {
+  const embedded = /^::ffff:(\d+\.\d+\.\d+\.\d+)$/i.exec(ip);
+  if (embedded) return embedded[1];
+  if (!isIPv6(ip)) return ip;
+  const groups = (part: string) => (part ? part.split(":") : []);
+  const [left, right = ""] = ip.split("::");
+  const zeros = new Array(8 - groups(left).length - groups(right).length).fill("0");
+  const block = [...groups(left), ...zeros, ...groups(right)].slice(0, 4);
+  return `${block.map((group) => parseInt(group, 16).toString(16)).join(":")}::/64`;
+}
+
+/** Counts one code request against an address and says whether it is within the limit. Single conditional writes, like the phone limit. */
+async function claimAddressQuota(ip: string, now: number): Promise<boolean> {
+  const limits = db().codeRequestLimit;
+  const ipHash = keyedHash(`ip:${addressBucket(ip)}`);
+  const opened = new Date(now);
+  const claimed =
+    (
+      await limits.updateMany({
+        where: { ipHash, windowStart: { lte: new Date(now - ADDRESS_WINDOW_MS) } },
+        data: { windowStart: opened, count: 1 },
+      })
+    ).count ||
+    (await limits.updateMany({ where: { ipHash, count: { lt: CODES_PER_ADDRESS } }, data: { count: { increment: 1 } } })).count ||
+    (await limits.createMany({ data: [{ ipHash, windowStart: opened, count: 1 }], skipDuplicates: true })).count;
+  return claimed > 0;
+}
+
 /**
- * Issues a code for a normalized phone. Returns false if one was sent less than a minute ago,
- * or if the guesses are used up, which locks the phone for an hour from the last code.
+ * Issues a code for a normalized phone. Returns false if the address has asked for too many,
+ * if one was sent to this phone less than a minute ago, or if the guesses are used up,
+ * which locks the phone for an hour from the last code.
  * Each step is a single conditional write, so parallel requests cannot pass the limit.
  */
-export async function requestLoginCode(phone: string): Promise<boolean> {
+export async function requestLoginCode(phone: string, ip: string): Promise<boolean> {
   assertCodesCanBeSent();
   const client = db();
   const now = Date.now();
+  if (!(await claimAddressQuota(ip, now))) return false;
+
   const code = String(randomInt(100_000, 1_000_000));
   const fresh = { codeHash: hashCode(phone, code), sentAt: new Date(now), expiresAt: new Date(now + CODE_TTL_MS) };
 
@@ -54,6 +102,7 @@ export async function requestLoginCode(phone: string): Promise<boolean> {
 /** Checks a code and returns a new session token, or null. A user is created on first login. */
 export async function verifyLoginCode(phone: string, code: string): Promise<string | null> {
   if (!/^\d{6}$/.test(code)) return null;
+  const codeHash = hashCode(phone, code);
   const client = db();
   const now = new Date();
 
@@ -65,7 +114,7 @@ export async function verifyLoginCode(phone: string, code: string): Promise<stri
   if (open === 0) return null;
 
   // Deleting on the hash makes a code single-use even if two requests race.
-  const { count: matched } = await client.loginCode.deleteMany({ where: { phone, codeHash: hashCode(phone, code) } });
+  const { count: matched } = await client.loginCode.deleteMany({ where: { phone, codeHash } });
   if (matched === 0) return null;
 
   const user = await client.user.upsert({ where: { phone }, update: {}, create: { phone } });

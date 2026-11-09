@@ -1,7 +1,8 @@
 "use client";
 
 import Image from "next/image";
-import { startTransition, useActionState, useEffect, useState, type ChangeEvent, type FormEvent, type MouseEvent } from "react";
+import { useRouter } from "next/navigation";
+import { useEffect, useState, type ChangeEvent, type FormEvent, type MouseEvent } from "react";
 import { flushSync } from "react-dom";
 import {
   citySlugs,
@@ -14,8 +15,11 @@ import {
   type Dict,
   type Locale,
 } from "@mteam/shared";
-import { createListingAction } from "@/lib/listing-actions";
+import { z } from "zod";
 import { LocationPicker } from "./LocationPicker";
+
+const postErrorSchema = z.object({ error: z.enum(["invalid", "photos", "save"]) });
+type PostError = z.infer<typeof postErrorSchema>["error"];
 
 function Choice({ name, label, options }: { name: string; label: string; options: { value: string; label: string }[] }) {
   return (
@@ -42,8 +46,9 @@ function Input({ label, ...input }: { label: string } & React.InputHTMLAttribute
 }
 
 export function ListingForm({ locale, t }: { locale: Locale; t: Dict }) {
-  const [state, dispatch, pending] = useActionState(createListingAction, {});
-  const [rejected, setRejected] = useState<"photos" | "invalid" | null>(null);
+  const router = useRouter();
+  const [pending, setPending] = useState(false);
+  const [rejected, setRejected] = useState<PostError | null>(null);
   const [previews, setPreviews] = useState<string[]>([]);
   const [step, setStep] = useState(0);
 
@@ -69,22 +74,33 @@ export function ListingForm({ locale, t }: { locale: Locale; t: Dict }) {
     steps[step + by].focus();
   }
 
-  // Dispatching by hand stops React from clearing the form, so a server-side error does not lose what was typed.
-  function submit(event: FormEvent<HTMLFormElement>) {
+  // Sent by hand so that a rejected listing does not clear the form.
+  async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const data = new FormData(event.currentTarget);
 
-    // Checked here because a set over the server's body limit would fail before any friendly error could be returned.
+    // Checked here because a set over the server's size limit would be refused before any friendly error could be returned.
     const files = data.getAll("photos").filter((value): value is File => value instanceof File);
-    const acceptable = files.length <= MAX_PHOTOS && files.every((file) => file.size <= MAX_PHOTO_BYTES);
-    setRejected(acceptable ? null : "photos");
-    if (!acceptable) return;
+    if (files.length > MAX_PHOTOS || files.some((file) => file.size > MAX_PHOTO_BYTES)) {
+      setRejected("photos");
+      return;
+    }
 
-    startTransition(() => dispatch(data));
+    setRejected(null);
+    setPending(true);
+    try {
+      const response = await fetch("/api/listings", { method: "POST", body: data });
+      // These two leave the form busy on purpose: the page is changing, and a second press would post the listing twice.
+      if (response.ok) return router.push(`/${locale}/listings/new?sent=1`);
+      if (response.status === 401) return router.push(`/${locale}/login`);
+      setRejected(postErrorSchema.parse(await response.json()).error);
+    } catch {
+      setRejected("save");
+    }
+    setPending(false);
   }
 
   const f = t.post.fields;
-  const error = rejected ?? state.error;
   const stepNames = [t.post.steps.place, t.post.steps.details, t.post.steps.photos];
   const last = stepNames.length - 1;
   // Every step stays in the form so its values are sent and survive going back.
@@ -95,7 +111,6 @@ export function ListingForm({ locale, t }: { locale: Locale; t: Dict }) {
   });
   return (
     <form className="form" onSubmit={submit}>
-      <input type="hidden" name="locale" value={locale} />
       <ol className="stepper">
         {stepNames.map((name, index) => (
           <li key={name} aria-current={index === step ? "step" : undefined}>
@@ -147,7 +162,7 @@ export function ListingForm({ locale, t }: { locale: Locale; t: Dict }) {
           <p className="meta">{t.post.phoneNotice}</p>
         </fieldset>
       </div>
-      {error && <p className="note" role="alert">{t.post.errors[error]}</p>}
+      {rejected && <p className="note" role="alert">{t.post.errors[rejected]}</p>}
       <div className="step-nav">
         {step > 0 && (
           <button key="back" type="button" className="btn ghost" onClick={(event) => move(event, -1)}>{t.post.back}</button>

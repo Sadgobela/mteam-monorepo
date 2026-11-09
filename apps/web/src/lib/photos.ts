@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { AwsClient } from "aws4fetch";
 import { MAX_PHOTOS, MAX_PHOTO_BYTES } from "@mteam/shared";
+import sharp from "sharp";
 import { z } from "zod";
 
 export interface Photo {
@@ -21,14 +22,43 @@ function detectFormat(bytes: Uint8Array) {
   return formats.find((format) => format.marks.every(([offset, mark]) => head.startsWith(mark, offset)));
 }
 
+/** A few megabytes of compressed image can decode to far more memory than the file suggests. Phone cameras stay below this. */
+const MAX_INPUT_PIXELS = 50_000_000;
+
+// ponytail: one queue per process, so memory stays bounded while posts wait their turn. Add per-user limits if posting volume needs them.
+let queue: Promise<unknown> = Promise.resolve();
+
+/** Runs jobs one after another. A small file can decode to hundreds of megabytes, so parallel posts must not decode together. */
+export function oneAtATime<T>(job: () => Promise<T>): Promise<T> {
+  const run = queue.then(job);
+  queue = run.catch(() => undefined);
+  return run;
+}
+
+/**
+ * Re-encoded rather than trimmed, which leaves no GPS position or other hidden field behind. The rotation those fields
+ * carried is applied first, or phone photos would come out sideways. Returns null if the file does not decode as an image.
+ */
+async function withoutMetadata(bytes: Uint8Array): Promise<Uint8Array<ArrayBuffer> | null> {
+  try {
+    // failOn "error": a browser shows a photo with a minor flaw without complaint, so it should not be refused here.
+    const encoded = await oneAtATime(() => sharp(bytes, { limitInputPixels: MAX_INPUT_PIXELS, failOn: "error" }).rotate().toBuffer());
+    return new Uint8Array(encoded);
+  } catch {
+    return null;
+  }
+}
+
 /** Returns the photos ready to upload, or null if the set breaks a limit or holds a non-image. */
 export async function readPhotos(files: File[]): Promise<Photo[] | null> {
   if (files.length < 1 || files.length > MAX_PHOTOS || files.some((file) => file.size > MAX_PHOTO_BYTES)) return null;
   const photos: Photo[] = [];
   for (const file of files) {
-    const bytes = new Uint8Array(await file.arrayBuffer());
-    const format = detectFormat(bytes);
+    const original = new Uint8Array(await file.arrayBuffer());
+    const format = detectFormat(original);
     if (!format) return null;
+    const bytes = await withoutMetadata(original);
+    if (!bytes) return null;
     photos.push({ bytes, type: format.type, ext: format.ext });
   }
   return photos;

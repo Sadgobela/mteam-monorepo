@@ -30,11 +30,9 @@ Today mTeam posts its listings on existing portals (ss.ge, myhome.ge style). We 
 
 ## Before public launch
 Development runs entirely locally for now. These must be done before real users arrive:
-- Real SMS provider (Georgia only; compare smsoffice.ge and others on price), plus a per-IP limit on code requests. Production refuses to issue codes until then.
-- Cloudflare R2 instead of local SeaweedFS (R2 needs a payment method on the account; change the `STORAGE_` values).
-- Strip photo metadata on upload: GPS in EXIF data would reveal where an owner took a photo.
-- Direct-to-R2 uploads or proxy limits, so the 55 MB request limit is not open to anonymous visitors.
-- Keyed hashing for login codes (`LOGIN_CODE_SECRET`).
-- Moderation panel: new listings stay hidden until then.
+- Real SMS provider (Georgia only; compare smsoffice.ge and others on price). Production refuses to issue codes until then.
+- Cloudflare R2 instead of local SeaweedFS (R2 needs a payment method on the account; change the `STORAGE_` values). If uploads ever go straight to R2, photos still need a server step that removes their metadata.
+- Set `LOGIN_CODE_SECRET` to the output of `openssl rand -hex 32`, never the example value.
+- Hosting: the proxy in front of the site must add the visitor's address as the last `x-forwarded-for` entry, because the limit on login codes trusts only that entry. It must also allow 55 MB requests to `/api/listings`.
 - A map tile provider: the free OpenStreetMap tile server is for development only.
 - A real exchange rate: search, sorting and the ₾/$ switch use fixed rates.

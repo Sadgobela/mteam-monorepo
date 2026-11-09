@@ -4,7 +4,7 @@ import userEvent from "@testing-library/user-event";
 import { getDictionary } from "@mteam/shared";
 
 const db = vi.hoisted(() => ({ requestLoginCode: vi.fn(), verifyLoginCode: vi.fn() }));
-const session = vi.hoisted(() => ({ startSession: vi.fn(), endSession: vi.fn(), currentUser: vi.fn(), hasSession: vi.fn() }));
+const session = vi.hoisted(() => ({ startSession: vi.fn(), endSession: vi.fn(), currentUser: vi.fn(), hasSession: vi.fn(), clientIp: vi.fn() }));
 
 vi.mock("@mteam/db", () => db);
 vi.mock("@/lib/session", () => session);
@@ -30,7 +30,10 @@ const form = (fields: Record<string, string>) => {
   return data;
 };
 
-beforeEach(() => vi.resetAllMocks());
+beforeEach(() => {
+  vi.resetAllMocks();
+  session.clientIp.mockResolvedValue("203.0.113.7");
+});
 
 describe("loginAction", () => {
   it("goes back to the phone step on request", async () => {
@@ -46,7 +49,7 @@ describe("loginAction", () => {
   it("sends a code to the normalized number", async () => {
     db.requestLoginCode.mockResolvedValue(true);
     expect(await loginAction({}, form({ phone: "555 12 34 56" }))).toEqual({ phone });
-    expect(db.requestLoginCode).toHaveBeenCalledWith(phone);
+    expect(db.requestLoginCode).toHaveBeenCalledWith(phone, "203.0.113.7");
   });
 
   it("still asks for the code when one was just sent", async () => {
