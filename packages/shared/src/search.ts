@@ -29,7 +29,7 @@ const price = z
   .optional()
   .catch(undefined);
 
-const area = z
+const wholeNumber = z
   .string()
   .regex(/^\d{1,7}$/)
   .transform(Number)
@@ -48,8 +48,10 @@ const filtersSchema = z.object({
     .transform(Number)
     .optional()
     .catch(undefined),
-  areaMin: area,
-  areaMax: area,
+  areaMin: wholeNumber,
+  areaMax: wholeNumber,
+  floorMin: wholeNumber,
+  floorMax: wholeNumber,
   /** Free text matched against district, address, city and title. */
   q: z
     .string()

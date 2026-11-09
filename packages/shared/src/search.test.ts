@@ -4,8 +4,8 @@ import { cityNames, convertPrice, parseListingDisplay, parseListingFilters, pric
 describe("parseListingFilters", () => {
   it("reads every filter", () => {
     expect(
-      parseListingFilters({ deal: "rent", type: "house", city: "batumi", priceMin: "1000", priceMax: "2000", rooms: "3", q: " vake ", verified: "1", areaMin: "40", areaMax: "90" }),
-    ).toEqual({ deal: "rent", type: "house", city: "batumi", priceMin: 1000, priceMax: 2000, rooms: 3, q: "vake", verified: true, areaMin: 40, areaMax: 90 });
+      parseListingFilters({ deal: "rent", type: "house", city: "batumi", priceMin: "1000", priceMax: "2000", rooms: "3", q: " vake ", verified: "1", areaMin: "40", areaMax: "90", floorMin: "3", floorMax: "9" }),
+    ).toEqual({ deal: "rent", type: "house", city: "batumi", priceMin: 1000, priceMax: 2000, rooms: 3, q: "vake", verified: true, areaMin: 40, areaMax: 90, floorMin: 3, floorMax: 9 });
   });
 
   it("treats a query with no filters as no filters", () => {
@@ -35,6 +35,8 @@ describe("parseListingFilters", () => {
     ["verified", "true"],
     ["areaMin", "abc"],
     ["areaMax", "12345678"],
+    ["floorMin", "abc"],
+    ["floorMax", "-1"],
     ["q", "x".repeat(101)],
     ["q", "a\0b"],
   ])("ignores %s=%s", (key, value) => {

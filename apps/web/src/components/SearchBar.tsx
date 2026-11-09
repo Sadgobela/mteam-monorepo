@@ -48,7 +48,7 @@ function PriceInput({ name, label, value }: { name: string; label: string; value
 export function SearchBar({ t, filters, display }: { t: Dict; filters: ListingFilters; display: ListingDisplay }) {
   const any = t.search.any;
   const lastRoom = roomOptions[roomOptions.length - 1];
-  const moreIsActive = [filters.city, filters.priceMin, filters.priceMax, filters.rooms, filters.areaMin, filters.areaMax].some((v) => v !== undefined);
+  const moreIsActive = [filters.city, filters.priceMin, filters.priceMax, filters.rooms, filters.areaMin, filters.areaMax, filters.floorMin, filters.floorMax].some((v) => v !== undefined);
   return (
     <form className="search" role="search" action="" method="get" noValidate>
       <input type="hidden" name="cur" value={display.cur} />
@@ -72,6 +72,8 @@ export function SearchBar({ t, filters, display }: { t: Dict; filters: ListingFi
           <PriceInput name="priceMax" label={t.search.priceMax} value={filters.priceMax} />
           <PriceInput name="areaMin" label={t.search.areaMin} value={filters.areaMin} />
           <PriceInput name="areaMax" label={t.search.areaMax} value={filters.areaMax} />
+          <PriceInput name="floorMin" label={t.search.floorMin} value={filters.floorMin} />
+          <PriceInput name="floorMax" label={t.search.floorMax} value={filters.floorMax} />
           <Select name="rooms" label={t.search.rooms} anyLabel={any} value={filters.rooms} options={roomOptions.map((r) => ({ value: r, label: r === lastRoom ? `${r}+` : String(r) }))} />
         </div>
       </details>

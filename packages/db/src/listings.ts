@@ -112,6 +112,7 @@ function whereFor(filters: ListingFilters, located = false): Prisma.ListingWhere
     verified: filters.verified,
     priceUsd: { gte: filters.priceMin, lte: filters.priceMax },
     area: { gte: filters.areaMin, lte: filters.areaMax },
+    floor: { gte: filters.floorMin, lte: filters.floorMax },
     lat: located ? { not: null } : undefined,
     lng: located ? { not: null } : undefined,
     OR: textClause(filters.q),

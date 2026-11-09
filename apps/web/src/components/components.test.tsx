@@ -33,6 +33,8 @@ describe("FilterChips", () => {
     priceMax: 200,
     areaMin: 40,
     areaMax: 90,
+    floorMin: 3,
+    floorMax: 9,
   } as const;
 
   it("renders nothing with no filters", () => {
@@ -42,7 +44,8 @@ describe("FilterChips", () => {
 
   it("shows each active filter as a link that removes only it", () => {
     render(<FilterChips locale="en" t={t} query={{ deal: "rent", city: "dubai", page: "3" }} filters={all} />);
-    expect(screen.getAllByRole("link")).toHaveLength(10);
+    expect(screen.getAllByRole("link")).toHaveLength(12);
+    expect(screen.getByRole("link", { name: "Remove filter: Floor from 3" })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Remove filter: Dubai" })).toHaveAttribute("href", "/en?deal=rent&city=&page=1");
     expect(screen.getByRole("link", { name: "Remove filter: Area from, m² 40" })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Remove filter: marina" })).toBeInTheDocument();
@@ -65,7 +68,7 @@ describe("SearchBar", () => {
 
   it("shows the active filters and opens the extra filters when one is in use", () => {
     const { container } = render(
-      <SearchBar t={t} filters={{ deal: "rent", city: "dubai", type: "land", priceMin: 1000, priceMax: 2000, rooms: 4, q: "vake", verified: true, areaMin: 40 }} display={display} />,
+      <SearchBar t={t} filters={{ deal: "rent", city: "dubai", type: "land", priceMin: 1000, priceMax: 2000, rooms: 4, q: "vake", verified: true, areaMin: 40, floorMax: 9 }} display={display} />,
     );
     expect(screen.getByLabelText("Deal")).toHaveValue("rent");
     expect(screen.getByLabelText("City")).toHaveValue("dubai");
@@ -75,6 +78,7 @@ describe("SearchBar", () => {
     expect(screen.getByLabelText("Rooms")).toHaveValue("4");
     expect(screen.getByLabelText("Location")).toHaveValue("vake");
     expect(screen.getByLabelText("Area from, m²")).toHaveValue(40);
+    expect(screen.getByLabelText("Floor to")).toHaveValue(9);
     expect(screen.getByLabelText("Verified only")).toBeChecked();
     expect(container.querySelector("details")).toHaveAttribute("open");
   });

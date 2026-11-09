@@ -162,7 +162,7 @@ describe("searchListings", () => {
 
   it("applies no filter beyond published when none is given", async () => {
     const where = await whereFor({});
-    expect(JSON.parse(JSON.stringify(where))).toEqual({ status: "ACTIVE", priceUsd: {}, area: {} });
+    expect(JSON.parse(JSON.stringify(where))).toEqual({ status: "ACTIVE", priceUsd: {}, area: {}, floor: {} });
   });
 
   it.each([
@@ -182,8 +182,10 @@ describe("searchListings", () => {
     expect(prisma.listing.findMany.mock.calls[1][0]).toMatchObject({ skip: 0, take: 4 });
   });
 
-  it("filters on area, one-sided or both", async () => {
-    expect((await whereFor({ areaMin: 40, areaMax: 90 })).area).toEqual({ gte: 40, lte: 90 });
+  it("filters on area and floor ranges", async () => {
+    const where = await whereFor({ areaMin: 40, areaMax: 90, floorMin: 3, floorMax: 9 });
+    expect(where.area).toEqual({ gte: 40, lte: 90 });
+    expect(where.floor).toEqual({ gte: 3, lte: 9 });
   });
 
   it("limits to listings with a location only when asked", async () => {
