@@ -16,6 +16,12 @@ describe("parseListingFilters", () => {
     });
   });
 
+  it("keeps a metro station only in the city with a metro, or with no city chosen", () => {
+    expect(parseListingFilters({ city: "თბილისი", metro: "დელისი" }).metro).toBe("დელისი");
+    expect(parseListingFilters({ city: "ბათუმი", metro: "დელისი" }).metro).toBeUndefined();
+    expect(parseListingFilters({ metro: "დელისი" }).metro).toBe("დელისი");
+  });
+
   it("ignores an unknown metro station or building status", () => {
     expect(parseListingFilters({ metro: "Atlantis", building: "castle", owner: "yes" })).toMatchObject({ metro: undefined, building: undefined, owner: undefined });
   });

@@ -58,6 +58,11 @@ describe("parseListingDraft", () => {
     expect(parseListingDraft({ ...tbilisi, building: "castle" })).toBeNull();
   });
 
+  it("refuses a price per m² too large to store", () => {
+    expect(parseListingDraft({ ...valid, price: "2000000000", area: "0.5" })).toBeNull();
+    expect(parseListingDraft({ ...valid, price: "2000000000", area: "100" })).not.toBeNull();
+  });
+
   it("allows a metro station only in the city that has a metro", () => {
     expect(parseListingDraft({ ...valid, metro: "დელისი" })).toBeNull();
   });

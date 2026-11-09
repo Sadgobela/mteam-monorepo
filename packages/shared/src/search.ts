@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { cityDistricts, isCity, isMetro } from "./places";
+import { cityDistricts, isCity, isMetro, METRO_CITY } from "./places";
 
 export const dealTypes = ["sale", "rent", "daily", "pledge", "lease"] as const;
 export type DealType = (typeof dealTypes)[number];
@@ -18,7 +18,7 @@ export type Currency = (typeof currencies)[number];
 export const roomOptions = [1, 2, 3, 4] as const;
 
 /** In USD. Keeps a bound well inside the Int price column. */
-const MAX_PRICE = 100_000_000;
+export const MAX_PRICE = 100_000_000;
 
 const price = z
   .string()
@@ -106,7 +106,12 @@ export function parseListingFilters(query: Record<string, string | string[] | un
   const known = cityDistricts(filters.city);
   const district = [...new Set(filters.district?.filter((name) => known.includes(name)))];
   const street = [...new Set(filters.street?.filter(Boolean))];
-  return { ...filters, district: district.length > 0 ? district : undefined, street: street.length > 0 ? street : undefined };
+  return {
+    ...filters,
+    district: district.length > 0 ? district : undefined,
+    street: street.length > 0 ? street : undefined,
+    metro: filters.city === METRO_CITY ? filters.metro : undefined,
+  };
 }
 
 export const sortOrders = ["new", "asc", "desc"] as const;
