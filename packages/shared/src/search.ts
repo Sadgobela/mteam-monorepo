@@ -1,19 +1,14 @@
 import { z } from "zod";
+import { cityDistricts, isCity } from "./places";
 
-export const dealTypes = ["sale", "rent", "daily"] as const;
+export const dealTypes = ["sale", "rent", "daily", "pledge", "lease"] as const;
 export type DealType = (typeof dealTypes)[number];
 
 export const propertyTypes = ["apartment", "house", "commercial", "land"] as const;
 export type PropertyType = (typeof propertyTypes)[number];
 
-export const currencies = ["USD", "GEL", "AED"] as const;
+export const currencies = ["USD", "GEL"] as const;
 export type Currency = (typeof currencies)[number];
-
-export const citySlugs = ["tbilisi", "batumi", "dubai"] as const;
-export type CitySlug = (typeof citySlugs)[number];
-
-/** A city's name exactly as it is stored on listings. */
-export const cityNames: Record<CitySlug, string> = { tbilisi: "თბილისი", batumi: "ბათუმი", dubai: "დუბაი" };
 
 /** Room counts offered in search. The last one means "this many or more". */
 export const roomOptions = [1, 2, 3, 4] as const;
@@ -39,7 +34,16 @@ const wholeNumber = z
 const filtersSchema = z.object({
   deal: z.enum(dealTypes).optional().catch(undefined),
   type: z.enum(propertyTypes).optional().catch(undefined),
-  city: z.enum(citySlugs).optional().catch(undefined),
+  /** A city's name exactly as it is stored on listings. */
+  city: z.string().refine(isCity).optional().catch(undefined),
+  /** Comma-separated district names, exact. They only mean something inside a city. */
+  district: z
+    .string()
+    .min(1)
+    .max(4000)
+    .transform((value) => value.split(","))
+    .optional()
+    .catch(undefined),
   priceMin: price,
   priceMax: price,
   rooms: z
@@ -72,7 +76,11 @@ export type ListingFilters = z.infer<typeof filtersSchema>;
 
 /** Reads filters from a URL's query. A missing or invalid value simply means that filter is off. */
 export function parseListingFilters(query: Record<string, string | string[] | undefined>): ListingFilters {
-  return filtersSchema.parse(query);
+  const filters = filtersSchema.parse(query);
+  if (!filters.city) return { ...filters, district: undefined };
+  const known = cityDistricts(filters.city);
+  const district = [...new Set(filters.district?.filter((name) => known.includes(name)))];
+  return { ...filters, district: district.length > 0 ? district : undefined };
 }
 
 export const sortOrders = ["new", "asc", "desc"] as const;
@@ -97,8 +105,8 @@ export function parseListingDisplay(query: Record<string, string | string[] | un
   return displaySchema.parse(query);
 }
 
-// ponytail: fixed rates. AED is pegged to USD; GEL drifts, so use a stored daily rate before launch.
-const unitsPerUsd: Record<Currency, number> = { USD: 1, GEL: 2.7, AED: 3.6725 };
+// ponytail: fixed rate. GEL drifts, so use a stored daily rate before launch.
+const unitsPerUsd: Record<Currency, number> = { USD: 1, GEL: 2.7 };
 
 export function priceInUsd(price: number, currency: Currency): number {
   return Math.round(price / unitsPerUsd[currency]);

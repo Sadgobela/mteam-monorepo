@@ -1,6 +1,6 @@
 # mTeam monorepo
 
-Real estate listings platform for mTeam (Tbilisi, Batumi, Dubai). pnpm + Turborepo.
+Real estate listings platform for mTeam (Georgia only). pnpm + Turborepo.
 
 **Read `docs/PROJECT_BRIEF.md` first**: company, goals, scope and agreed decisions.
 

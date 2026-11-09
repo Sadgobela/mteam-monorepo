@@ -1,5 +1,5 @@
 import Link from "next/link";
-import type { Dict, ListingFilters, Locale } from "@mteam/shared";
+import { placeLabel, type Dict, type ListingFilters, type Locale } from "@mteam/shared";
 import { resultsHref, type Query } from "@/lib/url";
 
 /** The active filters as links that remove themselves, so a search can be widened one step at a time. */
@@ -18,7 +18,8 @@ export function FilterChips({
   const chips: [string, string | undefined][] = [
     ["deal", filters.deal && t.deal[filters.deal]],
     ["type", filters.type && t.propertyType[filters.type]],
-    ["city", filters.city && t.city[filters.city]],
+    ["city", filters.city && placeLabel(filters.city, locale)],
+    ["district", filters.district && placeLabel(filters.district[0], locale) + (filters.district.length > 1 ? ` +${filters.district.length - 1}` : "")],
     ["q", filters.q],
     ["verified", filters.verified ? "MTeam Verified" : undefined],
     ["rooms", number(filters.rooms, t.search.rooms)],

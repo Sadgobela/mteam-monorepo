@@ -1,11 +1,31 @@
 import { describe, expect, it } from "vitest";
-import { cityNames, convertPrice, parseListingDisplay, parseListingFilters, priceInUsd } from "./index";
+import { convertPrice, parseListingDisplay, parseListingFilters, priceInUsd } from "./index";
 
 describe("parseListingFilters", () => {
+  it("reads several districts inside a city", () => {
+    expect(parseListingFilters({ city: "თბილისი", district: "ვაკე,ვერა" })).toEqual({ city: "თბილისი", district: ["ვაკე", "ვერა"] });
+  });
+
+  it("ignores districts without a city, and a city that does not exist", () => {
+    expect(parseListingFilters({ district: "ვაკე" }).district).toBeUndefined();
+    expect(parseListingFilters({ city: "Atlantis", district: "ვაკე" })).toEqual({ city: undefined, district: undefined });
+  });
+
+  it("keeps only real districts of that city, once each", () => {
+    expect(parseListingFilters({ city: "თბილისი", district: "ვაკე,ვაკე,,Atlantis" }).district).toEqual(["ვაკე"]);
+    expect(parseListingFilters({ city: "ბათუმი", district: "ვაკე" }).district).toBeUndefined();
+    expect(parseListingFilters({ city: "თბილისი", district: ",,," }).district).toBeUndefined();
+  });
+
+  it("ignores an empty or absurdly long district list", () => {
+    expect(parseListingFilters({ city: "თბილისი", district: "" }).district).toBeUndefined();
+    expect(parseListingFilters({ city: "თბილისი", district: "a".repeat(4001) }).district).toBeUndefined();
+  });
+
   it("reads every filter", () => {
     expect(
-      parseListingFilters({ deal: "rent", type: "house", city: "batumi", priceMin: "1000", priceMax: "2000", rooms: "3", q: " vake ", verified: "1", areaMin: "40", areaMax: "90", floorMin: "3", floorMax: "9" }),
-    ).toEqual({ deal: "rent", type: "house", city: "batumi", priceMin: 1000, priceMax: 2000, rooms: 3, q: "vake", verified: true, areaMin: 40, areaMax: 90, floorMin: 3, floorMax: 9 });
+      parseListingFilters({ deal: "rent", type: "house", city: "ბათუმი", priceMin: "1000", priceMax: "2000", rooms: "3", q: " vake ", verified: "1", areaMin: "40", areaMax: "90", floorMin: "3", floorMax: "9" }),
+    ).toEqual({ deal: "rent", type: "house", city: "ბათუმი", priceMin: 1000, priceMax: 2000, rooms: 3, q: "vake", verified: true, areaMin: 40, areaMax: 90, floorMin: 3, floorMax: 9 });
   });
 
   it("treats a query with no filters as no filters", () => {
@@ -21,9 +41,9 @@ describe("parseListingFilters", () => {
   });
 
   it.each([
-    ["deal", "lease"],
+    ["deal", "barter"],
     ["type", "projects"],
-    ["city", "თბილისი"],
+    ["city", "Atlantis"],
     ["rooms", "0"],
     ["rooms", "5"],
     ["rooms", "1.5"],
@@ -89,7 +109,7 @@ describe("currency conversion", () => {
   it("normalizes each currency to USD", () => {
     expect(priceInUsd(1000, "USD")).toBe(1000);
     expect(priceInUsd(2700, "GEL")).toBe(1000);
-    expect(priceInUsd(1450000, "AED")).toBe(394826);
+    expect(priceInUsd(270000, "GEL")).toBe(100000);
   });
 
   it("converts for display", () => {
@@ -97,12 +117,7 @@ describe("currency conversion", () => {
     expect(convertPrice(1000, "USD", "gel")).toBe(2700);
     expect(convertPrice(2700, "GEL", "usd")).toBe(1000);
     expect(convertPrice(2700, "GEL", "gel")).toBe(2700);
-    expect(convertPrice(1450000, "AED", "usd")).toBe(394826);
+    expect(convertPrice(270000, "GEL", "usd")).toBe(100000);
   });
 });
 
-describe("cityNames", () => {
-  it("matches the city names stored on listings", () => {
-    expect(cityNames).toEqual({ tbilisi: "თბილისი", batumi: "ბათუმი", dubai: "დუბაი" });
-  });
-});

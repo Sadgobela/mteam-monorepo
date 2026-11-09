@@ -195,7 +195,7 @@ describe("home page", () => {
 
   it("says so when nothing matches", async () => {
     vi.mocked(searchListings).mockResolvedValueOnce([]);
-    await home({ city: "batumi" });
+    await home({ city: "ბათუმი" });
     expect(screen.getByText("No listings match these filters.")).toBeInTheDocument();
     expect(screen.queryByRole("link", { name: /m²/ })).toBeNull();
   });
@@ -251,7 +251,7 @@ describe("listing page", () => {
 
   it("keeps the posted price visible when it was converted", async () => {
     render(await ListingPage({ params: p({ locale: "en", id: "20440" }), searchParams: p({}) }));
-    expect(screen.getByText("Listed at: AED 1,450,000")).toBeInTheDocument();
+    expect(screen.getByText("Listed at: ₾270,000")).toBeInTheDocument();
   });
 
   it("does not repeat the price when it needed no conversion", async () => {

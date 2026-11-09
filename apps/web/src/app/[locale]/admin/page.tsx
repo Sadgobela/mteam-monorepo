@@ -18,7 +18,7 @@ function ListingSummary({ listing, t }: { listing: Listing; t: Dict }) {
       <div>
         <b>{listing.title}</b>
         <div className="meta">
-          {formatPrice(listing.price, listing.currency)} · {listing.area} {t.units.sqm} · {listing.address}, {listing.district} · {listing.contactPhone}
+          {formatPrice(listing.price, listing.currency)} · {listing.area} {t.units.sqm} · {[listing.address, listing.district].filter(Boolean).join(", ")} · {listing.contactPhone}
         </div>
         <p className="meta">{listing.description}</p>
       </div>

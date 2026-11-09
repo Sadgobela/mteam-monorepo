@@ -202,13 +202,21 @@ describe("searchListings", () => {
     expect((await whereFor({ verified: true })).verified).toBe(true);
   });
 
+  it("filters by exact districts when they are given", async () => {
+    expect((await whereFor({ city: "თბილისი", district: ["ვაკე", "ვერა"] })).district).toEqual({ in: ["ვაკე", "ვერა"] });
+  });
+
+  it("does not filter by district otherwise", async () => {
+    expect((await whereFor({})).district).toBeUndefined();
+  });
+
   it("matches text across location and title, case-insensitively", async () => {
     const match = { contains: "vake", mode: "insensitive" };
     expect((await whereFor({ q: "vake" })).OR).toEqual([{ district: match }, { address: match }, { city: match }, { title: match }]);
   });
 
   it("translates deal, type and city to stored values and stays published-only", async () => {
-    expect(await whereFor({ deal: "rent", type: "house", city: "batumi" })).toMatchObject({
+    expect(await whereFor({ deal: "rent", type: "house", city: "ბათუმი" })).toMatchObject({
       status: "ACTIVE",
       deal: "RENT",
       type: "HOUSE",
@@ -255,7 +263,7 @@ describe("createListing", () => {
   const draft = {
     deal: "rent",
     type: "house",
-    city: "batumi",
+    city: "ბათუმი",
     district: "Old town",
     address: "Main 1",
     title: "House",

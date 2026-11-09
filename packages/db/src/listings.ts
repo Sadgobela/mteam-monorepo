@@ -1,6 +1,5 @@
 import type { DealType as DbDealType, Prisma, PropertyType as DbPropertyType } from "@prisma/client";
 import {
-  cityNames,
   roomOptions,
   type DealType,
   type Listing,
@@ -16,14 +15,14 @@ import { db } from "./client";
 export const PAGE_SIZE = 24;
 const POSTGRES_INT_MAX = 2147483647;
 
-const deals: Record<DbDealType, DealType> = { SALE: "sale", RENT: "rent", DAILY: "daily" };
+const deals: Record<DbDealType, DealType> = { SALE: "sale", RENT: "rent", DAILY: "daily", PLEDGE: "pledge", LEASE: "lease" };
 const propertyTypes: Record<DbPropertyType, PropertyType> = {
   APARTMENT: "apartment",
   HOUSE: "house",
   COMMERCIAL: "commercial",
   LAND: "land",
 };
-const dbDeals: Record<DealType, DbDealType> = { sale: "SALE", rent: "RENT", daily: "DAILY" };
+const dbDeals: Record<DealType, DbDealType> = { sale: "SALE", rent: "RENT", daily: "DAILY", pledge: "PLEDGE", lease: "LEASE" };
 const dbPropertyTypes: Record<PropertyType, DbPropertyType> = {
   apartment: "APARTMENT",
   house: "HOUSE",
@@ -107,7 +106,8 @@ function whereFor(filters: ListingFilters, located = false): Prisma.ListingWhere
     status: "ACTIVE",
     deal: filters.deal && dbDeals[filters.deal],
     type: filters.type && dbPropertyTypes[filters.type],
-    city: filters.city && cityNames[filters.city],
+    city: filters.city,
+    district: filters.district && { in: filters.district },
     rooms: roomsClause(filters.rooms),
     verified: filters.verified,
     priceUsd: { gte: filters.priceMin, lte: filters.priceMax },
@@ -173,7 +173,6 @@ export async function createListing(ownerId: string, draft: ListingDraft, imageU
       priceUsd: priceInUsd(draft.price, draft.currency),
       deal: dbDeals[draft.deal],
       type: dbPropertyTypes[draft.type],
-      city: cityNames[draft.city],
       status: "PENDING",
       verified: false,
       ownerId,

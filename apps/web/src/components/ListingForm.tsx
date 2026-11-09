@@ -5,7 +5,9 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState, type ChangeEvent, type FormEvent, type MouseEvent } from "react";
 import { flushSync } from "react-dom";
 import {
-  citySlugs,
+  cities,
+  cityDistricts,
+  placeLabel,
   currencies,
   dealTypes,
   MAX_PHOTO_BYTES,
@@ -51,6 +53,8 @@ export function ListingForm({ locale, t }: { locale: Locale; t: Dict }) {
   const [rejected, setRejected] = useState<PostError | null>(null);
   const [previews, setPreviews] = useState<string[]>([]);
   const [step, setStep] = useState(0);
+  const [city, setCity] = useState(cities[0]);
+  const districts = cityDistricts(city);
 
   useEffect(() => () => previews.forEach((url) => URL.revokeObjectURL(url)), [previews]);
 
@@ -123,10 +127,21 @@ export function ListingForm({ locale, t }: { locale: Locale; t: Dict }) {
           <div className="form-row">
             <Choice name="deal" label={t.search.deal} options={dealTypes.map((d) => ({ value: d, label: t.deal[d] }))} />
             <Choice name="type" label={t.search.type} options={propertyTypes.map((p) => ({ value: p, label: t.propertyType[p] }))} />
-            <Choice name="city" label={t.search.city} options={citySlugs.map((c) => ({ value: c, label: t.city[c] }))} />
+            <label className="field">
+              <small>{t.search.city}</small>
+              <select name="city" required value={city} onChange={(event) => setCity(event.target.value)}>
+                {cities.map((name) => (
+                  <option key={name} value={name}>
+                    {placeLabel(name, locale)}
+                  </option>
+                ))}
+              </select>
+            </label>
           </div>
           <div className="form-row">
-            <Input label={f.district} name="district" required maxLength={100} pattern=".*\S.*" />
+            {districts.length > 0 && (
+              <Choice key={city} name="district" label={f.district} options={[{ value: "", label: f.district }, ...districts.map((name) => ({ value: name, label: placeLabel(name, locale) }))]} />
+            )}
             <Input label={f.address} name="address" required maxLength={200} pattern=".*\S.*" />
           </div>
           <LocationPicker label={f.pin} clearLabel={f.pinClear} />

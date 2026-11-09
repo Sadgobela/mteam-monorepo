@@ -14,8 +14,8 @@ import { POST } from "./route";
 const fields = {
   deal: "sale",
   type: "apartment",
-  city: "tbilisi",
-  district: "Vake",
+  city: "თბილისი",
+  district: "ვაკე",
   address: "Main 1",
   title: "Flat",
   description: "Sunny",

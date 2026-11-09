@@ -1,43 +1,45 @@
-import type { Dict, Locale } from "./i18n";
-import { cityNames, citySlugs } from "./search";
+import { georgia, POPULAR_CITIES } from "./geo";
+import type { Locale } from "./i18n";
 import type { Listing } from "./types";
 
-/** Districts as owners write them. An unlisted one falls back to the city. A Map, because the key is user input. */
-const districtNames = new Map<string, { en: string; ru: string }>([
-  ["ვაკე", { en: "Vake", ru: "Ваке" }],
-  ["საბურთალო", { en: "Saburtalo", ru: "Сабуртало" }],
-  ["ვერა", { en: "Vera", ru: "Вера" }],
-  ["მთაწმინდა", { en: "Mtatsminda", ru: "Мтацминда" }],
-  ["სოლოლაკი", { en: "Sololaki", ru: "Сололаки" }],
-  ["ავლაბარი", { en: "Avlabari", ru: "Авлабари" }],
-  ["ორთაჭალა", { en: "Ortachala", ru: "Ортачала" }],
-  ["კრწანისი", { en: "Krtsanisi", ru: "Крцаниси" }],
-  ["დიდუბე", { en: "Didube", ru: "Дидубе" }],
-  ["ჩუღურეთი", { en: "Chugureti", ru: "Чугурети" }],
-  ["გლდანი", { en: "Gldani", ru: "Глдани" }],
-  ["ნაძალადევი", { en: "Nadzaladevi", ru: "Надзаладеви" }],
-  ["ისანი", { en: "Isani", ru: "Исани" }],
-  ["სამგორი", { en: "Samgori", ru: "Самгори" }],
-  ["დიღომი", { en: "Dighomi", ru: "Дигоми" }],
-  ["ვაშლიჯვარი", { en: "Vashlijvari", ru: "Вашлиджвари" }],
-  ["ძველი ბათუმი", { en: "Old Batumi", ru: "Старый Батуми" }],
-  ["ახალი ბულვარი", { en: "New Boulevard", ru: "Новый бульвар" }],
-  ["Dubai Marina", { en: "Dubai Marina", ru: "Дубай Марина" }],
-  ["Downtown Dubai", { en: "Downtown Dubai", ru: "Даунтаун Дубай" }],
-  ["Business Bay", { en: "Business Bay", ru: "Бизнес Бэй" }],
-  ["Palm Jumeirah", { en: "Palm Jumeirah", ru: "Пальма Джумейра" }],
-]);
+export const cities = georgia.map(([name]) => name);
+export const popularCities = cities.slice(0, POPULAR_CITIES);
 
-/** Districts to suggest in search. The value is the stored name, which is what search matches. */
-export function districtOptions(locale: Locale): { value: string; label: string }[] {
-  return [...districtNames].map(([value, names]) => ({ value, label: locale === "ka" ? value : names[locale] }));
+const areasByCity = new Map(georgia);
+
+export function isCity(name: string): boolean {
+  return areasByCity.has(name);
 }
 
-/** Where a listing is, in the page language: its district when that can be shown, otherwise its city. */
-export function placeName(listing: Pick<Listing, "city" | "district">, locale: Locale, t: Dict): string | undefined {
-  const district = listing.district.trim();
-  const name = locale === "ka" ? district : districtNames.get(district)?.[locale];
-  if (name) return name;
-  const city = citySlugs.find((slug) => cityNames[slug] === listing.city);
-  return city && t.city[city];
+/** A city's areas. An area with one district of its own name is a plain district rather than a group. */
+export function cityAreas(city: string): { name: string; districts: string[] }[] {
+  return (areasByCity.get(city) ?? []).map((area) => (typeof area === "string" ? { name: area, districts: [area] } : { name: area[0], districts: area[1] }));
+}
+
+export function cityDistricts(city: string): string[] {
+  return cityAreas(city).flatMap((area) => area.districts);
+}
+
+const GEORGIAN = "აბგდევზთიკლმნოპჟრსტუფქღყშჩცძწჭხჯჰ";
+const table = (letters: string) => {
+  const sounds = letters.split(" ");
+  return new Map([...GEORGIAN].map((letter, index) => [letter, sounds[index]]));
+};
+const alphabets = {
+  en: table("a b g d e v z t i k l m n o p zh r s t u p k gh q sh ch ts dz ts ch kh j h"),
+  ru: table("а б г д е в з т и к л м н о п ж р с т у п к г к ш ч ц дз ц ч х дж х"),
+};
+const adminWords = { en: { municipality: "Municipality", district: "District" }, ru: { municipality: "муниципалитет", district: "район" } };
+
+/** A place name in the page language. There are thousands, so English and Russian are spelled out letter by letter. */
+export function placeLabel(name: string, locale: Locale): string {
+  if (locale === "ka") return name;
+  const words = adminWords[locale];
+  const spelled = [...name.replace("მუნიციპალიტეტი", words.municipality).replace("რაიონი", words.district)].map((c) => alphabets[locale].get(c) ?? c).join("");
+  return spelled.replace(/(^|[\s(-])(\p{L})/gu, (_, before: string, first: string) => before + first.toUpperCase());
+}
+
+/** Where a listing is, in the page language: its district, or its city when it has none. */
+export function placeName(listing: Pick<Listing, "city" | "district">, locale: Locale): string {
+  return placeLabel(listing.district.trim() || listing.city, locale);
 }

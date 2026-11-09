@@ -39,7 +39,6 @@ export function Header({ locale, t, signedIn }: { locale: Locale; t: Dict; signe
       <Link href={`/${locale}?deal=rent`}>{t.nav.rent}</Link>
       <Link href={`/${locale}?deal=daily`}>{t.nav.daily}</Link>
       <Link href={`/${locale}?verified=1`} className="accent">MTeam Verified</Link>
-      <Link href={`/${locale}?city=dubai`}>{t.nav.dubai}</Link>
       <Link href={`/${locale}/brokers`}>{t.nav.brokers}</Link>
     </nav>
   );

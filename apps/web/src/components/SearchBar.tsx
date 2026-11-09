@@ -3,11 +3,10 @@
 import { useState, useTransition, type SyntheticEvent } from "react";
 import { useRouter } from "next/navigation";
 import { FilterOutlined, SearchOutlined } from "@ant-design/icons";
-import { AutoComplete, Badge, Button, InputNumber, Modal, Segmented, Select } from "antd";
+import { Badge, Button, Input, InputNumber, Modal, Segmented, Select } from "antd";
 import {
-  citySlugs,
   dealTypes,
-  districtOptions,
+  placeLabel,
   propertyTypes,
   roomOptions,
   type Dict,
@@ -15,27 +14,40 @@ import {
   type ListingFilters,
   type Locale,
 } from "@mteam/shared";
+import { LocationModal } from "./LocationModal";
 
 type NumberField = "priceMin" | "priceMax" | "areaMin" | "areaMax" | "floorMin" | "floorMax";
 
-const moreFields = { city: undefined, rooms: undefined, priceMin: undefined, priceMax: undefined, areaMin: undefined, areaMax: undefined, floorMin: undefined, floorMax: undefined };
+const moreFields = { rooms: undefined, priceMin: undefined, priceMax: undefined, areaMin: undefined, areaMax: undefined, floorMin: undefined, floorMax: undefined };
 
 export function SearchBar({ locale, t, filters, display }: { locale: Locale; t: Dict; filters: ListingFilters; display: ListingDisplay }) {
   const router = useRouter();
   const [searching, startSearch] = useTransition();
   const [draft, setDraft] = useState(filters);
   const [moreOpen, setMoreOpen] = useState(false);
+  const [locationOpen, setLocationOpen] = useState(false);
   const change = (values: Partial<ListingFilters>) => setDraft({ ...draft, ...values });
 
-  function search(event: SyntheticEvent) {
-    event.preventDefault();
+  function run(filtersToSearch: ListingFilters) {
     // "deal" is always sent, even empty: it is how the home page knows a search was made.
-    const params = new URLSearchParams({ deal: draft.deal ?? "", cur: display.cur, view: display.view, sort: display.sort });
-    for (const [key, value] of Object.entries(draft)) {
+    const params = new URLSearchParams({ deal: filtersToSearch.deal ?? "", cur: display.cur, view: display.view, sort: display.sort });
+    for (const [key, value] of Object.entries(filtersToSearch)) {
       if (key !== "deal" && value !== undefined) params.set(key, value === true ? "1" : String(value));
     }
     setMoreOpen(false);
+    setLocationOpen(false);
     startSearch(() => router.push(`?${params}`));
+  }
+
+  function search(event: SyntheticEvent) {
+    event.preventDefault();
+    run(draft);
+  }
+
+  function applyLocation(picked: Pick<ListingFilters, "city" | "district">) {
+    const next = { ...draft, ...picked };
+    setDraft(next);
+    run(next);
   }
 
   const number = (name: NumberField, label: string) => (
@@ -53,7 +65,7 @@ export function SearchBar({ locale, t, filters, display }: { locale: Locale; t: 
     </label>
   );
 
-  const needle = (draft.q ?? "").toLowerCase();
+  const place = draft.city && placeLabel(draft.city, locale) + (draft.district ? ` +${draft.district.length}` : "");
   const lastRoom = roomOptions[roomOptions.length - 1];
   const extraFilters = Object.keys(moreFields).filter((key) => draft[key as keyof typeof moreFields] !== undefined).length;
 
@@ -77,6 +89,7 @@ export function SearchBar({ locale, t, filters, display }: { locale: Locale; t: 
             variant="borderless"
             allowClear
             suffixIcon={null}
+            popupMatchSelectWidth={false}
             placeholder={t.search.any}
             value={draft.deal}
             options={dealTypes.map((d) => ({ value: d, label: t.deal[d] }))}
@@ -90,6 +103,7 @@ export function SearchBar({ locale, t, filters, display }: { locale: Locale; t: 
             variant="borderless"
             allowClear
             suffixIcon={null}
+            popupMatchSelectWidth={false}
             placeholder={t.search.any}
             value={draft.type}
             options={propertyTypes.map((p) => ({ value: p, label: t.propertyType[p] }))}
@@ -98,15 +112,13 @@ export function SearchBar({ locale, t, filters, display }: { locale: Locale; t: 
         </label>
         <label className="grow">
           <small>{t.search.location}</small>
-          <AutoComplete
-            aria-label={t.search.location}
-            variant="borderless"
-            allowClear
-            placeholder={t.search.locationHint}
-            value={draft.q}
-            options={districtOptions(locale).filter((d) => `${d.label} ${d.value}`.toLowerCase().includes(needle))}
-            onChange={(q: string | undefined) => change({ q: q || undefined })}
-          />
+          <button type="button" className={place ? "location-trigger" : "location-trigger empty"} aria-label={place ? `${t.search.location}: ${place}` : t.search.location} onClick={() => setLocationOpen(true)}>
+            {place || t.search.locationHint}
+          </button>
+        </label>
+        <label>
+          <small>{t.search.keyword}</small>
+          <Input variant="borderless" allowClear aria-label={t.search.keyword} value={draft.q} onChange={(event) => change({ q: event.target.value || undefined })} />
         </label>
         <label className="chip">
           <input type="checkbox" checked={draft.verified ?? false} onChange={(event) => change({ verified: event.target.checked || undefined })} />
@@ -137,16 +149,6 @@ export function SearchBar({ locale, t, filters, display }: { locale: Locale; t: 
       >
         <div className="more-panel">
           <div className="field wide">
-            <small>{t.search.city}</small>
-            <Segmented<string>
-              block
-              aria-label={t.search.city}
-              value={draft.city ?? ""}
-              options={[{ value: "", label: t.search.any }, ...citySlugs.map((c) => ({ value: c, label: t.city[c] }))]}
-              onChange={(city) => change({ city: citySlugs.find((slug) => slug === city) })}
-            />
-          </div>
-          <div className="field wide">
             <small>{t.search.rooms}</small>
             <Segmented<number>
               block
@@ -164,6 +166,8 @@ export function SearchBar({ locale, t, filters, display }: { locale: Locale; t: 
           {number("floorMax", t.search.floorMax)}
         </div>
       </Modal>
+
+      <LocationModal open={locationOpen} locale={locale} t={t} initial={draft} onApply={applyLocation} onClose={() => setLocationOpen(false)} />
     </>
   );
 }

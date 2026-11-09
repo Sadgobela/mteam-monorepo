@@ -136,7 +136,7 @@ describe("ListingForm", () => {
     const next = () => fireEvent.click(screen.getByRole("button", { name: t.post.next }));
     const current = () => document.querySelector("[aria-current=step]")?.textContent;
     const completeFirst = () => {
-      fill(t.post.fields.district, "Vake");
+      fill(t.post.fields.district, "ვაკე");
       fill(t.post.fields.address, "Main 1");
       next();
     };
@@ -162,12 +162,24 @@ describe("ListingForm", () => {
       expect(current()).toBe("1 Location");
     });
 
-    it("treats a district of only spaces as missing", () => {
+    it("needs a district in a city that has them", () => {
       render(<ListingForm locale="en" t={t} />);
-      fill(t.post.fields.district, "   ");
       fill(t.post.fields.address, "Main 1");
       next();
       expect(current()).toBe("1 Location");
+    });
+
+    it("offers the chosen city's districts, and none where it has none", () => {
+      render(<ListingForm locale="en" t={t} />);
+      expect(screen.getByRole("option", { name: "Vake" })).toBeInTheDocument();
+      fill(t.search.city, "ბათუმი");
+      expect(screen.queryByRole("option", { name: "Vake" })).toBeNull();
+      expect(screen.getByRole("option", { name: "Makhinjauri" })).toBeInTheDocument();
+      fill(t.search.city, "რუსთავი");
+      expect(screen.queryByLabelText(t.post.fields.district)).toBeNull();
+      fill(t.post.fields.address, "Main 1");
+      next();
+      expect(current()).toBe("2 Details");
     });
 
     it("advances, moves focus to the new step, and only then offers submit", () => {
@@ -186,7 +198,7 @@ describe("ListingForm", () => {
       completeFirst();
       expect(container.querySelectorAll("fieldset.off")).toHaveLength(2);
       expect(container.querySelector("fieldset:not(.off)")).toHaveAccessibleName(t.post.steps.details);
-      expect(screen.getByLabelText(t.post.fields.district)).toHaveValue("Vake");
+      expect(screen.getByLabelText(t.post.fields.district)).toHaveValue("ვაკე");
     });
 
     it("catches a rule across fields before the photos step, then lets it be corrected", () => {
@@ -224,9 +236,8 @@ describe("ListingForm", () => {
   });
 
   it("offers translated choices", () => {
-    render(<ListingForm locale="en" t={getDictionary("ru")} />);
+    render(<ListingForm locale="ru" t={getDictionary("ru")} />);
     expect(screen.getByRole("option", { name: "Батуми" })).toBeInTheDocument();
-    expect(screen.getByRole("option", { name: "AED" })).toBeInTheDocument();
   });
 });
 
