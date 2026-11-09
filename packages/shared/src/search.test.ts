@@ -11,6 +11,12 @@ describe("parseListingFilters", () => {
     expect(parseListingFilters({ city: "Atlantis", district: "ვაკე" })).toEqual({ city: undefined, district: undefined });
   });
 
+  it("keeps only real districts of that city, once each", () => {
+    expect(parseListingFilters({ city: "თბილისი", district: "ვაკე,ვაკე,,Atlantis" }).district).toEqual(["ვაკე"]);
+    expect(parseListingFilters({ city: "ბათუმი", district: "ვაკე" }).district).toBeUndefined();
+    expect(parseListingFilters({ city: "თბილისი", district: ",,," }).district).toBeUndefined();
+  });
+
   it("ignores an empty or absurdly long district list", () => {
     expect(parseListingFilters({ city: "თბილისი", district: "" }).district).toBeUndefined();
     expect(parseListingFilters({ city: "თბილისი", district: "a".repeat(4001) }).district).toBeUndefined();

@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { isCity } from "./places";
+import { cityDistricts, isCity } from "./places";
 
 export const dealTypes = ["sale", "rent", "daily", "pledge", "lease"] as const;
 export type DealType = (typeof dealTypes)[number];
@@ -77,7 +77,10 @@ export type ListingFilters = z.infer<typeof filtersSchema>;
 /** Reads filters from a URL's query. A missing or invalid value simply means that filter is off. */
 export function parseListingFilters(query: Record<string, string | string[] | undefined>): ListingFilters {
   const filters = filtersSchema.parse(query);
-  return filters.city ? filters : { ...filters, district: undefined };
+  if (!filters.city) return { ...filters, district: undefined };
+  const known = cityDistricts(filters.city);
+  const district = [...new Set(filters.district?.filter((name) => known.includes(name)))];
+  return { ...filters, district: district.length > 0 ? district : undefined };
 }
 
 export const sortOrders = ["new", "asc", "desc"] as const;

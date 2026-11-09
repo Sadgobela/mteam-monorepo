@@ -51,6 +51,10 @@ describe("places", () => {
     expect(isCity("დუბაი")).toBe(false);
   });
 
+  it("never lists a district twice in one city", () => {
+    for (const city of cities) expect(new Set(cityDistricts(city)).size).toBe(cityDistricts(city).length);
+  });
+
   it("gives a city's groups and plain districts, and nothing for an unknown city", () => {
     expect(cityAreas("თბილისი").find((area) => area.name === "ვაკე-საბურთალო")?.districts).toContain("ვაკე");
     expect(cityAreas("ბათუმი")).toContainEqual({ name: "მახინჯაური", districts: ["მახინჯაური"] });
