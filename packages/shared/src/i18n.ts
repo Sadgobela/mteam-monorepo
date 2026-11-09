@@ -50,6 +50,7 @@ const ka = {
   my: { heading: "ჩემი განცხადებები", empty: "ჯერ განცხადება არ დაგიმატებია.", archive: "მოხსნა", status: { DRAFT: "დრაფტი", PENDING: "მოდერაციაზე", ACTIVE: "გამოქვეყნებული", ARCHIVED: "მოხსნილი", REJECTED: "უარყოფილი" } },
   admin: { heading: "მართვის პანელი", pending: "მოდერაციას ელოდება", unverified: "გადასამოწმებელი", leads: "მიეცი mTeam-ს: მოთხოვნები", nothing: "ცარიელია.", approve: "გამოქვეყნება", reject: "უარყოფა", verify: "ადგილზე შევამოწმე", contacted: "დავუკავშირდი", contactedDone: "დაკავშირებული" },
   brokers: { heading: "mTeam-ის ბროკერები", empty: "ბროკერები ჯერ არ არის დამატებული.", listings: "განცხადებები: {count}" },
+  gallery: { close: "დახურვა", previous: "წინა ფოტო", next: "შემდეგი ფოტო" },
   theme: { dark: "მუქი რეჟიმი", light: "ნათელი რეჟიმი" },
 };
 
@@ -99,6 +100,7 @@ const en: Dict = {
   my: { heading: "My listings", empty: "You have not posted anything yet.", archive: "Take down", status: { DRAFT: "Draft", PENDING: "In review", ACTIVE: "Published", ARCHIVED: "Taken down", REJECTED: "Rejected" } },
   admin: { heading: "Admin panel", pending: "Waiting for moderation", unverified: "To verify on site", leads: "Give it to mTeam requests", nothing: "Nothing here.", approve: "Publish", reject: "Reject", verify: "I checked it on site", contacted: "Mark contacted", contactedDone: "Contacted" },
   brokers: { heading: "mTeam brokers", empty: "No brokers have been added yet.", listings: "Listings: {count}" },
+  gallery: { close: "Close", previous: "Previous photo", next: "Next photo" },
   theme: { dark: "Dark mode", light: "Light mode" },
 };
 
@@ -146,6 +148,7 @@ const ru: Dict = {
   my: { heading: "Мои объявления", empty: "Вы ещё ничего не публиковали.", archive: "Снять", status: { DRAFT: "Черновик", PENDING: "На модерации", ACTIVE: "Опубликовано", ARCHIVED: "Снято", REJECTED: "Отклонено" } },
   admin: { heading: "Панель управления", pending: "Ждут модерации", unverified: "Проверить на месте", leads: "Заявки «Доверьте mTeam»", nothing: "Пусто.", approve: "Опубликовать", reject: "Отклонить", verify: "Проверено на месте", contacted: "Связались", contactedDone: "Связались" },
   brokers: { heading: "Брокеры mTeam", empty: "Брокеры пока не добавлены.", listings: "Объявления: {count}" },
+  gallery: { close: "Закрыть", previous: "Предыдущее фото", next: "Следующее фото" },
   theme: { dark: "Тёмная тема", light: "Светлая тема" },
 };
 

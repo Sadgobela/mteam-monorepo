@@ -5,7 +5,7 @@
 :root {
   --brand: #986dc6; --brand-deep: #6e45a0; --brand-soft: #f1eaf8;
   --bg: #faf8fc; --surface: #ffffff; --fg: #1f1828; --muted: #6b6176; --line: #e6dfee;
-  --focus: #c9a24a; --wa: #1f9d57; --action: #6e45a0; --on-action: #ffffff;
+  --viewer: #100b17; --focus: #c9a24a; --wa: #1f9d57; --action: #6e45a0; --on-action: #ffffff;
   --sans: "Noto Sans Georgian", system-ui, sans-serif;
 }
 @media (prefers-color-scheme: dark) {
@@ -91,9 +91,26 @@ h1, h2, h3 { margin: 0; text-wrap: balance; }
 .lhead h1 { font-size: 24px; }
 .ldesc { display: grid; gap: 12px; min-width: 0; grid-column: 1; }
 .ldesc p { margin: 0; max-width: 65ch; }
-.gal { grid-column: 1 / -1; display: grid; grid-template-columns: 2fr 1fr; grid-template-rows: 1fr 1fr; gap: 8px; }
-.gal .ph { border-radius: 10px; aspect-ratio: auto; min-height: 136px; }
-.gal .ph:first-child { grid-row: 1 / 3; min-height: 280px; }
+.gal { grid-column: 1 / -1; display: grid; gap: 8px; grid-template-columns: 2fr 1fr 1fr; grid-template-rows: repeat(2, minmax(0, 210px)); }
+.gal[data-tiles="1"] { grid-template-columns: 1fr; }
+.gal[data-tiles="2"] { grid-template-columns: 1fr 1fr; }
+.gal[data-tiles="3"] { grid-template-columns: 2fr 1fr; }
+.gal .ph { border: 0; padding: 0; border-radius: 10px; overflow: hidden; aspect-ratio: auto; font: inherit; }
+.gal button.ph { cursor: zoom-in; }
+.gal .ph:first-child, .gal[data-tiles="2"] .ph { grid-row: 1 / 3; }
+@media (max-width: 640px) {
+  .gal[data-tiles] { grid-template-columns: minmax(0, 1fr); grid-template-rows: none; }
+  .gal[data-tiles] .ph { grid-row: auto; aspect-ratio: 4 / 3; }
+  .gal .ph:not(:first-child) { display: none; }
+}
+.viewer { position: fixed; inset: 0; width: 100vw; height: 100dvh; max-width: none; max-height: none; margin: 0; padding: 0; border: 0; background: var(--viewer); }
+.viewer-photo { position: absolute; inset: 0; }
+.viewer-photo img { object-fit: contain; }
+.viewer-close { position: absolute; top: 12px; right: 12px; background: var(--surface); }
+.viewer-nav { position: absolute; top: 50%; transform: translateY(-50%); width: 52px; height: 52px; border: 0; border-radius: 50%; background: var(--surface); color: var(--fg); font-size: 28px; line-height: 1; cursor: pointer; }
+.viewer-nav.previous { left: 12px; }
+.viewer-nav.next { right: 12px; }
+html:has(.viewer[open]) { overflow: hidden; }
 .facts { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin: 0; }
 .facts div { display: grid; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 10px; }
 .facts dt { display: flex; align-items: center; gap: 6px; color: var(--muted); font-size: 12px; }

@@ -1,9 +1,9 @@
-import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { ReactNode } from "react";
 import { getListing } from "@mteam/db";
 import { convertPrice, formatDay, formatPrice, getDictionary, parseListingDisplay } from "@mteam/shared";
+import { Gallery } from "@/components/Gallery";
 import { Header } from "@/components/Header";
 import { GiveBand } from "@/components/LeadForm";
 import { ListingMap } from "@/components/ListingMap";
@@ -56,21 +56,7 @@ export default async function ListingPage({
     <>
       <Header locale={locale} t={t} signedIn={await hasSession()} />
       <main className="listing">
-        <div className="gal">
-          {listing.images.length === 0 ? (
-            <>
-              <div className={`ph ${listing.tone}`} />
-              <div className="ph sand" />
-              <div className="ph steel" />
-            </>
-          ) : (
-            listing.images.map((url, index) => (
-              <a key={url} className="ph" href={url} target="_blank" rel="noreferrer">
-                <Image src={url} alt={`${listing.title} ${index + 1}`} fill unoptimized priority={index === 0} />
-              </a>
-            ))
-          )}
-        </div>
+        <Gallery images={listing.images} title={listing.title} tone={listing.tone} t={t} />
         <div className="lhead">
           <h1>{listing.title}</h1>
           <span className="meta">
