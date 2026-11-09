@@ -11,5 +11,5 @@ Real estate listings platform for mTeam (Tbilisi, Batumi, Dubai). pnpm + Turbore
 Rules:
 - 100% test coverage (lines, branches, functions, statements) is enforced by Vitest thresholds in CI. Every change ships with tests; do not lower thresholds or add coverage ignores.
 - Run `pnpm typecheck && pnpm lint && pnpm test && pnpm build` before pushing.
-- Design: variant A (light, search-first), brand purple `#986DC6`. Colors come from CSS tokens in `globals.css`, with light and dark themes.
+- Design: variant A (light, search-first), brand purple `#986DC6`. Colors come from CSS tokens in `globals.css`, with light and dark themes. Interactive controls use Ant Design 6, themed in `apps/web/src/components/AntProvider.tsx`; its surfaces and text follow the same tokens through the `--ant-*` block in `globals.css`.
 - User-facing copy lives in `packages/shared/src/i18n.ts`, never inline.

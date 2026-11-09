@@ -34,6 +34,17 @@ These come first in every design decision. Where a portal convention conflicts w
 | Results | Count, grid / list / map switch, owner and agency checkboxes, sort | Count, sort, list / grid switch |
 | Card | Photo with badge and heart, price with ₾/$ switch, price per m², generated title, icon row (area, floor, rooms, bedrooms), address, date | Large photo on the left, title, price, address with metro, short description, icon row, date |
 
+| Dropdowns (seen again 2026-11-09) | The deal and type field opens one panel of pill choices; extra filters open a large panel with pills and from/to ranges; a row of filter pills sits above results | Each field opens its own popover with clear and apply; location is a full-screen picker with popular cities and an A to Z list |
+
+## Moving to Ant Design
+
+Agreed on 2026-11-09. Each stage is merged on its own.
+
+- [x] Stage 1: foundation, search bar and filters panel, phone menu, sliding switches for sort, view and currency, hover and fade motion
+- [ ] Stage 2: listing cards, listing page, photo viewer
+- [ ] Stage 3: forms (posting, sign in, leaving a number)
+- [ ] Stage 4: my listings, favourites, brokers, admin
+
 ## Plan
 
 Chosen on 2026-11-09: **version A, the familiar grid**, from the [clickable mockup](https://claude.ai/artifact/LG6CuHAfL58Qu8KoT8agxS). Results keep a list view as the second option.
