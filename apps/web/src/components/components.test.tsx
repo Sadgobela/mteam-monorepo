@@ -8,6 +8,7 @@ import { CardPhotos } from "./CardPhotos";
 import { Pager } from "./Pager";
 import { LanguageMenu } from "./LanguageMenu";
 import { FilterChips } from "./FilterChips";
+import { FormSelect } from "./FormSelect";
 import { Header } from "./Header";
 import { ListingCard } from "./ListingCard";
 import { SearchBar } from "./SearchBar";
@@ -143,6 +144,45 @@ describe("LanguageMenu", () => {
     option("Русский").addEventListener("click", (event) => event.preventDefault());
     fireEvent.click(option("Русский"));
     expect(option("Русский")).toHaveAttribute("href", "/ru/listings/5?cur=gel&deal=rent");
+  });
+});
+
+describe("FormSelect", () => {
+  const options = [
+    { value: "a", label: "Apple" },
+    { value: "b", label: "Banana" },
+  ];
+  const guard = (container: HTMLElement) => container.querySelector("input[name=fruit]") as HTMLInputElement;
+
+  it("starts on its initial value and is required unless optional", () => {
+    const { container, rerender } = render(<FormSelect name="fruit" label="Fruit" options={options} initial="a" />);
+    expect(guard(container)).toHaveValue("a");
+    expect(guard(container)).toBeRequired();
+    expect(screen.getByLabelText("Fruit")).toHaveAttribute("role", "combobox");
+    rerender(<FormSelect name="fruit" label="Fruit" options={options} optional />);
+    expect(guard(container)).not.toBeRequired();
+  });
+
+  it("puts the chosen value in the form and reports it", () => {
+    const onChange = vi.fn();
+    const { container } = render(<FormSelect name="fruit" label="Fruit" options={options} onChange={onChange} />);
+    fireEvent.mouseDown(screen.getByLabelText("Fruit"));
+    fireEvent.click(document.querySelector('.ant-select-item-option[title="Banana"]') as Element);
+    expect(guard(container)).toHaveValue("b");
+    expect(onChange).toHaveBeenLastCalledWith("b");
+  });
+
+  it("can be cleared when optional, and works without a listener", () => {
+    const { container } = render(<FormSelect name="fruit" label="Fruit" options={options} initial="a" optional />);
+    fireEvent.mouseDown(container.querySelector(".ant-select-clear") as Element);
+    fireEvent.click(container.querySelector(".ant-select-clear") as Element);
+    expect(guard(container)).toHaveValue("");
+  });
+
+  it("ignores text typed or autofilled into the hidden field", () => {
+    const { container } = render(<FormSelect name="fruit" label="Fruit" options={options} initial="a" />);
+    fireEvent.change(guard(container), { target: { value: "not a fruit" } });
+    expect(guard(container)).toHaveValue("a");
   });
 });
 

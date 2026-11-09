@@ -19,6 +19,8 @@ const theme: ThemeConfig = {
     Button: { defaultBg: "var(--surface)", defaultColor: "var(--fg)", defaultBorderColor: "var(--line)", defaultHoverBg: "var(--surface)", defaultHoverColor: "var(--brand-deep)", defaultHoverBorderColor: "var(--brand)", defaultActiveBg: "var(--brand-soft)", defaultActiveColor: "var(--brand-deep)", defaultActiveBorderColor: "var(--brand)", textTextColor: "var(--fg)", textHoverBg: "var(--brand-soft)", textTextHoverColor: "var(--brand-deep)", textTextActiveColor: "var(--brand-deep)" },
     Select: { selectorBg: "var(--surface)", optionSelectedBg: "var(--brand-soft)", optionSelectedColor: "var(--brand-deep)", optionActiveBg: "var(--brand-soft)" },
     Pagination: { itemBg: "var(--surface)", itemActiveBg: "var(--brand-soft)", itemLinkBg: "var(--surface)", itemInputBg: "var(--surface)" },
+    Input: { hoverBg: "var(--surface)", activeBg: "var(--surface)" },
+    InputNumber: { hoverBg: "var(--surface)", activeBg: "var(--surface)" },
     Modal: { contentBg: "var(--surface)", headerBg: "var(--surface)", footerBg: "var(--surface)", titleColor: "var(--fg)" },
     Drawer: { colorBgElevated: "var(--surface)", colorText: "var(--fg)", colorIcon: "var(--muted)" },
     Segmented: { trackBg: "var(--brand-soft)", itemColor: "var(--fg)", itemHoverColor: "var(--brand-deep)", itemSelectedBg: "var(--action)", itemSelectedColor: "var(--on-action)" },

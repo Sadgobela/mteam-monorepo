@@ -20,6 +20,21 @@ vi.mock("next/navigation", () => ({
   },
 }));
 
+// Ant's Select lists options lazily in a portal. A native one lets these tests read every choice; FormSelect has its own test with the real thing.
+vi.mock("antd", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("antd")>()),
+  Select: ({ id, value, options, onChange }: { id: string; value?: string; options: { value: string; label: string }[]; onChange: (value: string) => void }) => (
+    <select id={id} value={value ?? ""} onChange={(event) => onChange(event.target.value)}>
+      <option value="" />
+      {options.map((option) => (
+        <option key={option.value} value={option.value}>
+          {option.label}
+        </option>
+      ))}
+    </select>
+  ),
+}));
+
 vi.mock("leaflet", () => ({
   default: {
     map: () => {
@@ -162,10 +177,22 @@ describe("ListingForm", () => {
       expect(current()).toBe("1 Location");
     });
 
+    it("asks only for what fits the property type", () => {
+      render(<ListingForm locale="en" t={t} />);
+      const shown = (label: string) => screen.queryByLabelText(label) !== null;
+      expect(screen.getByLabelText(t.post.fields.rooms)).toBeRequired();
+      fill(t.search.type, "land");
+      expect([shown(t.post.fields.rooms), shown(t.post.fields.floor), shown(t.post.fields.floors), shown(t.search.status)]).toEqual([false, false, false, false]);
+      fill(t.search.type, "commercial");
+      expect([shown(t.post.fields.rooms), shown(t.post.fields.floor), shown(t.search.status)]).toEqual([false, true, true]);
+      fill(t.search.type, "hotel");
+      expect(screen.getByLabelText(t.post.fields.rooms)).not.toBeRequired();
+    });
+
     it("offers metro stations only in Tbilisi, and building status always", () => {
       render(<ListingForm locale="en" t={t} />);
-      expect(screen.getByLabelText(t.search.metro)).not.toBeRequired();
-      expect(screen.getByLabelText(t.search.status)).not.toBeRequired();
+      expect(document.querySelector("input[name=metro]")).not.toBeRequired();
+      expect(document.querySelector("input[name=building]")).not.toBeRequired();
       expect(screen.getByRole("option", { name: t.search.building.construction, hidden: true })).toBeInTheDocument();
       fill(t.search.city, "ბათუმი");
       expect(screen.queryByLabelText(t.search.metro)).toBeNull();
@@ -184,7 +211,7 @@ describe("ListingForm", () => {
       fill(t.post.fields.district, "ვაკე");
       fireEvent.change(await screen.findByLabelText(t.post.fields.street), { target: { value: "ჭავჭავაძე ი. გამზირი" } });
       expect(screen.getByLabelText(t.post.fields.street)).toHaveValue("ჭავჭავაძე ი. გამზირი");
-      expect(screen.getByLabelText(t.post.fields.street)).not.toBeRequired();
+      expect(document.querySelector("input[name=street]")).not.toBeRequired();
       fill(t.search.city, "რუსთავი");
       expect((await screen.findByLabelText(t.post.fields.street)).querySelectorAll("option").length).toBe(116);
       fill(t.search.city, "ბათუმი");

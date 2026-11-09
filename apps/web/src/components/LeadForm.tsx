@@ -3,6 +3,7 @@
 import { useActionState } from "react";
 import type { Dict } from "@mteam/shared";
 import { leadAction } from "@/lib/lead-actions";
+import { FormSelect } from "./FormSelect";
 
 export function LeadForm({ t }: { t: Dict }) {
   const [state, action, pending] = useActionState(leadAction, {});
@@ -17,13 +18,15 @@ export function LeadForm({ t }: { t: Dict }) {
         <small>{t.login.phone}</small>
         <input name="phone" type="tel" required autoComplete="tel-national" />
       </label>
-      <label className="field">
-        <small>{t.home.leadGoal}</small>
-        <select name="deal" required>
-          <option value="sale">{t.home.leadSell}</option>
-          <option value="rent">{t.home.leadRent}</option>
-        </select>
-      </label>
+      <FormSelect
+        name="deal"
+        label={t.home.leadGoal}
+        initial="sale"
+        options={[
+          { value: "sale", label: t.home.leadSell },
+          { value: "rent", label: t.home.leadRent },
+        ]}
+      />
       <button className="btn lead-submit" type="submit" disabled={pending}>{t.home.leadSubmit}</button>
       {state.invalid && <p className="note lead-error" role="alert">{t.home.leadInvalid}</p>}
       {state.failed && <p className="note lead-error" role="alert">{t.home.leadFailed}</p>}
