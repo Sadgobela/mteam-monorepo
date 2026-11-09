@@ -7,6 +7,8 @@ import { AntProvider } from "./AntProvider";
 import { CardPhotos } from "./CardPhotos";
 import { Pager } from "./Pager";
 import { LanguageMenu } from "./LanguageMenu";
+import { ConfirmSubmit } from "./ConfirmSubmit";
+import { EmptyState } from "./EmptyState";
 import { FilterChips } from "./FilterChips";
 import { FormSelect } from "./FormSelect";
 import { Header } from "./Header";
@@ -183,6 +185,46 @@ describe("FormSelect", () => {
     const { container } = render(<FormSelect name="fruit" label="Fruit" options={options} initial="a" />);
     fireEvent.change(guard(container), { target: { value: "not a fruit" } });
     expect(guard(container)).toHaveValue("a");
+  });
+});
+
+describe("ConfirmSubmit", () => {
+  const form = (submitted: (data: FormData) => void) =>
+    render(
+      <form
+        onSubmit={(event) => {
+          event.preventDefault();
+          submitted(new FormData(event.currentTarget, (event.nativeEvent as SubmitEvent).submitter));
+        }}
+      >
+        <ConfirmSubmit label="Reject" question="Sure?" yes="Yes" no="No" name="decision" value="REJECTED" />
+      </form>,
+    );
+
+  it("asks first and does nothing if refused", async () => {
+    const submitted = vi.fn();
+    form(submitted);
+    fireEvent.click(screen.getByRole("button", { name: "Reject" }));
+    expect(await screen.findByText("Sure?")).toBeInTheDocument();
+    expect(submitted).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole("button", { name: "No" }));
+    expect(submitted).not.toHaveBeenCalled();
+  });
+
+  it("submits with its name and value once confirmed", async () => {
+    const submitted = vi.fn();
+    form(submitted);
+    fireEvent.click(screen.getByRole("button", { name: "Reject" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Yes" }));
+    await waitFor(() => expect(submitted).toHaveBeenCalled());
+    expect((submitted.mock.calls[0][0] as FormData).get("decision")).toBe("REJECTED");
+  });
+});
+
+describe("EmptyState", () => {
+  it("says why the page is empty", () => {
+    render(<EmptyState text="Nothing yet" />);
+    expect(screen.getByText("Nothing yet")).toBeInTheDocument();
   });
 });
 
