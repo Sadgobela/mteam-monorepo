@@ -79,7 +79,9 @@ h1, h2, h3 { margin: 0; text-wrap: balance; }
 @media (max-width: 760px) { .search .search-button, .search .ant-badge, .search .more-button { flex: 1 1 100%; width: 100%; } }
 .search .ant-select { height: 30px; padding: 0; font-weight: 600; outline: 0; }
 .search label { border-radius: 10px; transition: background-color 0.2s; }
-.search label:has(:focus-visible) { outline: 3px solid var(--focus); outline-offset: 2px; }
+.search[data-keyboard] label:focus-within { outline: 3px solid var(--focus); outline-offset: 2px; }
+:root .search .ant-select { --ant-select-line-width-focus: 0; }
+:root .search .ant-select.ant-select-open .ant-select-content-has-value { opacity: 1; }
 @media (hover: hover) { .search label:not(.chip):hover { background: var(--brand-soft); } }
 .more-panel { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 12px; padding-block: 8px; }
 .more-panel .field .ant-segmented-block .ant-segmented-item { flex: 1 1 auto; }
