@@ -1,20 +1,13 @@
 import Link from "next/link";
-import { locales, type Dict, type Locale } from "@mteam/shared";
+import type { Dict, Locale } from "@mteam/shared";
 import { logoutAction } from "@/lib/auth-actions";
+import { LanguageMenu } from "./LanguageMenu";
 import { Logo } from "./Logo";
 import { PhoneMenu } from "./PhoneMenu";
 import { ThemeToggle } from "./ThemeToggle";
 
 export function Header({ locale, t, signedIn }: { locale: Locale; t: Dict; signedIn: boolean }) {
-  const language = (
-    <nav className="lang" aria-label="language">
-      {locales.map((l) => (
-        <Link key={l} href={`/${l}`} aria-current={l === locale ? "true" : undefined}>
-          {l.toUpperCase()}
-        </Link>
-      ))}
-    </nav>
-  );
+  const language = <LanguageMenu locale={locale} label={t.nav.language} />;
   const account = (
     <>
       {signedIn && (

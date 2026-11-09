@@ -41,7 +41,6 @@ h1, h2, h3 { margin: 0; text-wrap: balance; }
 .menu-panel a { color: inherit; }
 .menu-panel .links { display: grid; gap: 0; padding: 0; margin: 0; max-width: none; }
 .menu-panel .links a { display: flex; align-items: center; min-height: 44px; }
-.menu-panel .lang a { display: inline-flex; align-items: center; min-height: 44px; min-width: 44px; justify-content: center; }
 .menu-panel .btn, .menu-panel form { width: 100%; }
 /* On phones everything but the logo, posting and the menu moves into the menu. */
 @media (max-width: 760px) {
@@ -50,8 +49,10 @@ h1, h2, h3 { margin: 0; text-wrap: balance; }
   .nav-main { gap: 8px; }
 }
 @media (max-width: 360px) { .logo { width: 36px; } }
-.lang { display: flex; gap: 8px; font-size: 13px; font-weight: 600; color: var(--muted); }
-.lang [aria-current] { color: var(--brand-deep); }
+.flag { flex: none; border-radius: 2px; box-shadow: 0 0 0 1px var(--line); }
+.lang-button { font-weight: 600; }
+.lang-option { display: inline-flex; align-items: center; gap: 10px; min-height: 28px; }
+:root .ant-dropdown-menu .ant-dropdown-menu-item-selected .lang-option { color: var(--brand-deep); font-weight: 700; }
 /* Ant Design reads these, so its controls follow both themes without waiting for JavaScript. */
 :root .mteam {
   --ant-color-text: var(--fg); --ant-color-text-heading: var(--fg); --ant-color-text-label: var(--muted); --ant-color-text-description: var(--muted); --ant-color-icon: var(--muted); --ant-color-icon-hover: var(--fg);
@@ -245,14 +246,14 @@ html:has(.viewer[open]) { overflow: hidden; }
 .previews { display: flex; gap: 8px; flex-wrap: wrap; }
 
 /* Motion. Colours ease everywhere; movement only where a mouse can trigger it, and never against the system setting. */
-.btn, .tile, .card, .chip, .chips a, .fav, .links a, .lang a, .nav-link, .pager a { transition: background-color 0.2s, border-color 0.2s, color 0.2s, box-shadow 0.2s, transform 0.2s; }
+.btn, .tile, .card, .chip, .chips a, .fav, .links a, .nav-link, .pager a { transition: background-color 0.2s, border-color 0.2s, color 0.2s, box-shadow 0.2s, transform 0.2s; }
 .ph img { transition: transform 0.35s; }
 @keyframes appear { from { opacity: 0; transform: translateY(6px); } }
 .card-wrap { animation: appear 0.3s both; }
 @media (hover: hover) {
   .btn:hover { filter: brightness(1.07); }
   .btn.ghost:hover, .tile:hover { border-color: var(--brand); }
-  .links a:hover, .lang a:hover, .nav-link:hover, .pager a:hover { color: var(--brand-deep); }
+  .links a:hover, .nav-link:hover, .pager a:hover { color: var(--brand-deep); }
   .card:hover { transform: translateY(-3px); box-shadow: 0 10px 24px rgba(60, 35, 95, 0.14); }
   .card:hover .ph img { transform: scale(1.04); }
   .tile:hover { transform: translateY(-2px); }
