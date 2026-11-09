@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { defaultLocale, formatDay, formatPrice, getDictionary, isLocale, locales } from "./index";
+import { defaultLocale, formatDay, formatPrice, getDictionary, isLocale, locales, placeName } from "./index";
 
 describe("formatDay", () => {
   it("writes a short date in the page language, independent of time zone", () => {
@@ -29,5 +29,32 @@ describe("i18n", () => {
       Object.entries(o).flatMap(([k, v]) => (typeof v === "object" ? keys(v).map((s) => `${k}.${s}`) : [k]));
     const ka = keys(getDictionary("ka")).sort();
     for (const l of locales) expect(keys(getDictionary(l)).sort()).toEqual(ka);
+  });
+});
+
+describe("placeName", () => {
+  const place = (city: string, district: string, locale: "ka" | "en" | "ru") => placeName({ city, district }, locale, getDictionary(locale));
+
+  it("shows the district as written on the Georgian page", () => {
+    expect(place("თბილისი", " ვაკე ", "ka")).toBe("ვაკე");
+    expect(place("თბილისი", "სადღაც", "ka")).toBe("სადღაც");
+  });
+
+  it("translates a known district", () => {
+    expect(place("თბილისი", "ვაკე", "en")).toBe("Vake");
+    expect(place("თბილისი", "საბურთალო", "ru")).toBe("Сабуртало");
+  });
+
+  it("falls back to the translated city", () => {
+    expect(place("ბათუმი", "სადღაც", "en")).toBe("Batumi");
+    expect(place("თბილისი", "", "ka")).toBe("თბილისი");
+  });
+
+  it("is not fooled by a district named after a built-in property", () => {
+    expect(place("თბილისი", "constructor", "en")).toBe("Tbilisi");
+  });
+
+  it("gives nothing for a city it does not know", () => {
+    expect(place("Kutaisi", "სადღაც", "en")).toBeUndefined();
   });
 });

@@ -71,6 +71,12 @@ h1, h2, h3 { margin: 0; text-wrap: balance; }
 .ph.rose { background: linear-gradient(135deg, #e2c9d6, #a86f8c); }
 .badge { position: absolute; left: 10px; top: 10px; display: flex; align-items: center; gap: 6px; background: #fff; color: #5b3a86; font-size: 12px; font-weight: 800; padding: 4px 10px; border-radius: 8px; }
 .count { position: absolute; right: 10px; bottom: 10px; background: rgba(20, 12, 30, 0.8); color: #fff; font-size: 12px; padding: 2px 8px; border-radius: 6px; }
+.checked { position: absolute; left: 10px; bottom: 10px; max-width: calc(100% - 90px); background: rgba(20, 12, 30, 0.8); color: #fff; font-size: 12px; padding: 2px 8px; border-radius: 6px; }
+/* Phones have no hover, so there the line simply stays visible. */
+@media (hover: hover) {
+  .checked { opacity: 0; transition: opacity 0.15s; }
+  .card:hover .checked, .card:focus-visible .checked { opacity: 1; }
+}
 .cbody { display: grid; align-content: start; gap: 4px; padding: 12px 14px 14px; }
 .price { font-weight: 800; font-size: 19px; font-variant-numeric: tabular-nums; }
 .price.big { font-size: 26px; }

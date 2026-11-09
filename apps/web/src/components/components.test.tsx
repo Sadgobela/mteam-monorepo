@@ -107,7 +107,7 @@ describe("ListingCard", () => {
     render(<ListingCard listing={fixtureListings[0]} locale="en" t={t} />);
     expect(screen.getByText("$148,000")).toBeInTheDocument();
     expect(screen.getByText("$1,609 / m²")).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "For sale: 3-room apartment" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "For sale: 3-room apartment, Vake" })).toBeInTheDocument();
     expect(screen.getByText("Nov 6")).toBeInTheDocument();
     expect(screen.getByText("3 rooms")).toBeInTheDocument();
   });
@@ -125,13 +125,30 @@ describe("ListingCard", () => {
 
   it("titles property without rooms by its type alone and shows no price per m² on rentals", () => {
     render(<ListingCard listing={{ ...fixtureListings[1], type: "land", rooms: 0 }} locale="en" t={t} />);
-    expect(screen.getByRole("heading", { name: "For rent: land" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "For rent: land, Saburtalo" })).toBeInTheDocument();
     expect(screen.queryByText(/\/ m²/)).toBeNull();
   });
 
   it("writes the title in the page language", () => {
     render(<ListingCard listing={fixtureListings[0]} locale="ka" t={getDictionary("ka")} />);
-    expect(screen.getByRole("heading", { name: "იყიდება 3 ოთახიანი ბინა" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "იყიდება 3 ოთახიანი ბინა, ვაკე" })).toBeInTheDocument();
+  });
+
+  it("leaves the place out of the title when the city is not one we know", () => {
+    render(<ListingCard listing={{ ...fixtureListings[0], city: "Kutaisi", district: "Unknown" }} locale="en" t={t} />);
+    expect(screen.getByRole("heading", { name: "For sale: 3-room apartment" })).toBeInTheDocument();
+  });
+
+  it("says who checked a verified listing and when", () => {
+    render(<ListingCard listing={{ ...fixtureListings[0], verification: { by: "Nino", at: "2026-11-02" } }} locale="en" t={t} />);
+    expect(screen.getByText("Checked by Nino, Nov 2")).toBeInTheDocument();
+  });
+
+  it("keeps the chosen currency when the listing is opened", () => {
+    const { rerender } = render(<ListingCard listing={fixtureListings[0]} locale="en" t={t} cur="gel" />);
+    expect(screen.getByRole("link")).toHaveAttribute("href", `/en/listings/${fixtureListings[0].id}?cur=gel`);
+    rerender(<ListingCard listing={fixtureListings[0]} locale="en" t={t} cur="usd" />);
+    expect(screen.getByRole("link")).toHaveAttribute("href", `/en/listings/${fixtureListings[0].id}`);
   });
 
   it("names the broker when there is one", () => {
