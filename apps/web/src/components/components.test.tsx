@@ -401,7 +401,8 @@ describe("SearchBar", () => {
       openPicker();
       city("Gurjaani");
       tick("Gurjaani (Sopeli)");
-      await showStreets(111);
+      fireEvent.click(await picker().findByText(/^Streets/));
+      await waitFor(() => expect(document.querySelector(".loc-columns label")?.textContent).not.toBe("Gurjaani (Sopeli)"));
       tick((document.querySelector(".loc-columns label") as HTMLElement).textContent as string);
       apply();
       await waitFor(() => expect(push).toHaveBeenCalled());
