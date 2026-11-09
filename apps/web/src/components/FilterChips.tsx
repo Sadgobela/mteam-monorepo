@@ -20,7 +20,7 @@ export function FilterChips({
     ["type", filters.type && t.propertyType[filters.type]],
     ["city", filters.city && t.city[filters.city]],
     ["q", filters.q],
-    ["verified", filters.verified ? "mTeam Verified" : undefined],
+    ["verified", filters.verified ? "MTeam Verified" : undefined],
     ["rooms", number(filters.rooms, t.search.rooms)],
     ["priceMin", number(filters.priceMin, t.search.priceMin)],
     ["priceMax", number(filters.priceMax, t.search.priceMax)],

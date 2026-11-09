@@ -31,7 +31,7 @@ export function LeadForm({ t }: { t: Dict }) {
   );
 }
 
-/** The "Give it to mTeam" offer for owners, with the promises stated plainly. */
+/** The "Give it to MTeam" offer for owners, with the promises stated plainly. */
 export function GiveBand({ t }: { t: Dict }) {
   return (
     <section id="give" className="band">

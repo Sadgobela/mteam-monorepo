@@ -1,4 +1,4 @@
-// mTeam listings platform: first-version data model.
+// MTeam listings platform: first-version data model.
 generator client {
   provider = "prisma-client-js"
 }
@@ -10,7 +10,7 @@ datasource db {
 
 enum Role {
   USER   // owner or private person posting listings
-  AGENT  // mTeam broker
+  AGENT  // MTeam broker
   ADMIN  // moderation
 }
 
@@ -127,7 +127,7 @@ model Listing {
   floor       Int?
   floors      Int?
   condition   String?
-  verified    Boolean       @default(false) // checked on site by an mTeam broker
+  verified    Boolean       @default(false) // checked on site by an MTeam broker
   verifiedAt  DateTime?
   verifiedBy  Agent?        @relation("VerifiedListings", fields: [verifiedById], references: [id])
   verifiedById String?
@@ -163,7 +163,7 @@ model Favorite {
   @@id([userId, listingId])
 }
 
-// "Give it to mTeam": an owner asks mTeam to sell or rent their property.
+// "Give it to MTeam": an owner asks MTeam to sell or rent their property.
 model Lead {
   id        String     @id @default(cuid())
   name      String

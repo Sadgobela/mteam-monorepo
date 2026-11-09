@@ -6,7 +6,7 @@ import "../globals.css";
 
 export const metadata: Metadata = {
   title: "MTeam: უძრავი ქონება",
-  description: "mTeam-ის ბროკერების მიერ გადამოწმებული განცხადებები: თბილისი, ბათუმი, დუბაი.",
+  description: "MTeam-ის ბროკერების მიერ გადამოწმებული განცხადებები: თბილისი, ბათუმი, დუბაი.",
 };
 
 export function generateStaticParams() {

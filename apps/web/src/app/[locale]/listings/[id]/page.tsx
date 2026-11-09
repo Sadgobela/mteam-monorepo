@@ -113,7 +113,7 @@ export default async function ListingPage({
           </div>
           {listing.verified && (
             <div className="note">
-              <b>mTeam Verified</b>
+              <b>MTeam Verified</b>
               <br />
               {t.listing.verifiedNote}
               {listing.verification && (

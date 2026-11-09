@@ -87,7 +87,7 @@ const leadSchema = z.object({
 
 export type LeadDraft = z.infer<typeof leadSchema>;
 
-/** Validates a "Give it to mTeam" request. */
+/** Validates a "Give it to MTeam" request. */
 export function parseLead(fields: Record<string, unknown>): LeadDraft | null {
   const result = leadSchema.safeParse(fields);
   return result.success ? result.data : null;

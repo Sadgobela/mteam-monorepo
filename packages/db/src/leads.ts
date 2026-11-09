@@ -4,7 +4,7 @@ import { db } from "./client";
 const REPEAT_WINDOW_MS = 24 * 60 * 60_000;
 const dbDeals = { sale: "SALE", rent: "RENT" } as const;
 
-/** Saves a "Give it to mTeam" request. A repeat from the same phone within a day is ignored, so brokers get one lead. */
+/** Saves a "Give it to MTeam" request. A repeat from the same phone within a day is ignored, so brokers get one lead. */
 export async function createLead(lead: LeadDraft): Promise<void> {
   const client = db();
   const since = new Date(Date.now() - REPEAT_WINDOW_MS);
