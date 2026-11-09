@@ -201,7 +201,7 @@ describe("SearchBar", () => {
   const bar = (filters = {}, shown: typeof display | { sort: "asc"; view: "list"; cur: "gel"; page: 1 } = display) =>
     render(<SearchBar locale="en" t={t} filters={filters} display={shown} />);
   const box = (name: string) => screen.getByRole("combobox", { name });
-  const keyword = () => screen.getByRole("textbox", { name: "Street or keyword" });
+  const keyword = () => screen.getByRole("textbox", { name: "ID, street or keyword" });
   const submit = () => fireEvent.submit(screen.getByRole("search"));
   const openMore = () => fireEvent.click(screen.getByRole("button", { name: /More filters/ }));
   const pick = (name: string, option: string) => {
@@ -274,6 +274,116 @@ describe("SearchBar", () => {
     await waitFor(() => expect(push).toHaveBeenCalled());
     expect(pushed().has("verified")).toBe(false);
     expect(pushed().has("q")).toBe(false);
+  });
+
+  describe("filter row", () => {
+    const row = (filters = {}) => render(<SearchBar locale="en" t={t} filters={filters} display={display} results />);
+    const pillButton = (name: string) => screen.getByText(name, { selector: "button span" }).closest("button") as HTMLElement;
+    const panel = () => within(document.querySelector(".pill-panel") as HTMLElement);
+
+    it("is only there on results", () => {
+      bar();
+      expect(document.querySelector(".pills")).toBeNull();
+    });
+
+    it("searches from the price button and closes it", async () => {
+      row();
+      fireEvent.click(pillButton("Price"));
+      fireEvent.change(panel().getByLabelText("Price from, $"), { target: { value: "500" } });
+      fireEvent.click(panel().getByText("Search"));
+      await waitFor(() => expect(push).toHaveBeenCalled());
+      expect(pushed().get("priceMin")).toBe("500");
+    });
+
+    it("closes when pressed again", async () => {
+      row();
+      fireEvent.click(pillButton("Area"));
+      expect(document.querySelector(".pill-panel")).not.toBeNull();
+      fireEvent.click(pillButton("Area"));
+      await waitFor(() => expect(document.querySelector(".ant-popover-hidden")).not.toBeNull());
+    });
+
+    it("shows which filters are on", () => {
+      row({ floorMin: 2, rooms: 3, building: ["new"], areaMax: 50, priceMin: 1 });
+      for (const name of ["Price", "Area", "Rooms", "Floor", "Status"]) expect(pillButton(name)).toHaveClass("active");
+    });
+
+    it("leaves buttons plain when nothing is set", () => {
+      row();
+      expect(pillButton("Price")).not.toHaveClass("active");
+    });
+
+    it("adds and removes building statuses", async () => {
+      row({ building: ["old"] });
+      fireEvent.click(pillButton("Status"));
+      const status = (name: string) => panel().getByText(name).closest("label")?.querySelector("input") as HTMLInputElement;
+      expect(status("Old building")).toBeChecked();
+      fireEvent.click(status("Under construction"));
+      fireEvent.click(status("Old building"));
+      fireEvent.click(panel().getByText("Search"));
+      await waitFor(() => expect(push).toHaveBeenCalled());
+      expect(pushed().get("building")).toBe("construction");
+    });
+
+    it("adds the first building status", async () => {
+      row();
+      fireEvent.click(pillButton("Status"));
+      fireEvent.click(panel().getByText("New building"));
+      fireEvent.click(panel().getByText("Search"));
+      await waitFor(() => expect(push).toHaveBeenCalled());
+      expect(pushed().get("building")).toBe("new");
+    });
+
+    it("drops the status filter when the last one is unticked", async () => {
+      row({ building: ["old"] });
+      fireEvent.click(pillButton("Status"));
+      fireEvent.click(panel().getByText("Old building"));
+      fireEvent.click(panel().getByText("Search"));
+      await waitFor(() => expect(push).toHaveBeenCalled());
+      expect(pushed().has("building")).toBe(false);
+    });
+  });
+
+  describe("extra filters", () => {
+    const dialog = () => within(screen.getByRole("dialog"));
+
+    it("applies price per m² and owners only, and can untick owners", async () => {
+      bar({ owner: true });
+      openMore();
+      const owners = dialog().getByRole("checkbox", { name: "Owners only" });
+      expect(owners).toBeChecked();
+      fireEvent.click(owners);
+      fireEvent.click(owners);
+      fireEvent.change(dialog().getByLabelText("Price per m² from, $"), { target: { value: "700" } });
+      fireEvent.click(dialog().getByRole("button", { name: /Search/ }));
+      await waitFor(() => expect(push).toHaveBeenCalled());
+      expect(Object.fromEntries(pushed())).toMatchObject({ owner: "1", sqmMin: "700" });
+    });
+
+    it("drops owners only when it is unticked", async () => {
+      bar({ owner: true });
+      openMore();
+      fireEvent.click(dialog().getByRole("checkbox", { name: "Owners only" }));
+      fireEvent.click(dialog().getByRole("button", { name: /Search/ }));
+      await waitFor(() => expect(push).toHaveBeenCalled());
+      expect(pushed().has("owner")).toBe(false);
+    });
+
+    it("offers metro stations in Tbilisi or with no city, and chooses one", async () => {
+      bar({ city: "თბილისი" });
+      openMore();
+      fireEvent.mouseDown(dialog().getByRole("combobox", { name: "Metro" }));
+      fireEvent.click(document.querySelector('.ant-select-item-option[title="Akhmetelis Teatri"]') as HTMLElement);
+      fireEvent.click(dialog().getByRole("button", { name: /Search/ }));
+      await waitFor(() => expect(push).toHaveBeenCalled());
+      expect(pushed().get("metro")).toBe("ახმეტელის თეატრი");
+    });
+
+    it("hides metro stations in a city without a metro", () => {
+      bar({ city: "ბათუმი" });
+      openMore();
+      expect(dialog().queryByRole("combobox", { name: "Metro" })).toBeNull();
+    });
   });
 
   describe("location picker", () => {
@@ -551,6 +661,15 @@ describe("SearchBar", () => {
     fireEvent.click(screen.getByRole("button", { name: /Другие фильтры/ }));
     expect(screen.getByRole("radio", { name: "4+" })).toBeInTheDocument();
     expect(screen.getByRole("radio", { name: "3" })).toBeInTheDocument();
+  });
+});
+
+describe("FilterChips details", () => {
+  it("names metro, building status, owners and price per m²", () => {
+    render(<FilterChips locale="en" t={t} query={{}} filters={{ metro: "დელისი", building: ["old", "new"], owner: true, sqmMin: 5, sqmMax: 9 }} />);
+    for (const name of ["Metro: Delisi", "Old building, New building", "Owners only", "Price per m² from, $ 5", "Price per m² to, $ 9"]) {
+      expect(screen.getByRole("link", { name: `Remove filter: ${name}` })).toBeInTheDocument();
+    }
   });
 });
 

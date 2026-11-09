@@ -162,6 +162,15 @@ describe("ListingForm", () => {
       expect(current()).toBe("1 Location");
     });
 
+    it("offers metro stations only in Tbilisi, and building status always", () => {
+      render(<ListingForm locale="en" t={t} />);
+      expect(screen.getByLabelText(t.search.metro)).not.toBeRequired();
+      expect(screen.getByLabelText(t.search.status)).not.toBeRequired();
+      expect(screen.getByRole("option", { name: t.search.building.construction, hidden: true })).toBeInTheDocument();
+      fill(t.search.city, "ბათუმი");
+      expect(screen.queryByLabelText(t.search.metro)).toBeNull();
+    });
+
     it("needs a district in a city that has them", () => {
       render(<ListingForm locale="en" t={t} />);
       fill(t.post.fields.address, "Main 1");

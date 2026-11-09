@@ -22,7 +22,7 @@ vi.mock("@mteam/db", async () => {
     searchListings: vi.fn(async () => listings),
     countListings: vi.fn(async () => 57),
     PAGE_SIZE: 24,
-    getListing: async (id: string) => listings.find((l) => String(l.id) === id),
+    getListing: vi.fn(async (id: string) => listings.find((l) => String(l.id) === id)),
   };
 });
 
@@ -231,6 +231,14 @@ describe("listing page", () => {
   it("hides the floor when it is unknown", async () => {
     render(await ListingPage({ params: p({ locale: "en", id: "20440" }), searchParams: p({}) }));
     expect(screen.queryByText("Floor")).toBeNull();
+  });
+
+  it("shows building status and metro when the listing has them", async () => {
+    const { getListing } = await import("@mteam/db");
+    vi.mocked(getListing).mockResolvedValueOnce({ ...fixtureListings[0], building: "new", metro: "დელისი" });
+    render(await ListingPage({ params: p({ locale: "en", id: "20418" }), searchParams: p({}) }));
+    expect(screen.getByText("New building")).toBeInTheDocument();
+    expect(screen.getByText("Delisi")).toBeInTheDocument();
   });
 
   it("shows the price with a currency switch in the contact box", async () => {
