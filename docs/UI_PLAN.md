@@ -45,6 +45,8 @@ Agreed on 2026-11-09. Each stage is merged on its own.
 - [ ] Stage 3: forms (posting, sign in, leaving a number)
 - [ ] Stage 4: my listings, favourites, brokers, admin
 
+Since stage 1 the search bar and the sort, view and currency switches need JavaScript. Listings, cards and paging are still plain links.
+
 ## Plan
 
 Chosen on 2026-11-09: **version A, the familiar grid**, from the [clickable mockup](https://claude.ai/artifact/LG6CuHAfL58Qu8KoT8agxS). Results keep a list view as the second option.
