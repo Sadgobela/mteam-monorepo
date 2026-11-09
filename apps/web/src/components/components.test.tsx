@@ -1,13 +1,18 @@
-import { describe, expect, it, vi } from "vitest";
-import { fireEvent, render, screen, within } from "@testing-library/react";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { getDictionary, type Listing } from "@mteam/shared";
 import { fixtureListings } from "@/test-fixtures";
 import { FilterChips } from "./FilterChips";
 import { Header } from "./Header";
 import { ListingCard } from "./ListingCard";
 import { SearchBar } from "./SearchBar";
+import { Segmented } from "./Segmented";
 
 vi.mock("@/lib/auth-actions", () => ({ logoutAction: vi.fn() }));
+
+const push = vi.hoisted(() => vi.fn());
+vi.mock("next/navigation", () => ({ useRouter: () => ({ push }) }));
+beforeEach(() => push.mockClear());
 
 const t = getDictionary("en");
 
@@ -29,53 +34,81 @@ describe("Header", () => {
 
   describe("phone menu", () => {
     const menu = () => screen.getByRole("button", { name: "Menu" });
-    const panel = (container: HTMLElement) => container.querySelector(".menu-panel") as HTMLElement;
+    const panel = () => document.querySelector(".menu-panel") as HTMLElement;
+    const expectClosed = () => expect(menu()).toHaveAttribute("aria-expanded", "false");
 
     it("starts closed and opens with the same navigation", () => {
-      const { container } = render(<Header locale="en" t={t} signedIn={false} />);
-      expect(menu()).toHaveAttribute("aria-expanded", "false");
-      expect(panel(container)).toBeNull();
+      render(<Header locale="en" t={t} signedIn={false} />);
+      expectClosed();
+      expect(panel()).toBeNull();
       fireEvent.click(menu());
       expect(menu()).toHaveAttribute("aria-expanded", "true");
-      expect(within(panel(container)).getByRole("link", { name: "For rent" })).toHaveAttribute("href", "/en?deal=rent");
-      expect(within(panel(container)).getByRole("link", { name: "Sign in" })).toBeInTheDocument();
-      expect(within(panel(container)).getByRole("link", { name: "RU" })).toBeInTheDocument();
+      expect(within(panel()).getByRole("link", { name: "For rent" })).toHaveAttribute("href", "/en?deal=rent");
+      expect(within(panel()).getByRole("link", { name: "Sign in" })).toBeInTheDocument();
+      expect(within(panel()).getByRole("link", { name: "RU" })).toBeInTheDocument();
     });
 
     it("closes when a link is followed, because a same-page link would otherwise leave it open", () => {
-      const { container } = render(<Header locale="en" t={t} signedIn={false} />);
+      render(<Header locale="en" t={t} signedIn={false} />);
       fireEvent.click(menu());
-      fireEvent.click(within(panel(container)).getByRole("link", { name: "For rent" }));
-      expect(panel(container)).toBeNull();
+      fireEvent.click(within(panel()).getByRole("link", { name: "For rent" }));
+      expectClosed();
     });
 
     it("stays open while the theme is changed", () => {
-      const { container } = render(<Header locale="en" t={t} signedIn={false} />);
+      render(<Header locale="en" t={t} signedIn={false} />);
       fireEvent.click(menu());
-      fireEvent.click(within(panel(container)).getByRole("button", { name: /mode/ }));
-      expect(panel(container)).not.toBeNull();
+      fireEvent.click(within(panel()).getByRole("button", { name: /mode/ }));
+      expect(menu()).toHaveAttribute("aria-expanded", "true");
     });
 
     it("closes on submit rather than on the click, so sign out still reaches the server", () => {
-      const { container } = render(<Header locale="en" t={t} signedIn />);
+      render(<Header locale="en" t={t} signedIn />);
       fireEvent.click(menu());
-      const signOut = within(panel(container)).getByRole("button", { name: "Sign out" });
+      const signOut = within(panel()).getByRole("button", { name: "Sign out" });
       // Cancelled so only the click is seen here; removing the form on the click is what used to lose the submit.
-      panel(container).addEventListener("click", (event) => event.preventDefault());
+      panel().addEventListener("click", (event) => event.preventDefault());
       fireEvent.click(signOut);
-      expect(panel(container)).not.toBeNull();
+      expect(menu()).toHaveAttribute("aria-expanded", "true");
       fireEvent.submit(signOut.closest("form") as HTMLFormElement);
-      expect(panel(container)).toBeNull();
+      expectClosed();
     });
 
-    it("closes with a second press and offers the signed-in links", () => {
-      const { container } = render(<Header locale="en" t={t} signedIn />);
+    it("closes with its own close button and offers the signed-in links", () => {
+      render(<Header locale="en" t={t} signedIn />);
       fireEvent.click(menu());
-      expect(within(panel(container)).getByRole("link", { name: "My listings" })).toBeInTheDocument();
-      expect(within(panel(container)).getByRole("button", { name: "Sign out" })).toBeInTheDocument();
-      fireEvent.click(menu());
-      expect(panel(container)).toBeNull();
+      expect(within(panel()).getByRole("link", { name: "My listings" })).toBeInTheDocument();
+      expect(within(panel()).getByRole("button", { name: "Sign out" })).toBeInTheDocument();
+      fireEvent.click(document.querySelector(".ant-drawer-close") as HTMLElement);
+      expectClosed();
     });
+
+    it("closes with a second press", () => {
+      render(<Header locale="en" t={t} signedIn />);
+      fireEvent.click(menu());
+      fireEvent.click(menu());
+      expectClosed();
+    });
+  });
+});
+
+describe("Segmented", () => {
+  const options = [
+    { text: "One", href: "/one", active: true },
+    { text: "Two", href: "/two", active: false },
+  ];
+
+  it("goes to the chosen URL without scrolling, and moves the highlight at once", async () => {
+    render(<Segmented label="Choice" options={options} />);
+    expect(screen.getByRole("radiogroup", { name: "Choice" })).toBeInTheDocument();
+    expect(screen.getByRole("radio", { name: "One" })).toBeChecked();
+    fireEvent.click(screen.getByRole("radio", { name: "Two" }));
+    await waitFor(() => expect(push).toHaveBeenCalledWith("/two", { scroll: false }));
+  });
+
+  it("highlights the first choice when none is active", () => {
+    render(<Segmented label="Choice" options={[{ ...options[0], active: false }, options[1]]} />);
+    expect(screen.getByRole("radio", { name: "One" })).toBeChecked();
   });
 });
 
@@ -113,50 +146,125 @@ describe("FilterChips", () => {
 
 describe("SearchBar", () => {
   const display = { sort: "new", view: "grid", cur: "usd", page: 1 } as const;
+  const bar = (filters = {}, shown: typeof display | { sort: "asc"; view: "list"; cur: "gel"; page: 1 } = display) =>
+    render(<SearchBar locale="en" t={t} filters={filters} display={shown} />);
+  const box = (name: string) => screen.getByRole("combobox", { name });
+  const submit = () => fireEvent.submit(screen.getByRole("search"));
+  const openMore = () => fireEvent.click(screen.getByRole("button", { name: /More filters/ }));
+  const pick = (name: string, option: string) => {
+    fireEvent.mouseDown(box(name));
+    fireEvent.click(document.querySelector(`.ant-select-item-option[title="${option}"]`) as HTMLElement);
+  };
+  const pushed = () => new URLSearchParams((push.mock.lastCall as [string])[0].slice(1));
 
   it("starts with every filter off and the extra filters closed", () => {
-    const { container } = render(<SearchBar t={t} filters={{}} display={display} />);
+    bar();
     expect(screen.getByRole("search")).toHaveAttribute("novalidate");
-    expect(screen.getByRole("button", { name: "Search" })).toBeInTheDocument();
-    for (const label of ["Deal", "Type", "City", "Rooms"]) expect(screen.getByLabelText(label)).toHaveValue("");
-    expect(screen.getByLabelText("Location")).toHaveValue("");
+    expect(screen.getByRole("button", { name: /Search/ })).toBeInTheDocument();
+    expect(box("Deal")).toBeInTheDocument();
+    expect(box("Type")).toBeInTheDocument();
+    expect(box("Location")).toHaveValue("");
     expect(screen.getByLabelText("Verified only")).not.toBeChecked();
-    expect(container.querySelector("details")).not.toHaveAttribute("open");
+    expect(screen.queryByRole("dialog")).toBeNull();
+    expect(document.querySelector(".ant-badge-count")).toBeNull();
   });
 
-  it("shows the active filters and opens the extra filters when one is in use", () => {
-    const { container } = render(
-      <SearchBar t={t} filters={{ deal: "rent", city: "dubai", type: "land", priceMin: 1000, priceMax: 2000, rooms: 4, q: "vake", verified: true, areaMin: 40, floorMax: 9 }} display={display} />,
-    );
-    expect(screen.getByLabelText("Deal")).toHaveValue("rent");
-    expect(screen.getByLabelText("City")).toHaveValue("dubai");
-    expect(screen.getByLabelText("Type")).toHaveValue("land");
-    expect(screen.getByLabelText("Price from, $")).toHaveValue(1000);
-    expect(screen.getByLabelText("Price to, $")).toHaveValue(2000);
-    expect(screen.getByLabelText("Rooms")).toHaveValue("4");
-    expect(screen.getByLabelText("Location")).toHaveValue("vake");
-    expect(screen.getByLabelText("Area from, m²")).toHaveValue(40);
-    expect(screen.getByLabelText("Floor to")).toHaveValue(9);
+  it("shows the active filters and counts the ones behind the button", () => {
+    bar({ deal: "rent", city: "dubai", type: "land", priceMin: 1000, priceMax: 2000, rooms: 4, q: "vake", verified: true, areaMin: 40, floorMax: 9 });
+    expect(screen.getByText("For rent")).toBeInTheDocument();
+    expect(screen.getByText("Land")).toBeInTheDocument();
+    expect(box("Location")).toHaveValue("vake");
     expect(screen.getByLabelText("Verified only")).toBeChecked();
-    expect(container.querySelector("details")).toHaveAttribute("open");
+    expect(document.querySelector(".ant-badge-count")).toHaveAttribute("title", "6");
+    openMore();
+    expect(screen.getByRole("radio", { name: "Dubai" })).toBeChecked();
+    expect(screen.getByRole("radio", { name: "4+" })).toBeChecked();
+    expect(screen.getByLabelText("Price from, $")).toHaveValue("1000");
+    expect(screen.getByLabelText("Price to, $")).toHaveValue("2000");
+    expect(screen.getByLabelText("Area from, m²")).toHaveValue("40");
+    expect(screen.getByLabelText("Floor to")).toHaveValue("9");
   });
 
-  it("carries the display choices through a new search", () => {
-    const { container } = render(<SearchBar t={t} filters={{}} display={{ ...display, cur: "gel", view: "list", sort: "asc" }} />);
-    const hidden = (name: string) => container.querySelector(`input[type=hidden][name=${name}]`);
-    expect(hidden("cur")).toHaveValue("gel");
-    expect(hidden("view")).toHaveValue("list");
-    expect(hidden("sort")).toHaveValue("asc");
-    expect(hidden("page")).toBeNull();
+  it("always sends deal and the display choices, so an empty search still shows results", async () => {
+    bar({}, { sort: "asc", view: "list", cur: "gel", page: 1 });
+    submit();
+    await waitFor(() => expect(push).toHaveBeenCalledWith("?deal=&cur=gel&view=list&sort=asc"));
   });
 
-  it("labels options in the page language, and the top room count as a minimum", () => {
-    render(<SearchBar t={getDictionary("ru")} filters={{}} display={display} />);
-    expect(screen.getByRole("option", { name: "Тбилиси" })).toBeInTheDocument();
-    expect(screen.getByRole("option", { name: "Посуточно" })).toBeInTheDocument();
-    expect(screen.getByRole("option", { name: "Участок" })).toBeInTheDocument();
-    expect(screen.getByRole("option", { name: "4+" })).toHaveValue("4");
-    expect(screen.getByRole("option", { name: "3" })).toHaveValue("3");
+  it("searches with what was chosen in the bar", async () => {
+    bar();
+    pick("Deal", "For rent");
+    pick("Type", "House");
+    fireEvent.click(screen.getByLabelText("Verified only"));
+    submit();
+    await waitFor(() => expect(push).toHaveBeenCalled());
+    expect(Object.fromEntries(pushed())).toEqual({ deal: "rent", type: "house", verified: "1", cur: "usd", view: "grid", sort: "new" });
+  });
+
+  it("drops a filter that was switched back off", async () => {
+    bar({ verified: true, q: "vake" });
+    fireEvent.click(screen.getByLabelText("Verified only"));
+    fireEvent.change(box("Location"), { target: { value: "" } });
+    submit();
+    await waitFor(() => expect(push).toHaveBeenCalled());
+    expect(pushed().has("verified")).toBe(false);
+    expect(pushed().has("q")).toBe(false);
+  });
+
+  it("suggests districts by their name in either language and searches the stored name", async () => {
+    bar();
+    fireEvent.mouseDown(box("Location"));
+    fireEvent.change(box("Location"), { target: { value: "vak" } });
+    const option = await screen.findByText("Vake");
+    expect(screen.queryByText("Saburtalo")).toBeNull();
+    fireEvent.click(option);
+    submit();
+    await waitFor(() => expect(push).toHaveBeenCalled());
+    expect(pushed().get("q")).toBe("ვაკე");
+  });
+
+  it("applies the extra filters from the panel and closes it", async () => {
+    bar();
+    openMore();
+    fireEvent.click(screen.getByRole("radio", { name: "Batumi" }));
+    fireEvent.click(screen.getByRole("radio", { name: "4+" }));
+    fireEvent.change(screen.getByLabelText("Price from, $"), { target: { value: "500" } });
+    fireEvent.change(screen.getByLabelText("Floor to"), { target: { value: "9" } });
+    fireEvent.keyDown(screen.getByLabelText("Floor to"), { key: "Enter", keyCode: 13 });
+    await waitFor(() => expect(push).toHaveBeenCalled());
+    expect(Object.fromEntries(pushed())).toMatchObject({ city: "batumi", rooms: "4", priceMin: "500", floorMax: "9" });
+  });
+
+  it("turns panel choices back off one at a time", async () => {
+    bar({ city: "dubai", rooms: 2, priceMin: 100 });
+    openMore();
+    const panel = within(screen.getByRole("dialog"));
+    fireEvent.click(within(panel.getByRole("radiogroup", { name: "City" })).getByRole("radio", { name: "Any" }));
+    fireEvent.click(within(panel.getByRole("radiogroup", { name: "Rooms" })).getByRole("radio", { name: "Any" }));
+    fireEvent.change(panel.getByLabelText("Price from, $"), { target: { value: "" } });
+    fireEvent.click(panel.getByRole("button", { name: /Search/ }));
+    await waitFor(() => expect(push).toHaveBeenCalled());
+    for (const key of ["city", "rooms", "priceMin"]) expect(pushed().has(key)).toBe(false);
+  });
+
+  it("clears only the panel's filters and can be dismissed without searching", async () => {
+    bar({ deal: "sale", city: "dubai", priceMax: 100 });
+    openMore();
+    fireEvent.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Clear" }));
+    expect(screen.getByLabelText("Price to, $")).toHaveValue("");
+    fireEvent.click(document.querySelector(".ant-modal-close") as HTMLElement);
+    expect(push).not.toHaveBeenCalled();
+    submit();
+    await waitFor(() => expect(push).toHaveBeenCalled());
+    expect(Object.fromEntries(pushed())).toEqual({ deal: "sale", cur: "usd", view: "grid", sort: "new" });
+  });
+
+  it("writes room counts in full, with the top one as a minimum, in the page language", () => {
+    render(<SearchBar locale="ru" t={getDictionary("ru")} filters={{}} display={display} />);
+    fireEvent.click(screen.getByRole("button", { name: /Другие фильтры/ }));
+    expect(screen.getByRole("radio", { name: "Тбилиси" })).toBeInTheDocument();
+    expect(screen.getByRole("radio", { name: "4+" })).toBeInTheDocument();
+    expect(screen.getByRole("radio", { name: "3" })).toBeInTheDocument();
   });
 });
 

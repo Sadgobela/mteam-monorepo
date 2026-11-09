@@ -1,83 +1,157 @@
+"use client";
+
+import { useState, useTransition, type SyntheticEvent } from "react";
+import { useRouter } from "next/navigation";
+import { FilterOutlined, SearchOutlined } from "@ant-design/icons";
+import { AutoComplete, Badge, Button, InputNumber, Modal, Segmented, Select } from "antd";
 import {
   citySlugs,
   dealTypes,
+  districtOptions,
   propertyTypes,
   roomOptions,
   type Dict,
   type ListingDisplay,
   type ListingFilters,
+  type Locale,
 } from "@mteam/shared";
 
-function Select({
-  name,
-  label,
-  anyLabel,
-  value,
-  options,
-}: {
-  name: string;
-  label: string;
-  anyLabel: string;
-  value: string | number | undefined;
-  options: { value: string | number; label: string }[];
-}) {
-  return (
-    <label>
+type NumberField = "priceMin" | "priceMax" | "areaMin" | "areaMax" | "floorMin" | "floorMax";
+
+const moreFields = { city: undefined, rooms: undefined, priceMin: undefined, priceMax: undefined, areaMin: undefined, areaMax: undefined, floorMin: undefined, floorMax: undefined };
+
+export function SearchBar({ locale, t, filters, display }: { locale: Locale; t: Dict; filters: ListingFilters; display: ListingDisplay }) {
+  const router = useRouter();
+  const [searching, startSearch] = useTransition();
+  const [draft, setDraft] = useState(filters);
+  const [moreOpen, setMoreOpen] = useState(false);
+  const change = (values: Partial<ListingFilters>) => setDraft({ ...draft, ...values });
+
+  function search(event: SyntheticEvent) {
+    event.preventDefault();
+    // "deal" is always sent, even empty: it is how the home page knows a search was made.
+    const params = new URLSearchParams({ deal: draft.deal ?? "", cur: display.cur, view: display.view, sort: display.sort });
+    for (const [key, value] of Object.entries(draft)) {
+      if (key !== "deal" && value !== undefined) params.set(key, value === true ? "1" : String(value));
+    }
+    setMoreOpen(false);
+    startSearch(() => router.push(`?${params}`));
+  }
+
+  const number = (name: NumberField, label: string) => (
+    <label className="field">
       <small>{label}</small>
-      <select name={name} defaultValue={value ?? ""}>
-        <option value="">{anyLabel}</option>
-        {options.map((option) => (
-          <option key={option.value} value={option.value}>
-            {option.label}
-          </option>
-        ))}
-      </select>
+      <InputNumber
+        value={draft[name]}
+        min={0}
+        max={100000000}
+        precision={0}
+        inputMode="numeric"
+        onChange={(value) => change({ [name]: value ?? undefined })}
+        onPressEnter={search}
+      />
     </label>
   );
-}
 
-function PriceInput({ name, label, value }: { name: string; label: string; value: number | undefined }) {
-  return (
-    <label>
-      <small>{label}</small>
-      <input name={name} type="number" min={0} max={100000000} inputMode="numeric" defaultValue={value} />
-    </label>
-  );
-}
-
-export function SearchBar({ t, filters, display }: { t: Dict; filters: ListingFilters; display: ListingDisplay }) {
-  const any = t.search.any;
+  const needle = (draft.q ?? "").toLowerCase();
   const lastRoom = roomOptions[roomOptions.length - 1];
-  const moreIsActive = [filters.city, filters.priceMin, filters.priceMax, filters.rooms, filters.areaMin, filters.areaMax, filters.floorMin, filters.floorMax].some((v) => v !== undefined);
+  const extraFilters = Object.keys(moreFields).filter((key) => draft[key as keyof typeof moreFields] !== undefined).length;
+
   return (
-    <form className="search" role="search" action="" method="get" noValidate>
-      <input type="hidden" name="cur" value={display.cur} />
-      <input type="hidden" name="view" value={display.view} />
-      <input type="hidden" name="sort" value={display.sort} />
-      <Select name="deal" label={t.search.deal} anyLabel={any} value={filters.deal} options={dealTypes.map((d) => ({ value: d, label: t.deal[d] }))} />
-      <Select name="type" label={t.search.type} anyLabel={any} value={filters.type} options={propertyTypes.map((p) => ({ value: p, label: t.propertyType[p] }))} />
-      <label className="grow">
-        <small>{t.search.location}</small>
-        <input name="q" defaultValue={filters.q} placeholder={t.search.locationHint} />
-      </label>
-      <label className="chip">
-        <input type="checkbox" name="verified" value="1" defaultChecked={filters.verified} />
-        {t.search.verifiedOnly}
-      </label>
-      <details className="more" open={moreIsActive}>
-        <summary className="btn ghost">{t.search.more}</summary>
+    <>
+      <form className="search" role="search" noValidate onSubmit={search}>
+        <label>
+          <small>{t.search.deal}</small>
+          <Select
+            aria-label={t.search.deal}
+            variant="borderless"
+            allowClear
+            placeholder={t.search.any}
+            value={draft.deal}
+            options={dealTypes.map((d) => ({ value: d, label: t.deal[d] }))}
+            onChange={(deal) => change({ deal })}
+          />
+        </label>
+        <label>
+          <small>{t.search.type}</small>
+          <Select
+            aria-label={t.search.type}
+            variant="borderless"
+            allowClear
+            placeholder={t.search.any}
+            value={draft.type}
+            options={propertyTypes.map((p) => ({ value: p, label: t.propertyType[p] }))}
+            onChange={(type) => change({ type })}
+          />
+        </label>
+        <label className="grow">
+          <small>{t.search.location}</small>
+          <AutoComplete
+            aria-label={t.search.location}
+            variant="borderless"
+            allowClear
+            placeholder={t.search.locationHint}
+            value={draft.q}
+            options={districtOptions(locale).filter((d) => `${d.label} ${d.value}`.toLowerCase().includes(needle))}
+            onChange={(q: string | undefined) => change({ q: q || undefined })}
+          />
+        </label>
+        <label className="chip">
+          <input type="checkbox" checked={draft.verified ?? false} onChange={(event) => change({ verified: event.target.checked || undefined })} />
+          {t.search.verifiedOnly}
+        </label>
+        <Badge count={extraFilters} color="var(--action)">
+          <Button className="more-button" icon={<FilterOutlined />} onClick={() => setMoreOpen(true)}>
+            {t.search.more}
+          </Button>
+        </Badge>
+        <Button className="search-button" type="primary" htmlType="submit" icon={<SearchOutlined />} loading={searching}>
+          {t.search.submit}
+        </Button>
+      </form>
+
+      <Modal
+        open={moreOpen}
+        title={t.search.more}
+        onCancel={() => setMoreOpen(false)}
+        footer={[
+          <Button key="clear" type="text" onClick={() => change(moreFields)}>
+            {t.search.clear}
+          </Button>,
+          <Button key="search" type="primary" onClick={search}>
+            {t.search.submit}
+          </Button>,
+        ]}
+      >
         <div className="more-panel">
-          <Select name="city" label={t.search.city} anyLabel={any} value={filters.city} options={citySlugs.map((c) => ({ value: c, label: t.city[c] }))} />
-          <PriceInput name="priceMin" label={t.search.priceMin} value={filters.priceMin} />
-          <PriceInput name="priceMax" label={t.search.priceMax} value={filters.priceMax} />
-          <PriceInput name="areaMin" label={t.search.areaMin} value={filters.areaMin} />
-          <PriceInput name="areaMax" label={t.search.areaMax} value={filters.areaMax} />
-          <PriceInput name="floorMin" label={t.search.floorMin} value={filters.floorMin} />
-          <PriceInput name="floorMax" label={t.search.floorMax} value={filters.floorMax} />
-          <Select name="rooms" label={t.search.rooms} anyLabel={any} value={filters.rooms} options={roomOptions.map((r) => ({ value: r, label: r === lastRoom ? `${r}+` : String(r) }))} />
+          <div className="field wide">
+            <small>{t.search.city}</small>
+            <Segmented<string>
+              block
+              aria-label={t.search.city}
+              value={draft.city ?? ""}
+              options={[{ value: "", label: t.search.any }, ...citySlugs.map((c) => ({ value: c, label: t.city[c] }))]}
+              onChange={(city) => change({ city: citySlugs.find((slug) => slug === city) })}
+            />
+          </div>
+          <div className="field wide">
+            <small>{t.search.rooms}</small>
+            <Segmented<number>
+              block
+              aria-label={t.search.rooms}
+              value={draft.rooms ?? 0}
+              options={[{ value: 0, label: t.search.any }, ...roomOptions.map((r) => ({ value: r, label: r === lastRoom ? `${r}+` : String(r) }))]}
+              onChange={(rooms) => change({ rooms: rooms || undefined })}
+            />
+          </div>
+          {number("priceMin", t.search.priceMin)}
+          {number("priceMax", t.search.priceMax)}
+          {number("areaMin", t.search.areaMin)}
+          {number("areaMax", t.search.areaMax)}
+          {number("floorMin", t.search.floorMin)}
+          {number("floorMax", t.search.floorMax)}
         </div>
-      </details>
-      <button className="btn" type="submit">{t.search.submit}</button>
-    </form>
+      </Modal>
+    </>
   );
 }

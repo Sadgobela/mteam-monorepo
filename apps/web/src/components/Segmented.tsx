@@ -1,6 +1,10 @@
-import Link from "next/link";
+"use client";
 
-/** A row of mutually exclusive choices. They are links, so every state has its own shareable URL. */
+import { useOptimistic, useTransition } from "react";
+import { useRouter } from "next/navigation";
+import { Segmented as AntSegmented } from "antd";
+
+/** A row of mutually exclusive choices. Each one is a URL, and the highlight moves before the new page arrives. */
 export function Segmented({
   label,
   options,
@@ -8,13 +12,20 @@ export function Segmented({
   label: string;
   options: { text: string; href: string; active: boolean }[];
 }) {
+  const router = useRouter();
+  const [, startTransition] = useTransition();
+  const [current, showCurrent] = useOptimistic(options.find((option) => option.active)?.href);
   return (
-    <div role="group" aria-label={label} className="seg">
-      {options.map((option) => (
-        <Link key={option.text} href={option.href} scroll={false} aria-current={option.active ? "true" : undefined}>
-          {option.text}
-        </Link>
-      ))}
-    </div>
+    <AntSegmented
+      aria-label={label}
+      value={current}
+      options={options.map((option) => ({ label: option.text, value: option.href }))}
+      onChange={(href) =>
+        startTransition(() => {
+          showCurrent(href);
+          router.push(href, { scroll: false });
+        })
+      }
+    />
   );
 }
