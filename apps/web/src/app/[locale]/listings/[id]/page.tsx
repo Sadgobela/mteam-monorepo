@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { ReactNode } from "react";
 import { getListing } from "@mteam/db";
-import { convertPrice, formatDay, formatPrice, getDictionary, parseListingDisplay } from "@mteam/shared";
+import { priceUnit, convertPrice, formatDay, formatPrice, getDictionary, parseListingDisplay } from "@mteam/shared";
 import { Gallery } from "@/components/Gallery";
 import { Header } from "@/components/Header";
 import { GiveBand } from "@/components/LeadForm";
@@ -50,6 +50,7 @@ export default async function ListingPage({
   const { cur } = parseListingDisplay(await searchParams);
   const shown = convertPrice(listing.price, listing.currency, cur);
   const currency = cur === "gel" ? "GEL" : "USD";
+  const unit = priceUnit(listing.deal, t);
   const here = `/${locale}/listings/${listing.id}`;
 
   return (
@@ -68,7 +69,7 @@ export default async function ListingPage({
             <div className="row">
               <span className="price big">
                 {formatPrice(shown, currency)}
-                {listing.deal === "rent" && <small className="meta"> {t.perMonth}</small>}
+                {unit && <small className="meta"> {unit}</small>}
               </span>
               <Segmented
                 label={t.results.currency}

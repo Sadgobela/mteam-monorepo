@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { defaultLocale, districtOptions, formatDay, formatPrice, getDictionary, isLocale, locales, placeName } from "./index";
+import { defaultLocale, districtOptions, formatDay, formatPrice, getDictionary, isLocale, locales, placeName, priceUnit } from "./index";
 
 describe("formatDay", () => {
   it("writes a short date in the page language, independent of time zone", () => {
@@ -28,6 +28,17 @@ describe("i18n", () => {
       Object.entries(o).flatMap(([k, v]) => (typeof v === "object" ? keys(v).map((s) => `${k}.${s}`) : [k]));
     const ka = keys(getDictionary("ka")).sort();
     for (const l of locales) expect(keys(getDictionary(l)).sort()).toEqual(ka);
+  });
+});
+
+describe("priceUnit", () => {
+  it("says what a price is per, and nothing for one-off deals", () => {
+    const t = getDictionary("en");
+    expect(priceUnit("rent", t)).toBe("/ month");
+    expect(priceUnit("lease", t)).toBe("/ month");
+    expect(priceUnit("daily", t)).toBe("/ day");
+    expect(priceUnit("sale", t)).toBeUndefined();
+    expect(priceUnit("pledge", t)).toBeUndefined();
   });
 });
 

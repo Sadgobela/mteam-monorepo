@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-export const dealTypes = ["sale", "rent", "daily"] as const;
+export const dealTypes = ["sale", "rent", "daily", "pledge", "lease"] as const;
 export type DealType = (typeof dealTypes)[number];
 
 export const propertyTypes = ["apartment", "house", "commercial", "land"] as const;

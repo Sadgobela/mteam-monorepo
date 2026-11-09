@@ -1,6 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
-import { convertPrice, formatDay, formatPrice, placeName, type DisplayCurrency, type Dict, type Listing, type Locale } from "@mteam/shared";
+import { priceUnit, convertPrice, formatDay, formatPrice, placeName, type DisplayCurrency, type Dict, type Listing, type Locale } from "@mteam/shared";
 
 /** Built from the listing's facts, so a card reads in the page language whatever language the owner wrote in. */
 function cardTitle(listing: Listing, locale: Locale, t: Dict): string {
@@ -27,6 +27,7 @@ export function ListingCard({
 }) {
   const shown = convertPrice(listing.price, listing.currency, cur);
   const currency = cur === "gel" ? "GEL" : "USD";
+  const unit = priceUnit(listing.deal, t);
   return (
     <Link href={`/${locale}/listings/${listing.id}${cur === "gel" ? "?cur=gel" : ""}`} className="card">
       <div className={`ph ${listing.tone}`}>
@@ -54,7 +55,7 @@ export function ListingCard({
         <div className="cprice">
           <span className="price">
             {formatPrice(shown, currency)}
-            {listing.deal === "rent" && <small className="meta"> {t.perMonth}</small>}
+            {unit && <small className="meta"> {unit}</small>}
           </span>
           {listing.deal === "sale" && (
             <span className="meta">
