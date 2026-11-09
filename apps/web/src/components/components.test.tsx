@@ -121,6 +121,13 @@ describe("LanguageMenu", () => {
     expect(option("Русский")).toHaveAttribute("href", "/ru");
   });
 
+  it("keeps the page for a middle-click or long-press too, which never fire click", () => {
+    window.history.pushState({}, "", "/en/brokers?x=1");
+    open();
+    fireEvent.pointerDown(option("ქართული"));
+    expect(option("ქართული")).toHaveAttribute("href", "/ka/brokers?x=1");
+  });
+
   it("marks the current language as selected", () => {
     open("ka");
     expect(option("ქართული").closest("li")).toHaveClass("ant-dropdown-menu-item-selected");

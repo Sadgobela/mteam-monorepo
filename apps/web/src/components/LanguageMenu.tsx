@@ -38,7 +38,8 @@ function Flag({ locale }: { locale: Locale }) {
   );
 }
 
-// At click time, so a page's path and filters carry over without every page having to pass them in.
+// When it is pressed, so a page's path and filters carry over without every page passing them in.
+// Pointer down also covers middle-click and long-press, which never fire click; click covers the keyboard.
 function keepPlace(event: MouseEvent<HTMLAnchorElement>, target: Locale) {
   const { pathname, search } = window.location;
   event.currentTarget.href = `/${target}${pathname.replace(/^\/[^/]+/, "")}${search}`;
@@ -48,7 +49,7 @@ export function LanguageMenu({ locale, label }: { locale: Locale; label: string 
   const items = locales.map((option) => ({
     key: option,
     label: (
-      <a href={`/${option}`} lang={option} className="lang-option" onClick={(event) => keepPlace(event, option)}>
+      <a href={`/${option}`} lang={option} className="lang-option" onClick={(event) => keepPlace(event, option)} onPointerDown={(event) => keepPlace(event, option)}>
         <Flag locale={option} />
         {languageNames[option]}
       </a>

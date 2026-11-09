@@ -78,6 +78,7 @@ describe("parseListingDraft", () => {
 
   it("allows land and commercial property without rooms", () => {
     expect(parseListingDraft({ ...valid, type: "land", rooms: "", floor: "", floors: "" })?.rooms).toBeUndefined();
+    expect(parseListingDraft({ ...valid, type: "hotel", rooms: "" })).not.toBeNull();
     expect(parseListingDraft({ ...valid, type: "commercial", rooms: "" })?.rooms).toBeUndefined();
   });
 
