@@ -31,6 +31,12 @@ enum PropertyType {
   HOTEL
 }
 
+enum BuildingStatus {
+  OLD
+  NEW
+  CONSTRUCTION
+}
+
 enum Currency {
   USD
   GEL
@@ -121,9 +127,12 @@ model Listing {
   district    String?
   address     String?
   street      String?
+  metro       String?
+  building    BuildingStatus?
   lat         Float?
   lng         Float?
   price       Int
+  pricePerSqmUsd Int
   priceUsd    Int           // price at fixed rates, so mixed currencies can be filtered and sorted
   currency    Currency      @default(USD)
   area        Float         // m²

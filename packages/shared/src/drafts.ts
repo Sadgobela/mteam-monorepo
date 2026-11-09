@@ -1,6 +1,6 @@
 import { z } from "zod";
-import { cityDistricts, isCity } from "./places";
-import { currencies, dealTypes, propertyTypes } from "./search";
+import { cityDistricts, isCity, isMetro, METRO_CITY } from "./places";
+import { buildingStatuses, currencies, dealTypes, propertyTypes } from "./search";
 
 /** Georgian mobile numbers only, in any common spelling. Returns +9955XXXXXXXX, or null. */
 export function parsePhone(input: string): string | null {
@@ -50,6 +50,8 @@ const draftSchema = z
     district: text(100).optional(),
     address: text(200),
     street: z.union([z.literal("").transform(() => undefined), text(120)]).optional(),
+    metro: z.union([z.literal("").transform(() => undefined), z.string().refine(isMetro)]).optional(),
+    building: z.union([z.literal("").transform(() => undefined), z.enum(buildingStatuses)]).optional(),
     title: text(120),
     description: text(5000),
     price: whole(1, 2_000_000_000),
@@ -67,6 +69,7 @@ const draftSchema = z
   })
   // Exact names, or searching by district would miss the listing. Places without districts have none to give.
   .refine((d) => (cityDistricts(d.city).length === 0 ? d.district === undefined : cityDistricts(d.city).includes(d.district ?? "")))
+  .refine((d) => d.metro === undefined || d.city === METRO_CITY)
   .refine((d) => d.rooms !== undefined || d.type === "commercial" || d.type === "land" || d.type === "hotel")
   .refine((d) => (d.lat === undefined) === (d.lng === undefined))
   .refine((d) => (d.floor === undefined) === (d.floors === undefined) && (d.floor ?? 0) <= (d.floors ?? 0));
