@@ -177,8 +177,12 @@ describe("FormSelect", () => {
     fireEvent.mouseDown(container.querySelector(".ant-select-clear") as Element);
     fireEvent.click(container.querySelector(".ant-select-clear") as Element);
     expect(guard(container)).toHaveValue("");
-    fireEvent.change(guard(container), { target: { value: "b" } });
-    expect(guard(container)).toHaveValue("b");
+  });
+
+  it("ignores text typed or autofilled into the hidden field", () => {
+    const { container } = render(<FormSelect name="fruit" label="Fruit" options={options} initial="a" />);
+    fireEvent.change(guard(container), { target: { value: "not a fruit" } });
+    expect(guard(container)).toHaveValue("a");
   });
 });
 

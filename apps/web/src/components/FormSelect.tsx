@@ -33,8 +33,8 @@ export function FormSelect({
         <small>{label}</small>
       </label>
       <Select id={id} showSearch={{ optionFilterProp: "label" }} allowClear={optional} suffix={null} placeholder="—" value={value || undefined} options={options} onChange={choose} />
-      {/* Ant's Select is not a form control. This puts the value in the form and lets the browser enforce "required". */}
-      <input className="select-guard" name={name} required={!optional} value={value} onChange={(event) => choose(event.target.value)} tabIndex={-1} aria-hidden="true" />
+      {/* Ant's Select is not a form control. This puts the value in the form and lets the browser enforce "required". Not readOnly, which would switch that off; the empty handler keeps anything typed here or autofilled out. */}
+      <input className="select-guard" name={name} required={!optional} value={value} onChange={() => undefined} autoComplete="off" tabIndex={-1} aria-hidden="true" />
     </div>
   );
 }
