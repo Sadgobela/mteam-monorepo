@@ -16,9 +16,9 @@ export function CardPhotos({ images, alt }: { images: string[]; alt: string }) {
   return (
     <>
       <div ref={strip} className="strip">
-        {images.map((src) => (
+        {images.map((src, index) => (
           <div key={src} className="strip-photo">
-            <Image src={src} alt={alt} fill unoptimized />
+            <Image src={src} alt={index === 0 ? alt : ""} fill unoptimized />
           </div>
         ))}
       </div>

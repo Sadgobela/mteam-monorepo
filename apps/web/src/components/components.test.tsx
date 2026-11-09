@@ -153,6 +153,11 @@ describe("CardPhotos", () => {
     expect(container.querySelectorAll("img")).toHaveLength(1);
   });
 
+  it("describes only the first photo, so a card's name does not repeat", () => {
+    const { container } = render(<CardPhotos images={["https://cdn/a.jpg", "https://cdn/b.jpg"]} alt="Flat" />);
+    expect([...container.querySelectorAll("img")].map((image) => image.getAttribute("alt"))).toEqual(["Flat", ""]);
+  });
+
   it("scrolls one photo at a time without following the card's link", () => {
     const scrollBy = vi.fn();
     Element.prototype.scrollBy = scrollBy;
@@ -181,6 +186,17 @@ describe("Pager", () => {
     pager(4);
     expect(screen.getAllByRole("link", { name: "← Previous" })).toHaveLength(1);
     expect(screen.getAllByRole("link", { name: "Next →" })).toHaveLength(1);
+  });
+
+  it("works from the keyboard, and a click navigates once through its link", () => {
+    pager(2);
+    const link = screen.getByRole("link", { name: "3" });
+    fireEvent.keyDown(link.closest("li") as Element, { key: "Enter", keyCode: 13, which: 13 });
+    expect(push).toHaveBeenCalledWith("/en?deal=sale&page=3");
+    push.mockClear();
+    link.addEventListener("click", (event) => event.preventDefault());
+    fireEvent.click(link);
+    expect(push).not.toHaveBeenCalled();
   });
 
   it("skips ahead on long result sets", () => {

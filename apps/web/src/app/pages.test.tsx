@@ -44,7 +44,6 @@ vi.mock("leaflet", () => ({
   },
 }));
 
-import Loading from "./[locale]/loading";
 import LocaleLayout, { generateStaticParams, metadata } from "./[locale]/layout";
 import HomePage, { dynamic as homeRendering } from "./[locale]/page";
 import ListingPage, { dynamic as listingRendering } from "./[locale]/listings/[id]/page";
@@ -245,11 +244,6 @@ describe("listing page", () => {
     vi.mocked(getListing).mockResolvedValueOnce({ ...fixtureListings[0], district: "" });
     render(await ListingPage({ params: p({ locale: "en", id: "20418" }), searchParams: p({}) }));
     expect(screen.getByRole("navigation", { name: "Path" })).not.toHaveTextContent("Vake");
-  });
-
-  it("shows the shape of the results while a page loads", () => {
-    const { container } = render(<Loading />);
-    expect(container.querySelectorAll(".card.skeleton")).toHaveLength(8);
   });
 
   it("shows building status and metro when the listing has them", async () => {

@@ -30,7 +30,7 @@ export function ListingCard({
   return (
     <Link href={`/${locale}/listings/${listing.id}${cur === "gel" ? "?cur=gel" : ""}`} className="card">
       <div className={`ph ${listing.tone}`}>
-        {listing.images.length > 0 && <CardPhotos images={listing.images} alt={listing.title} />}
+        {listing.images.length > 0 && <CardPhotos images={listing.images.slice(0, 5)} alt={listing.title} />}
         {listing.verified && (
           <span className="badge">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" aria-hidden="true">

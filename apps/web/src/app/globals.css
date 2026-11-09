@@ -214,7 +214,7 @@ html:has(.viewer[open]) { overflow: hidden; }
 .pager { display: flex; justify-content: center; font-weight: 700; }
 .strip { position: absolute; inset: 0; display: flex; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; }
 .strip::-webkit-scrollbar { display: none; }
-.strip-photo { position: relative; flex: 0 0 100%; scroll-snap-align: start; }
+.strip-photo { position: relative; flex: 0 0 100%; overflow: hidden; scroll-snap-align: start; }
 .strip-nav { display: none; position: absolute; top: 50%; transform: translateY(-50%); width: 32px; height: 32px; padding: 0; border: 0; border-radius: 50%; background: var(--surface); color: var(--fg); font-size: 20px; line-height: 1; cursor: pointer; }
 .strip-nav.previous { left: 8px; }
 .strip-nav.next { right: 8px; }
@@ -222,11 +222,6 @@ html:has(.viewer[open]) { overflow: hidden; }
 .crumbs { display: flex; flex-wrap: wrap; gap: 6px; font-size: 13px; color: var(--muted); }
 .crumbs > * + *::before { content: "/"; margin-inline-end: 6px; opacity: 0.6; }
 @media (hover: hover) { .crumbs a:hover { color: var(--brand-deep); } }
-@keyframes shimmer { 50% { opacity: 0.45; } }
-.skeleton .ph, .skeleton i { background: var(--brand-soft); animation: shimmer 1.2s ease-in-out infinite; }
-.skeleton i { display: block; height: 14px; border-radius: 6px; }
-.skeleton i:first-child { width: 55%; height: 20px; }
-.skeleton i:last-child { width: 70%; }
 .band { display: grid; gap: 4px; min-width: 0; background: var(--brand-soft); border-radius: 16px; padding: 22px; scroll-margin-top: 16px; }
 .band h2 { font-size: 20px; font-weight: 800; }
 .band p { margin: 0; color: var(--muted); }
