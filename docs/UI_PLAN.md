@@ -40,14 +40,14 @@ Chosen on 2026-11-09: **version A, the familiar grid**, from the [clickable mock
 
 ### 1. Header
 - [x] Two rows on desktop: logo, post button, language, favourites, sign in; then the sections.
-- [ ] Compact phone header with a menu.
+- [x] Compact phone header with a menu.
 
 ### 2. Search
 - [x] Home: one wide bar with deal and property type, location, and search.
 - [x] "Verified only" switch beside the search button.
 - [x] A filters button opening price, rooms and city.
 - [x] Area in the panel; district through the location text.
-- [ ] Floor filter.
+- [x] Floor filter.
 - [x] Results: the same bar stays at the top.
 - [x] Active filters as removable chips.
 
@@ -56,7 +56,7 @@ Chosen on 2026-11-09: **version A, the familiar grid**, from the [clickable mock
 - [x] Generated title in the page language, such as "For sale: 3-room apartment in Vake", so the card is not only in the language the owner wrote.
 - [x] mTeam Verified badge top left and photo count.
 - [x] Favourite heart top right.
-- [ ] Broker and check date on hover.
+- [x] Broker and check date on hover.
 - [x] Broker avatar and name on cards.
 - [x] Four columns on desktop, two on tablet, one on phone.
 
@@ -67,17 +67,17 @@ Chosen on 2026-11-09: **version A, the familiar grid**, from the [clickable mock
 - [x] Map view.
 
 ### 5. Listing page
-- [ ] Full-width gallery with a photo viewer.
+- [x] Full-width gallery with a photo viewer.
 - [x] Sticky contact box: call, WhatsApp, and the broker's face and branch.
-- [ ] Price and ₾/$ switch in that box.
+- [x] Price and ₾/$ switch in that box.
 - [x] Verification note: what was checked, by whom and when.
-- [ ] "Give it to mTeam" for owners.
+- [x] "Give it to mTeam" for owners.
 - [x] Working call and WhatsApp buttons.
-- [ ] Facts as an icon grid.
+- [x] Facts as an icon grid.
 
 ### 6. Posting form
 - [x] Photo preview before sending, and an optional map pin.
-- [ ] Split into steps.
+- [x] Split into steps.
 
 ## Needs backend work
 
@@ -91,8 +91,8 @@ These UI items need more than styling:
 - [x] Verified filter and verified-first ordering.
 - [x] Who verified a listing and when (`verifiedAt`, `verifiedBy`).
 - [x] Lead form for Give it to mTeam.
-- [ ] Generated titles need translated district names, or fall back to the city.
+- [x] Generated titles need translated district names, or fall back to the city.
 
 ## Order
 
-Done: card, search and header, results, map, lead form, contact, favourites, broker profiles, moderation. Remaining polish: photo viewer, posting steps, compact phone menu.
+All items above are done except a real exchange rate source, which is on the pre-launch list in `docs/PROJECT_BRIEF.md`.
