@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createListing } from "@mteam/db";
 import { MAX_PHOTOS, MAX_PHOTO_BYTES, parseListingDraft } from "@mteam/shared";
+import { streetsIn } from "@mteam/shared/streets";
 import { readPhotos, uploadPhoto } from "@/lib/photos";
 import { currentUser } from "@/lib/session";
 
@@ -33,6 +34,8 @@ export async function POST(request: Request) {
 
   const draft = parseListingDraft(Object.fromEntries(form));
   if (!draft) return fail("invalid", 422);
+  // Here rather than in the draft parser, which also runs in the browser and would pull the whole list into the page.
+  if (draft.street && !streetsIn(draft.city, draft.district ? [draft.district] : []).includes(draft.street)) return fail("invalid", 422);
 
   const files = form.getAll("photos").filter((value): value is File => value instanceof File && value.size > 0);
   const photos = await readPhotos(files);

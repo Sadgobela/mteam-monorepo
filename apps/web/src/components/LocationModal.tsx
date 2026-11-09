@@ -36,16 +36,20 @@ function Body({ locale, t, initial, onApply }: { locale: Locale; t: Dict; initia
     if (name !== city) {
       setPicked([]);
       setPickedStreets([]);
+      setTab("districts");
     }
     setCity(name);
   }
 
   function apply() {
-    const streets = pickedStreets.filter((name) => available.includes(name));
+    // Until the list arrives there is nothing to check against, and dropping the filter would be worse.
+    const streets = streetsModule ? pickedStreets.filter((name) => available.includes(name)) : pickedStreets;
     onApply({
       city,
-      district: picked.length > 0 && picked.length < districtCount ? picked : undefined,
-      street: streets.length > 0 && streets.length < available.length ? streets : undefined,
+      // Every district is the whole city, unless streets depend on them being chosen.
+      district: picked.length > 0 && (picked.length < districtCount || streets.length > 0) ? picked : undefined,
+      // Never collapsed to "all": listings with no street would then match.
+      street: streets.length > 0 ? streets : undefined,
     });
   }
 

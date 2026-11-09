@@ -89,6 +89,22 @@ describe("POST /api/listings", () => {
     expect(db.createListing).not.toHaveBeenCalled();
   });
 
+  it("accepts a street of the chosen district", async () => {
+    expect((await send(post(form({ street: "ჭავჭავაძე ი. გამზირი" }))))[0]).toBe(200);
+    expect(db.createListing.mock.calls[0][1]).toMatchObject({ street: "ჭავჭავაძე ი. გამზირი" });
+  });
+
+  it("accepts a street of a city that has no districts", async () => {
+    const data = form({ city: "რუსთავი", street: "აღმაშენებლის გამზ." });
+    data.delete("district");
+    expect((await send(post(data)))[0]).toBe(200);
+  });
+
+  it("refuses a street that is not in the chosen district", async () => {
+    expect(await send(post(form({ street: "invented street" })))).toEqual([422, { error: "invalid" }]);
+    expect(photos.readPhotos).not.toHaveBeenCalled();
+  });
+
   it("reports invalid fields before touching photos", async () => {
     expect(await send(post(form({ title: " " })))).toEqual([422, { error: "invalid" }]);
     expect(photos.readPhotos).not.toHaveBeenCalled();

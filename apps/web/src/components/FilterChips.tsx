@@ -37,7 +37,7 @@ export function FilterChips({
   return (
     <div className="chips">
       {active.map(([key, label]) => (
-        <Link key={key} href={resultsHref(locale, query, { [key]: "", page: "1" })} aria-label={`${t.results.removeFilter}: ${label}`}>
+        <Link key={key} href={resultsHref(locale, query, { [key]: "", page: "1", ...(key === "district" && { street: "" }) })} aria-label={`${t.results.removeFilter}: ${label}`}>
           {label} <span aria-hidden="true">×</span>
         </Link>
       ))}

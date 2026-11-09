@@ -377,7 +377,7 @@ describe("SearchBar", () => {
       expect(document.querySelectorAll(".loc-columns label")).toHaveLength(1);
     });
 
-    it("sends no street list when every street is ticked, since that is the whole place", async () => {
+    it("keeps every ticked street, because listings without a street must stay out", async () => {
       bar();
       openPicker();
       city("Gudauri");
@@ -385,7 +385,40 @@ describe("SearchBar", () => {
       for (const input of document.querySelectorAll<HTMLInputElement>(".loc-columns input")) fireEvent.click(input);
       apply();
       await waitFor(() => expect(push).toHaveBeenCalled());
-      expect(pushed().has("street")).toBe(false);
+      expect(pushed().get("street")?.split("|")).toHaveLength(4);
+    });
+
+    it("keeps a street filter when applied before the street list has arrived", async () => {
+      bar({ city: "რუსთავი", street: ["ატენის ქ."] });
+      openPicker();
+      apply();
+      await waitFor(() => expect(push).toHaveBeenCalled());
+      expect(pushed().get("street")).toBe("ატენის ქ.");
+    });
+
+    it("keeps the district when every one is ticked but a street depends on it", async () => {
+      bar();
+      openPicker();
+      city("Gurjaani");
+      tick("Gurjaani (Sopeli)");
+      await showStreets(111);
+      tick((document.querySelector(".loc-columns label") as HTMLElement).textContent as string);
+      apply();
+      await waitFor(() => expect(push).toHaveBeenCalled());
+      expect(pushed().get("district")).toBe("გურჯაანი (სოფელი)");
+      expect(pushed().has("street")).toBe(true);
+    });
+
+    it("goes back to districts when the city changes", async () => {
+      bar();
+      openPicker();
+      city("Tbilisi");
+      tick("Vake");
+      await showStreets(57);
+      city("Batumi");
+      tick("Makhinjauri");
+      await picker().findByText(/^Streets/);
+      expect(districtBox("Makhinjauri")).toBeChecked();
     });
 
     it("drops a street whose district was unticked", async () => {
@@ -484,7 +517,7 @@ describe("SearchBar", () => {
 describe("FilterChips districts", () => {
   it("names one district, and counts the rest", () => {
     const { rerender } = render(<FilterChips locale="en" t={t} query={{ district: "ვაკე" }} filters={{ district: ["ვაკე"] }} />);
-    expect(screen.getByRole("link", { name: "Remove filter: Vake" })).toHaveAttribute("href", "/en?district=&page=1");
+    expect(screen.getByRole("link", { name: "Remove filter: Vake" })).toHaveAttribute("href", "/en?district=&page=1&street=");
     rerender(<FilterChips locale="en" t={t} query={{}} filters={{ district: ["ვაკე", "ვერა", "ისანი"] }} />);
     expect(screen.getByRole("link", { name: "Remove filter: Vake +2" })).toBeInTheDocument();
     rerender(<FilterChips locale="en" t={t} query={{ street: "ატენის ქ." }} filters={{ street: ["ატენის ქ."] }} />);
