@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { defaultLocale, formatDay, formatPrice, getDictionary, isLocale, locales, placeName } from "./index";
+import { defaultLocale, districtOptions, formatDay, formatPrice, getDictionary, isLocale, locales, placeName } from "./index";
 
 describe("formatDay", () => {
   it("writes a short date in the page language, independent of time zone", () => {
@@ -29,6 +29,14 @@ describe("i18n", () => {
       Object.entries(o).flatMap(([k, v]) => (typeof v === "object" ? keys(v).map((s) => `${k}.${s}`) : [k]));
     const ka = keys(getDictionary("ka")).sort();
     for (const l of locales) expect(keys(getDictionary(l)).sort()).toEqual(ka);
+  });
+});
+
+describe("districtOptions", () => {
+  it("labels districts in the page language and keeps the stored name as the value", () => {
+    expect(districtOptions("en")).toContainEqual({ value: "ვაკე", label: "Vake" });
+    expect(districtOptions("ru")).toContainEqual({ value: "ვაკე", label: "Ваке" });
+    expect(districtOptions("ka")).toContainEqual({ value: "ვაკე", label: "ვაკე" });
   });
 });
 

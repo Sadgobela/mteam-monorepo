@@ -28,6 +28,11 @@ const districtNames = new Map<string, { en: string; ru: string }>([
   ["Palm Jumeirah", { en: "Palm Jumeirah", ru: "Пальма Джумейра" }],
 ]);
 
+/** Districts to suggest in search. The value is the stored name, which is what search matches. */
+export function districtOptions(locale: Locale): { value: string; label: string }[] {
+  return [...districtNames].map(([value, names]) => ({ value, label: locale === "ka" ? value : names[locale] }));
+}
+
 /** Where a listing is, in the page language: its district when that can be shown, otherwise its city. */
 export function placeName(listing: Pick<Listing, "city" | "district">, locale: Locale, t: Dict): string | undefined {
   const district = listing.district.trim();
