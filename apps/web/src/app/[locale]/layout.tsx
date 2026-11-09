@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { locales } from "@mteam/shared";
+import { AntProvider } from "@/components/AntProvider";
 import { resolveLocale } from "@/lib/locale";
 import { themeInitScript } from "@/lib/theme";
 import "../globals.css";
@@ -26,7 +27,9 @@ export default async function LocaleLayout({
       <head>
         <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
       </head>
-      <body>{children}</body>
+      <body>
+        <AntProvider locale={locale}>{children}</AntProvider>
+      </body>
     </html>
   );
 }

@@ -28,6 +28,7 @@ Today mTeam posts its listings on existing portals (ss.ge, myhome.ge style). We 
 - Logo: the designer's official files, purple `#986DC6` on light backgrounds and white on dark or purple ones. The site draws it from those vectors in `apps/web/src/components/Logo.tsx`.
 - UI: familiar layout where people navigate, following what users know from myhome.ge and ss.ge, and a unique mTeam product where they decide. See `docs/UI_PLAN.md`. Their branding, assets and wording are never copied.
 - Testing: tests from day one, with 100% coverage enforced.
+- UI library: Ant Design 6 for interactive controls (dropdowns, panels, switches, forms), themed with MTeam's colours so it never looks like a default admin panel. Chosen by Irakli on 2026-11-09.
 - Working style: Irakli wants recommendations and alternative versions proposed proactively, and wants tokens kept low (agree on designs before building).
 
 ## Before public launch

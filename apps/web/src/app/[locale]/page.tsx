@@ -54,7 +54,7 @@ export default async function HomePage({
       <Header locale={locale} t={t} signedIn={user !== null} />
       <main className="page">
         {/* Keyed so that header links, which navigate without a reload, reset the form. */}
-        <SearchBar key={JSON.stringify([filters, display])} t={t} filters={filters} display={display} />
+        <SearchBar key={JSON.stringify([filters, display])} locale={locale} t={t} filters={filters} display={display} />
 
         {isResults && <FilterChips locale={locale} t={t} query={query} filters={filters} />}
 

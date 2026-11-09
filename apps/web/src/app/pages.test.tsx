@@ -1,10 +1,13 @@
 import { describe, expect, it, vi } from "vitest";
-import { render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { countListings, searchListings } from "@mteam/db";
 import { renderToStaticMarkup } from "react-dom/server";
 import { fixtureListings } from "@/test-fixtures";
 
+const push = vi.hoisted(() => vi.fn());
+
 vi.mock("next/navigation", () => ({
+  useRouter: () => ({ push }),
   notFound: () => {
     throw new Error("NEXT_NOT_FOUND");
   },
@@ -46,6 +49,7 @@ import HomePage, { dynamic as homeRendering } from "./[locale]/page";
 import ListingPage, { dynamic as listingRendering } from "./[locale]/listings/[id]/page";
 
 const p = <T,>(v: T) => Promise.resolve(v);
+const radio = (name: string) => screen.getByRole("radio", { name });
 
 describe("layout", () => {
   it("builds one page per language", () => {
@@ -86,7 +90,7 @@ describe("home page", () => {
     expect(countListings).toHaveBeenLastCalledWith(expect.objectContaining({ deal: "rent", rooms: 2 }), { located: false });
     expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("Search results");
     expect(screen.getByText("Listings found: 57")).toBeInTheDocument();
-    expect(screen.getByLabelText("Deal")).toHaveValue("rent");
+    expect(screen.getByRole("search")).toHaveTextContent("For rent");
   });
 
   it("shows results for a submitted form with every filter empty", async () => {
@@ -96,13 +100,15 @@ describe("home page", () => {
 
   it("keeps filters in sort, view and currency links, and marks the active ones", async () => {
     await home({ deal: "sale", sort: "desc", view: "list", cur: "gel" });
-    expect(screen.getByRole("link", { name: "Price ↑" })).toHaveAttribute("href", "/en?deal=sale&sort=asc&view=list&cur=gel&page=1");
-    expect(screen.getByRole("link", { name: "Newest" })).not.toHaveAttribute("aria-current");
-    expect(screen.getByRole("link", { name: "Price ↓" })).toHaveAttribute("aria-current", "true");
-    expect(screen.getByRole("link", { name: "Grid" })).not.toHaveAttribute("aria-current");
-    expect(screen.getByRole("link", { name: "List" })).toHaveAttribute("aria-current", "true");
-    expect(screen.getByRole("link", { name: "₾" })).toHaveAttribute("aria-current", "true");
-    expect(screen.getByRole("link", { name: "$" })).toHaveAttribute("href", "/en?deal=sale&sort=desc&view=list&cur=usd");
+    expect(radio("Newest")).not.toBeChecked();
+    expect(radio("Price ↓")).toBeChecked();
+    expect(radio("Grid")).not.toBeChecked();
+    expect(radio("List")).toBeChecked();
+    expect(radio("₾")).toBeChecked();
+    fireEvent.click(radio("Price ↑"));
+    await waitFor(() => expect(push).toHaveBeenLastCalledWith("/en?deal=sale&sort=asc&view=list&cur=gel&page=1", { scroll: false }));
+    fireEvent.click(radio("$"));
+    await waitFor(() => expect(push).toHaveBeenLastCalledWith("/en?deal=sale&sort=desc&view=list&cur=usd", { scroll: false }));
   });
 
   it("uses the list layout only when asked", async () => {
@@ -111,10 +117,10 @@ describe("home page", () => {
     list.unmount();
     const grid = await home({ deal: "sale" });
     expect(grid.container.querySelector(".cards.list")).toBeNull();
-    expect(screen.getByRole("link", { name: "Newest" })).toHaveAttribute("aria-current", "true");
-    expect(screen.getByRole("link", { name: "Price ↑" })).not.toHaveAttribute("aria-current");
-    expect(screen.getByRole("link", { name: "Price ↓" })).not.toHaveAttribute("aria-current");
-    expect(screen.getByRole("link", { name: "$" })).toHaveAttribute("aria-current", "true");
+    expect(radio("Newest")).toBeChecked();
+    expect(radio("Price ↑")).not.toBeChecked();
+    expect(radio("Price ↓")).not.toBeChecked();
+    expect(radio("$")).toBeChecked();
   });
 
   it("shows a map instead of cards, without paging, using only located listings", async () => {
@@ -132,7 +138,7 @@ describe("home page", () => {
     expect(screen.getByRole("region", { name: "Map" })).toBeInTheDocument();
     expect(screen.queryByRole("link", { name: /m²/ })).toBeNull();
     expect(screen.queryByRole("navigation", { name: "Pages" })).toBeNull();
-    expect(screen.getByRole("link", { name: "Map" })).toHaveAttribute("aria-current", "true");
+    expect(radio("Map")).toBeChecked();
   });
 
   it("does not redirect a stale page number on the map", async () => {
@@ -184,7 +190,7 @@ describe("home page", () => {
   it("resets the form when the filters change without a page reload", async () => {
     const { rerender } = render(await HomePage({ params: p({ locale: "en" }), searchParams: p({ deal: "rent" }) }));
     rerender(await HomePage({ params: p({ locale: "en" }), searchParams: p({ deal: "sale" }) }));
-    expect(screen.getByLabelText("Deal")).toHaveValue("sale");
+    expect(screen.getByRole("search")).toHaveTextContent("For sale");
   });
 
   it("says so when nothing matches", async () => {
@@ -232,14 +238,15 @@ describe("listing page", () => {
     render(view);
     expect(screen.getByText("$148,000")).toBeInTheDocument();
     expect(screen.getByText("$1,609 / m²")).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "₾" })).toHaveAttribute("href", "/en/listings/20418?cur=gel");
-    expect(screen.getByRole("link", { name: "$" })).toHaveAttribute("aria-current", "true");
+    expect(radio("$")).toBeChecked();
+    fireEvent.click(radio("₾"));
+    await waitFor(() => expect(push).toHaveBeenLastCalledWith("/en/listings/20418?cur=gel", { scroll: false }));
   });
 
   it("converts the price when ₾ is chosen", async () => {
     render(await ListingPage({ params: p({ locale: "en", id: "20418" }), searchParams: p({ cur: "gel" }) }));
     expect(screen.getByText("₾399,600")).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "₾" })).toHaveAttribute("aria-current", "true");
+    expect(radio("₾")).toBeChecked();
   });
 
   it("keeps the posted price visible when it was converted", async () => {

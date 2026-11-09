@@ -37,7 +37,8 @@ h1, h2, h3 { margin: 0; text-wrap: balance; }
 .sp { flex: 1; }
 .nav-wide { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
 .phone-menu { display: none; }
-.menu-panel { order: 9; flex: 1 1 100%; display: grid; gap: 12px; padding-block: 12px 4px; border-top: 1px solid var(--line); }
+.menu-panel { display: grid; gap: 12px; }
+.menu-panel a { color: inherit; }
 .menu-panel .links { display: grid; gap: 0; padding: 0; margin: 0; max-width: none; }
 .menu-panel .links a { display: flex; align-items: center; min-height: 44px; }
 .menu-panel .lang a { display: inline-flex; align-items: center; min-height: 44px; min-width: 44px; justify-content: center; }
@@ -47,11 +48,19 @@ h1, h2, h3 { margin: 0; text-wrap: balance; }
   .nav-wide, .nav-sections { display: none; }
   .phone-menu { display: contents; }
   .nav-main { gap: 8px; }
-  .phone-menu > .btn { width: 44px; padding: 0; font-size: 20px; }
 }
 @media (max-width: 360px) { .logo { width: 36px; } }
 .lang { display: flex; gap: 8px; font-size: 13px; font-weight: 600; color: var(--muted); }
 .lang [aria-current] { color: var(--brand-deep); }
+/* Ant Design reads these, so its controls follow both themes without waiting for JavaScript. */
+:root .mteam {
+  --ant-color-text: var(--fg); --ant-color-text-heading: var(--fg); --ant-color-text-label: var(--muted); --ant-color-text-description: var(--muted); --ant-color-icon: var(--muted); --ant-color-icon-hover: var(--fg);
+  --ant-color-text-secondary: var(--muted); --ant-color-text-tertiary: var(--muted); --ant-color-text-quaternary: var(--muted); --ant-color-text-placeholder: var(--muted);
+  --ant-color-bg-container: var(--surface); --ant-color-bg-elevated: var(--surface); --ant-color-bg-layout: var(--bg);
+  --ant-color-border: var(--line); --ant-color-border-secondary: var(--line); --ant-color-split: var(--line);
+  --ant-control-item-bg-hover: var(--brand-soft); --ant-control-item-bg-active: var(--brand-soft); --ant-control-item-bg-active-hover: var(--brand-soft); --ant-color-primary-bg: var(--brand-soft); --ant-color-primary-bg-hover: var(--brand-soft); --ant-color-primary-border: var(--focus); --ant-color-link: var(--brand-deep); --ant-color-link-hover: var(--brand-deep); --ant-color-link-active: var(--brand-deep); --ant-color-fill-tertiary: var(--brand-soft); --ant-color-fill-secondary: var(--brand-soft); --ant-color-fill: var(--brand-soft);
+}
+
 .btn { font: inherit; font-weight: 700; border: 0; border-radius: 10px; padding: 10px 16px; min-height: 44px; display: inline-flex; align-items: center; justify-content: center; cursor: pointer; background: var(--action); color: var(--on-action); white-space: nowrap; }
 .btn.ghost { background: transparent; color: var(--fg); border: 1px solid var(--line); }
 .btn.wa { background: var(--wa); color: #fff; }
@@ -64,16 +73,20 @@ h1, h2, h3 { margin: 0; text-wrap: balance; }
 .chip input { position: absolute; opacity: 0; width: 1px; height: 1px; }
 .chip:has(input:checked) { background: var(--action); border-color: var(--action); color: var(--on-action); }
 .chip:has(input:focus-visible) { outline: 3px solid var(--focus); outline-offset: 2px; }
-.search .more { display: flex; }
-.more summary { list-style: none; min-height: 52px; }
-.more summary::-webkit-details-marker { display: none; }
-.search .more[open] { flex: 1 1 100%; display: block; }
-.more-panel { margin-top: 8px; display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 8px; padding: 12px; border-top: 1px solid var(--line); }
-.search .more-panel input, .search .more-panel select { min-height: 40px; padding: 0 10px; border: 1px solid var(--line); border-radius: 8px; width: 100%; }
-.search > .btn { min-height: 52px; padding-inline: 28px; }
-@media (max-width: 760px) { .search > .btn { flex: 1 1 100%; } }
+.search .ant-badge { display: flex; }
+.search .more-button, .search .search-button { min-height: 52px; font-weight: 700; }
+.search .search-button { padding-inline: 28px; }
+@media (max-width: 760px) { .search .search-button, .search .ant-badge, .search .more-button { flex: 1 1 100%; width: 100%; } }
+.search .ant-select { height: 30px; padding: 0; font-weight: 600; outline: 0; }
+.search label { border-radius: 10px; transition: background-color 0.2s; }
+.search label:has(:focus-visible) { outline: 3px solid var(--focus); outline-offset: 2px; }
+@media (hover: hover) { .search label:not(.chip):hover { background: var(--brand-soft); } }
+.more-panel { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 12px; padding-block: 8px; }
+.more-panel .field .ant-segmented-block .ant-segmented-item { flex: 1 1 auto; }
+:root .more-panel .ant-segmented .ant-segmented-item-label { padding-inline: 2px; font-size: 13px; }
+.more-panel .wide { grid-column: 1 / -1; }
+.more-panel .ant-input-number { width: 100%; }
 .search small { color: var(--muted); font-size: 12px; }
-.search input, .search select { font: inherit; font-weight: 600; border: 0; background: transparent; color: var(--fg); padding: 0; }
 
 .section { display: grid; gap: 16px; padding: 24px max(16px, env(safe-area-inset-left, 0px)); }
 .row { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; flex-wrap: wrap; }
@@ -166,9 +179,7 @@ html:has(.viewer[open]) { overflow: hidden; }
 .tile { display: grid; gap: 2px; min-height: 72px; padding: 14px 16px; border-radius: 12px; border: 1px solid var(--line); background: var(--surface); }
 .tile.main { background: var(--action); border-color: var(--action); color: var(--on-action); }
 .toolbar { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
-.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; background: var(--surface); }
-.seg a { display: inline-flex; align-items: center; justify-content: center; min-height: 44px; min-width: 44px; padding: 0 12px; font-weight: 700; }
-.seg a[aria-current] { background: var(--action); color: var(--on-action); }
+:root .ant-segmented .ant-segmented-item-label { min-width: 44px; min-height: 44px; line-height: 44px; }
 .cards.list { grid-template-columns: minmax(0, 1fr); }
 .cards.list .card { grid-template-columns: minmax(0, 300px) minmax(0, 1fr); }
 @media (max-width: 640px) { .cards.list .card { grid-template-columns: minmax(0, 1fr); } }
@@ -212,3 +223,21 @@ html:has(.viewer[open]) { overflow: hidden; }
 .ldesc .map { height: 280px; }
 .map.small { height: 240px; }
 .previews { display: flex; gap: 8px; flex-wrap: wrap; }
+
+/* Motion. Colours ease everywhere; movement only where a mouse can trigger it, and never against the system setting. */
+.btn, .tile, .card, .chip, .chips a, .fav, .links a, .lang a, .nav-link, .pager a { transition: background-color 0.2s, border-color 0.2s, color 0.2s, box-shadow 0.2s, transform 0.2s; }
+.ph img { transition: transform 0.35s; }
+@keyframes appear { from { opacity: 0; transform: translateY(6px); } }
+.card-wrap { animation: appear 0.3s both; }
+@media (hover: hover) {
+  .btn:hover { filter: brightness(1.07); }
+  .btn.ghost:hover, .tile:hover { border-color: var(--brand); }
+  .links a:hover, .lang a:hover, .nav-link:hover, .pager a:hover { color: var(--brand-deep); }
+  .card:hover { transform: translateY(-3px); box-shadow: 0 10px 24px rgba(60, 35, 95, 0.14); }
+  .card:hover .ph img { transform: scale(1.04); }
+  .tile:hover { transform: translateY(-2px); }
+  .fav:hover { transform: scale(1.1); }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { transition: none !important; animation: none !important; }
+}
