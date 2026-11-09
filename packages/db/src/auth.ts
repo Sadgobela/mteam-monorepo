@@ -1,4 +1,4 @@
-import { createHash, randomBytes, randomInt } from "node:crypto";
+import { createHash, createHmac, randomBytes, randomInt } from "node:crypto";
 import { z } from "zod";
 import { db } from "./client";
 
@@ -10,8 +10,13 @@ const SESSION_TTL_MS = 30 * 24 * 60 * 60_000;
 
 const smsEnvSchema = z.object({ SMS_PROVIDER: z.literal("console") });
 
+const codeSecretSchema = z.object({ LOGIN_CODE_SECRET: z.string().min(32) });
+
 const sha256 = (value: string) => createHash("sha256").update(value).digest("hex");
-const hashCode = (phone: string, code: string) => sha256(`${phone}:${code}`);
+
+/** Keyed, because there are only a million possible codes: a plain hash could be reversed from a leaked database in moments. */
+const keyedHash = (value: string) => createHmac("sha256", codeSecretSchema.parse(process.env).LOGIN_CODE_SECRET).update(value).digest("hex");
+const hashCode = (phone: string, code: string) => keyedHash(`${phone}:${code}`);
 
 // ponytail: console only, for local testing. A real provider goes here, together with a per-IP request limit, before launch.
 function assertCodesCanBeSent(): void {
@@ -54,6 +59,7 @@ export async function requestLoginCode(phone: string): Promise<boolean> {
 /** Checks a code and returns a new session token, or null. A user is created on first login. */
 export async function verifyLoginCode(phone: string, code: string): Promise<string | null> {
   if (!/^\d{6}$/.test(code)) return null;
+  const codeHash = hashCode(phone, code);
   const client = db();
   const now = new Date();
 
@@ -65,7 +71,7 @@ export async function verifyLoginCode(phone: string, code: string): Promise<stri
   if (open === 0) return null;
 
   // Deleting on the hash makes a code single-use even if two requests race.
-  const { count: matched } = await client.loginCode.deleteMany({ where: { phone, codeHash: hashCode(phone, code) } });
+  const { count: matched } = await client.loginCode.deleteMany({ where: { phone, codeHash } });
   if (matched === 0) return null;
 
   const user = await client.user.upsert({ where: { phone }, update: {}, create: { phone } });

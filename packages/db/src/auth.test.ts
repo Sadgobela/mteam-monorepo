@@ -1,4 +1,4 @@
-import { createHash } from "node:crypto";
+import { createHash, createHmac } from "node:crypto";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const prisma = vi.hoisted(() => ({
@@ -13,6 +13,8 @@ import { deleteSession, getSessionUser, requestLoginCode, verifyLoginCode } from
 
 const phone = "+995555123456";
 const sha256 = (value: string) => createHash("sha256").update(value).digest("hex");
+const secret = "test-secret-that-is-long-enough-000";
+const keyed = (value: string, key = secret) => createHmac("sha256", key).update(value).digest("hex");
 const log = vi.spyOn(console, "info").mockImplementation(() => undefined);
 
 beforeEach(() => {
@@ -20,6 +22,7 @@ beforeEach(() => {
   prisma.loginCode.updateMany.mockReset();
   vi.useFakeTimers({ now: new Date("2026-11-09T10:00:00Z") });
   vi.stubEnv("SMS_PROVIDER", "console");
+  vi.stubEnv("LOGIN_CODE_SECRET", secret);
 });
 
 afterEach(() => {
@@ -44,7 +47,7 @@ describe("requestLoginCode", () => {
     expect(skipDuplicates).toBe(true);
     expect(data[0]).toEqual({
       phone,
-      codeHash: sha256(`${phone}:${code}`),
+      codeHash: keyed(`${phone}:${code}`),
       sentAt: new Date("2026-11-09T10:00:00Z"),
       expiresAt: new Date("2026-11-09T10:05:00Z"),
       attempts: 0,
@@ -67,7 +70,7 @@ describe("requestLoginCode", () => {
     const { where, data } = prisma.loginCode.updateMany.mock.calls[1][0];
     expect(where).toEqual({ phone, sentAt: { lte: new Date("2026-11-09T09:59:00Z") }, attempts: { lt: 5 } });
     expect(data).not.toHaveProperty("attempts");
-    expect(data.codeHash).toBe(sha256(`${phone}:${sentCode()}`));
+    expect(data.codeHash).toBe(keyed(`${phone}:${sentCode()}`));
     expect(prisma.loginCode.createMany).not.toHaveBeenCalled();
   });
 
@@ -80,6 +83,8 @@ describe("requestLoginCode", () => {
   it.each([
     ["without the console provider", "SMS_PROVIDER", undefined],
     ["in production", "NODE_ENV", "production"],
+    ["without the secret", "LOGIN_CODE_SECRET", undefined],
+    ["with a secret too short to protect anything", "LOGIN_CODE_SECRET", "short"],
   ])("refuses to issue a code %s, before any write", async (_name, key, value) => {
     vi.stubEnv(key, value as string);
     await expect(requestLoginCode(phone)).rejects.toThrow();
@@ -97,6 +102,23 @@ describe("verifyLoginCode", () => {
     expect(prisma.loginCode.updateMany).not.toHaveBeenCalled();
   });
 
+  it("refuses to check a code without the secret, before counting a guess", async () => {
+    vi.stubEnv("LOGIN_CODE_SECRET", undefined as unknown as string);
+    await expect(verifyLoginCode(phone, "123456")).rejects.toThrow();
+    expect(prisma.loginCode.updateMany).not.toHaveBeenCalled();
+  });
+
+  it("depends on the secret, so a leaked hash cannot be checked without it", async () => {
+    open();
+    prisma.loginCode.deleteMany.mockResolvedValue({ count: 0 });
+    vi.stubEnv("LOGIN_CODE_SECRET", "a-completely-different-secret-value-1");
+    await verifyLoginCode(phone, "123456");
+    const { where } = prisma.loginCode.deleteMany.mock.calls[0][0];
+    expect(where.codeHash).toBe(keyed(`${phone}:123456`, "a-completely-different-secret-value-1"));
+    expect(where.codeHash).not.toBe(keyed(`${phone}:123456`));
+    expect(where.codeHash).not.toBe(sha256(`${phone}:123456`));
+  });
+
   it("only counts attempts on a live code below the limit", async () => {
     prisma.loginCode.updateMany.mockResolvedValue({ count: 0 });
     expect(await verifyLoginCode(phone, "123456")).toBeNull();
@@ -112,7 +134,7 @@ describe("verifyLoginCode", () => {
     prisma.loginCode.deleteMany.mockResolvedValue({ count: 0 });
     expect(await verifyLoginCode(phone, "123456")).toBeNull();
     expect(prisma.loginCode.deleteMany.mock.calls[0][0]).toEqual({
-      where: { phone, codeHash: sha256(`${phone}:123456`) },
+      where: { phone, codeHash: keyed(`${phone}:123456`) },
     });
     expect(prisma.session.create).not.toHaveBeenCalled();
   });
