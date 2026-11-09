@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, within } from "@testing-library/react";
 import { getDictionary, type Listing } from "@mteam/shared";
 import { fixtureListings } from "@/test-fixtures";
 import { FilterChips } from "./FilterChips";
@@ -19,6 +19,57 @@ describe("Header", () => {
     expect(screen.getByRole("link", { name: "EN" })).toHaveAttribute("aria-current", "true");
     expect(screen.getByRole("link", { name: "KA" })).not.toHaveAttribute("aria-current");
   });
+
+  describe("phone menu", () => {
+    const menu = () => screen.getByRole("button", { name: "Menu" });
+    const panel = (container: HTMLElement) => container.querySelector(".menu-panel") as HTMLElement;
+
+    it("starts closed and opens with the same navigation", () => {
+      const { container } = render(<Header locale="en" t={t} signedIn={false} />);
+      expect(menu()).toHaveAttribute("aria-expanded", "false");
+      expect(panel(container)).toBeNull();
+      fireEvent.click(menu());
+      expect(menu()).toHaveAttribute("aria-expanded", "true");
+      expect(within(panel(container)).getByRole("link", { name: "For rent" })).toHaveAttribute("href", "/en?deal=rent");
+      expect(within(panel(container)).getByRole("link", { name: "Sign in" })).toBeInTheDocument();
+      expect(within(panel(container)).getByRole("link", { name: "RU" })).toBeInTheDocument();
+    });
+
+    it("closes when a link is followed, because a same-page link would otherwise leave it open", () => {
+      const { container } = render(<Header locale="en" t={t} signedIn={false} />);
+      fireEvent.click(menu());
+      fireEvent.click(within(panel(container)).getByRole("link", { name: "For rent" }));
+      expect(panel(container)).toBeNull();
+    });
+
+    it("stays open while the theme is changed", () => {
+      const { container } = render(<Header locale="en" t={t} signedIn={false} />);
+      fireEvent.click(menu());
+      fireEvent.click(within(panel(container)).getByRole("button", { name: /mode/ }));
+      expect(panel(container)).not.toBeNull();
+    });
+
+    it("closes on submit rather than on the click, so sign out still reaches the server", () => {
+      const { container } = render(<Header locale="en" t={t} signedIn />);
+      fireEvent.click(menu());
+      const signOut = within(panel(container)).getByRole("button", { name: "Sign out" });
+      // Cancelled so only the click is seen here; removing the form on the click is what used to lose the submit.
+      panel(container).addEventListener("click", (event) => event.preventDefault());
+      fireEvent.click(signOut);
+      expect(panel(container)).not.toBeNull();
+      fireEvent.submit(signOut.closest("form") as HTMLFormElement);
+      expect(panel(container)).toBeNull();
+    });
+
+    it("closes with a second press and offers the signed-in links", () => {
+      const { container } = render(<Header locale="en" t={t} signedIn />);
+      fireEvent.click(menu());
+      expect(within(panel(container)).getByRole("link", { name: "My listings" })).toBeInTheDocument();
+      expect(within(panel(container)).getByRole("button", { name: "Sign out" })).toBeInTheDocument();
+      fireEvent.click(menu());
+      expect(panel(container)).toBeNull();
+    });
+  });
 });
 
 describe("FilterChips", () => {
@@ -33,6 +84,8 @@ describe("FilterChips", () => {
     priceMax: 200,
     areaMin: 40,
     areaMax: 90,
+    floorMin: 3,
+    floorMax: 9,
   } as const;
 
   it("renders nothing with no filters", () => {
@@ -42,7 +95,8 @@ describe("FilterChips", () => {
 
   it("shows each active filter as a link that removes only it", () => {
     render(<FilterChips locale="en" t={t} query={{ deal: "rent", city: "dubai", page: "3" }} filters={all} />);
-    expect(screen.getAllByRole("link")).toHaveLength(10);
+    expect(screen.getAllByRole("link")).toHaveLength(12);
+    expect(screen.getByRole("link", { name: "Remove filter: Floor from 3" })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Remove filter: Dubai" })).toHaveAttribute("href", "/en?deal=rent&city=&page=1");
     expect(screen.getByRole("link", { name: "Remove filter: Area from, m² 40" })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Remove filter: marina" })).toBeInTheDocument();
@@ -65,7 +119,7 @@ describe("SearchBar", () => {
 
   it("shows the active filters and opens the extra filters when one is in use", () => {
     const { container } = render(
-      <SearchBar t={t} filters={{ deal: "rent", city: "dubai", type: "land", priceMin: 1000, priceMax: 2000, rooms: 4, q: "vake", verified: true, areaMin: 40 }} display={display} />,
+      <SearchBar t={t} filters={{ deal: "rent", city: "dubai", type: "land", priceMin: 1000, priceMax: 2000, rooms: 4, q: "vake", verified: true, areaMin: 40, floorMax: 9 }} display={display} />,
     );
     expect(screen.getByLabelText("Deal")).toHaveValue("rent");
     expect(screen.getByLabelText("City")).toHaveValue("dubai");
@@ -75,6 +129,7 @@ describe("SearchBar", () => {
     expect(screen.getByLabelText("Rooms")).toHaveValue("4");
     expect(screen.getByLabelText("Location")).toHaveValue("vake");
     expect(screen.getByLabelText("Area from, m²")).toHaveValue(40);
+    expect(screen.getByLabelText("Floor to")).toHaveValue(9);
     expect(screen.getByLabelText("Verified only")).toBeChecked();
     expect(container.querySelector("details")).toHaveAttribute("open");
   });
@@ -103,7 +158,7 @@ describe("ListingCard", () => {
     render(<ListingCard listing={fixtureListings[0]} locale="en" t={t} />);
     expect(screen.getByText("$148,000")).toBeInTheDocument();
     expect(screen.getByText("$1,609 / m²")).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "For sale: 3-room apartment" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "For sale: 3-room apartment, Vake" })).toBeInTheDocument();
     expect(screen.getByText("Nov 6")).toBeInTheDocument();
     expect(screen.getByText("3 rooms")).toBeInTheDocument();
   });
@@ -121,13 +176,30 @@ describe("ListingCard", () => {
 
   it("titles property without rooms by its type alone and shows no price per m² on rentals", () => {
     render(<ListingCard listing={{ ...fixtureListings[1], type: "land", rooms: 0 }} locale="en" t={t} />);
-    expect(screen.getByRole("heading", { name: "For rent: land" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "For rent: land, Saburtalo" })).toBeInTheDocument();
     expect(screen.queryByText(/\/ m²/)).toBeNull();
   });
 
   it("writes the title in the page language", () => {
     render(<ListingCard listing={fixtureListings[0]} locale="ka" t={getDictionary("ka")} />);
-    expect(screen.getByRole("heading", { name: "იყიდება 3 ოთახიანი ბინა" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "იყიდება 3 ოთახიანი ბინა, ვაკე" })).toBeInTheDocument();
+  });
+
+  it("leaves the place out of the title when the city is not one we know", () => {
+    render(<ListingCard listing={{ ...fixtureListings[0], city: "Kutaisi", district: "Unknown" }} locale="en" t={t} />);
+    expect(screen.getByRole("heading", { name: "For sale: 3-room apartment" })).toBeInTheDocument();
+  });
+
+  it("says who checked a verified listing and when", () => {
+    render(<ListingCard listing={{ ...fixtureListings[0], verification: { by: "Nino", at: "2026-11-02" } }} locale="en" t={t} />);
+    expect(screen.getByText("Checked by Nino, Nov 2")).toBeInTheDocument();
+  });
+
+  it("keeps the chosen currency when the listing is opened", () => {
+    const { rerender } = render(<ListingCard listing={fixtureListings[0]} locale="en" t={t} cur="gel" />);
+    expect(screen.getByRole("link")).toHaveAttribute("href", `/en/listings/${fixtureListings[0].id}?cur=gel`);
+    rerender(<ListingCard listing={fixtureListings[0]} locale="en" t={t} cur="usd" />);
+    expect(screen.getByRole("link")).toHaveAttribute("href", `/en/listings/${fixtureListings[0].id}`);
   });
 
   it("names the broker when there is one", () => {

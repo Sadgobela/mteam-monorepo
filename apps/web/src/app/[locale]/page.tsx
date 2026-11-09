@@ -5,7 +5,7 @@ import { getDictionary, parseListingDisplay, parseListingFilters } from "@mteam/
 import { FilterChips } from "@/components/FilterChips";
 import { Header } from "@/components/Header";
 import { ListingMap } from "@/components/ListingMap";
-import { LeadForm } from "@/components/LeadForm";
+import { GiveBand } from "@/components/LeadForm";
 import { ListingGrid } from "@/components/ListingGrid";
 import { SearchBar } from "@/components/SearchBar";
 import { Segmented } from "@/components/Segmented";
@@ -137,11 +137,7 @@ export default async function HomePage({
           </nav>
         )}
 
-        <section id="give" className="band">
-          <h2>{t.home.bandTitle}</h2>
-          <p>{t.home.bandText}</p>
-          <LeadForm t={t} />
-        </section>
+        <GiveBand t={t} />
       </main>
     </>
   );

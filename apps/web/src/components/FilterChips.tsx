@@ -26,6 +26,8 @@ export function FilterChips({
     ["priceMax", number(filters.priceMax, t.search.priceMax)],
     ["areaMin", number(filters.areaMin, t.search.areaMin)],
     ["areaMax", number(filters.areaMax, t.search.areaMax)],
+    ["floorMin", number(filters.floorMin, t.search.floorMin)],
+    ["floorMax", number(filters.floorMax, t.search.floorMax)],
   ];
   const active = chips.filter((chip): chip is [string, string] => chip[1] !== undefined);
   if (active.length === 0) return null;

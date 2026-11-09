@@ -1,92 +1,94 @@
-import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import type { ReactNode } from "react";
 import { getListing } from "@mteam/db";
-import { formatDay, formatPrice, getDictionary } from "@mteam/shared";
+import { convertPrice, formatDay, formatPrice, getDictionary, parseListingDisplay } from "@mteam/shared";
+import { Gallery } from "@/components/Gallery";
 import { Header } from "@/components/Header";
+import { GiveBand } from "@/components/LeadForm";
 import { ListingMap } from "@/components/ListingMap";
+import { Segmented } from "@/components/Segmented";
 import { resolveLocale } from "@/lib/locale";
 import { hasSession } from "@/lib/session";
+import type { Query } from "@/lib/url";
 
 export const dynamic = "force-dynamic";
 
+const factIcons = {
+  area: "M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5",
+  rooms: "M6 21V4h12v17M3 21h18M14 12h.01",
+  floor: "M3 20h5v-5h5v-5h5V5h3",
+  condition: "M4 4h13v5H4zM17 6.5h3V12h-8v3M10 15h4v6h-4z",
+};
+
+function Fact({ icon, label, children }: { icon: keyof typeof factIcons; label: string; children: ReactNode }) {
+  return (
+    <div>
+      <dt>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+          <path d={factIcons[icon]} />
+        </svg>
+        {label}
+      </dt>
+      <dd>{children}</dd>
+    </div>
+  );
+}
+
 export default async function ListingPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ locale: string; id: string }>;
+  searchParams: Promise<Query>;
 }) {
   const { locale: raw, id } = await params;
   const locale = resolveLocale(raw);
   const listing = await getListing(id);
   if (!listing) notFound();
   const t = getDictionary(locale);
-  const perSqm = Math.round(listing.price / listing.area);
+  const { cur } = parseListingDisplay(await searchParams);
+  const shown = convertPrice(listing.price, listing.currency, cur);
+  const currency = cur === "gel" ? "GEL" : "USD";
+  const here = `/${locale}/listings/${listing.id}`;
 
   return (
     <>
       <Header locale={locale} t={t} signedIn={await hasSession()} />
       <main className="listing">
-        <div className="ldesc">
-          <div className="gal">
-            {listing.images.length === 0 ? (
-              <>
-                <div className={`ph ${listing.tone}`} />
-                <div className="ph sand" />
-                <div className="ph steel" />
-              </>
-            ) : (
-              listing.images.map((url, index) => (
-                <a key={url} className="ph" href={url} target="_blank" rel="noreferrer">
-                  <Image src={url} alt={`${listing.title} ${index + 1}`} fill unoptimized priority={index === 0} />
-                </a>
-              ))
-            )}
-          </div>
-          <div className="row">
-            <h1>{listing.title}</h1>
-            <span className="price big">{formatPrice(listing.price, listing.currency)}</span>
-          </div>
+        <Gallery images={listing.images} title={listing.title} tone={listing.tone} t={t} />
+        <div className="lhead">
+          <h1>{listing.title}</h1>
           <span className="meta">
-            {listing.address} · ID {listing.id} · {formatPrice(perSqm, listing.currency)} / {t.units.sqm}
+            {listing.address} · ID {listing.id}
           </span>
-          <dl className="facts">
-            <div>
-              <dt>{t.listing.area}</dt>
-              <dd>
-                {listing.area} {t.units.sqm}
-              </dd>
-            </div>
-            {listing.rooms > 0 && (
-              <div>
-                <dt>{t.listing.rooms}</dt>
-                <dd>{listing.rooms}</dd>
-              </div>
-            )}
-            {listing.floor && (
-              <div>
-                <dt>{t.listing.floor}</dt>
-                <dd>
-                  {listing.floor} / {listing.floors}
-                </dd>
-              </div>
-            )}
-            {listing.condition && (
-              <div>
-                <dt>{t.listing.condition}</dt>
-                <dd>{listing.condition}</dd>
-              </div>
-            )}
-          </dl>
-          <p>{listing.description}</p>
-          {listing.lat !== undefined && listing.lng !== undefined && (
-            <ListingMap
-              label={t.results.map}
-              points={[{ id: listing.id, lat: listing.lat, lng: listing.lng, label: listing.title, href: `/${locale}/listings/${listing.id}` }]}
-            />
-          )}
         </div>
         <aside className="side">
           <div className="agent">
+            <div className="row">
+              <span className="price big">
+                {formatPrice(shown, currency)}
+                {listing.deal === "rent" && <small className="meta"> {t.perMonth}</small>}
+              </span>
+              <Segmented
+                label={t.results.currency}
+                options={[
+                  { text: "₾", href: `${here}?cur=gel`, active: cur === "gel" },
+                  { text: "$", href: here, active: cur === "usd" },
+                ]}
+              />
+            </div>
+            {listing.deal === "sale" && (
+              <span className="meta">
+                {formatPrice(Math.round(shown / listing.area), currency)} / {t.units.sqm}
+              </span>
+            )}
+            {/* Conversions use fixed rates, so the price the listing was actually posted at stays visible. */}
+            {listing.currency !== currency && (
+              <span className="meta">
+                {t.listing.listedPrice}: {formatPrice(listing.price, listing.currency)}
+              </span>
+            )}
             {listing.agent ? (
               <div className="who">
                 <span className="av" aria-hidden="true">
@@ -122,6 +124,36 @@ export default async function ListingPage({
             </div>
           )}
         </aside>
+        <div className="ldesc">
+          <dl className="facts">
+            <Fact icon="area" label={t.listing.area}>
+              {listing.area} {t.units.sqm}
+            </Fact>
+            {listing.rooms > 0 && (
+              <Fact icon="rooms" label={t.listing.rooms}>
+                {listing.rooms}
+              </Fact>
+            )}
+            {listing.floor && (
+              <Fact icon="floor" label={t.listing.floor}>
+                {listing.floor} / {listing.floors}
+              </Fact>
+            )}
+            {listing.condition && (
+              <Fact icon="condition" label={t.listing.condition}>
+                {listing.condition}
+              </Fact>
+            )}
+          </dl>
+          <p>{listing.description}</p>
+          {listing.lat !== undefined && listing.lng !== undefined && (
+            <ListingMap
+              label={t.results.map}
+              points={[{ id: listing.id, lat: listing.lat, lng: listing.lng, label: listing.title, href: `/${locale}/listings/${listing.id}` }]}
+            />
+          )}
+          <GiveBand t={t} />
+        </div>
       </main>
     </>
   );

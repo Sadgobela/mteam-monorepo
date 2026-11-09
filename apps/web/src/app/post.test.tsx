@@ -153,6 +153,98 @@ describe("ListingForm", () => {
     vi.unstubAllGlobals();
   });
 
+  describe("steps", () => {
+    const fill = (label: string, value: string) => fireEvent.change(screen.getByLabelText(label), { target: { value } });
+    const next = () => fireEvent.click(screen.getByRole("button", { name: t.post.next }));
+    const current = () => document.querySelector("[aria-current=step]")?.textContent;
+    const completeFirst = () => {
+      fill(t.post.fields.district, "Vake");
+      fill(t.post.fields.address, "Main 1");
+      next();
+    };
+    const completeSecond = () => {
+      fill(t.post.fields.price, "1000");
+      fill(t.post.fields.area, "50");
+      fill(t.post.fields.rooms, "2");
+      fill(t.post.fields.title, "Flat");
+      fill(t.post.fields.description, "Sunny");
+      next();
+    };
+
+    it("starts on the first step with no way back and no submit", () => {
+      render(<ListingForm locale="en" t={t} />);
+      expect(current()).toBe("1 Location");
+      expect(screen.queryByRole("button", { name: t.post.back })).toBeNull();
+      expect(screen.queryByRole("button", { name: t.post.submit })).toBeNull();
+    });
+
+    it("does not advance past a step with a missing required field", () => {
+      render(<ListingForm locale="en" t={t} />);
+      next();
+      expect(current()).toBe("1 Location");
+    });
+
+    it("treats a district of only spaces as missing", () => {
+      render(<ListingForm locale="en" t={t} />);
+      fill(t.post.fields.district, "   ");
+      fill(t.post.fields.address, "Main 1");
+      next();
+      expect(current()).toBe("1 Location");
+    });
+
+    it("advances, moves focus to the new step, and only then offers submit", () => {
+      render(<ListingForm locale="en" t={t} />);
+      completeFirst();
+      expect(current()).toBe("2 Details");
+      expect(screen.getByRole("group", { name: t.post.steps.details })).toHaveFocus();
+      completeSecond();
+      expect(current()).toBe("3 Photos");
+      expect(screen.getByRole("button", { name: t.post.submit })).toHaveAttribute("type", "submit");
+      expect(screen.queryByRole("button", { name: t.post.next })).toBeNull();
+    });
+
+    it("hides the other steps but keeps their values in the form", () => {
+      const { container } = render(<ListingForm locale="en" t={t} />);
+      completeFirst();
+      expect(container.querySelectorAll("fieldset.off")).toHaveLength(2);
+      expect(container.querySelector("fieldset:not(.off)")).toHaveAccessibleName(t.post.steps.details);
+      expect(screen.getByLabelText(t.post.fields.district)).toHaveValue("Vake");
+    });
+
+    it("catches a rule across fields before the photos step, then lets it be corrected", () => {
+      render(<ListingForm locale="en" t={t} />);
+      completeFirst();
+      fill(t.post.fields.floor, "9");
+      fill(t.post.fields.floors, "5");
+      completeSecond();
+      expect(current()).toBe("2 Details");
+      expect(screen.getByRole("alert")).toHaveTextContent(t.post.errors.invalid);
+
+      fill(t.post.fields.floors, "12");
+      next();
+      expect(current()).toBe("3 Photos");
+      expect(screen.queryByRole("alert")).toBeNull();
+    });
+
+    it("clears that error when going back", () => {
+      render(<ListingForm locale="en" t={t} />);
+      completeFirst();
+      fill(t.post.fields.floor, "9");
+      completeSecond();
+      expect(screen.getByRole("alert")).toBeInTheDocument();
+      fireEvent.click(screen.getByRole("button", { name: t.post.back }));
+      expect(screen.queryByRole("alert")).toBeNull();
+    });
+
+    it("goes back without needing the current step to be valid", () => {
+      render(<ListingForm locale="en" t={t} />);
+      completeFirst();
+      fireEvent.click(screen.getByRole("button", { name: t.post.back }));
+      expect(current()).toBe("1 Location");
+      expect(screen.getByLabelText(t.post.fields.address)).toHaveValue("Main 1");
+    });
+  });
+
   it("offers translated choices", () => {
     render(<ListingForm locale="en" t={getDictionary("ru")} />);
     expect(screen.getByRole("option", { name: "Батуми" })).toBeInTheDocument();
@@ -170,13 +262,13 @@ describe("NewListingPage", () => {
 
   it("shows the form", async () => {
     render(await NewListingPage({ params, searchParams: Promise.resolve({}) }));
-    expect(screen.getByRole("button", { name: t.post.submit })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: t.post.next })).toBeInTheDocument();
   });
 
   it("confirms a submitted listing", async () => {
     render(await NewListingPage({ params, searchParams: Promise.resolve({ sent: "1" }) }));
     expect(screen.getByRole("status")).toHaveTextContent(t.post.sent);
-    expect(screen.queryByRole("button", { name: t.post.submit })).toBeNull();
+    expect(screen.queryByRole("button", { name: t.post.next })).toBeNull();
   });
 });
 
@@ -195,7 +287,7 @@ describe("listing photos", () => {
 
   it("shows every photo on the listing page", async () => {
     db.getListing.mockResolvedValue(withPhotos);
-    render(await ListingPage({ params: Promise.resolve({ locale: "en", id: "20418" }) }));
+    render(await ListingPage({ params: Promise.resolve({ locale: "en", id: "20418" }), searchParams: Promise.resolve({}) }));
     expect(screen.getAllByRole("img", { name: new RegExp(withPhotos.title) }).map((i) => i.getAttribute("src"))).toEqual([
       "https://cdn/a.jpg",
       "https://cdn/b.jpg",
@@ -204,23 +296,23 @@ describe("listing photos", () => {
 
   it("says who checked a verified listing and when", async () => {
     db.getListing.mockResolvedValue({ ...fixtureListings[0], verification: { by: "Nino", at: "2026-11-05" } });
-    render(await ListingPage({ params: Promise.resolve({ locale: "en", id: "20418" }) }));
+    render(await ListingPage({ params: Promise.resolve({ locale: "en", id: "20418" }), searchParams: Promise.resolve({}) }));
     expect(screen.getByText("Checked by Nino, Nov 5")).toBeInTheDocument();
   });
 
   it("shows a map only when the listing has a location", async () => {
     db.getListing.mockResolvedValue({ ...fixtureListings[0], lat: 41.7, lng: 44.7 });
-    const pinned = render(await ListingPage({ params: Promise.resolve({ locale: "en", id: "20418" }) }));
+    const pinned = render(await ListingPage({ params: Promise.resolve({ locale: "en", id: "20418" }), searchParams: Promise.resolve({}) }));
     expect(screen.getByRole("region", { name: t.results.map })).toBeInTheDocument();
     pinned.unmount();
     db.getListing.mockResolvedValue({ ...fixtureListings[0], lat: 41.7 });
-    render(await ListingPage({ params: Promise.resolve({ locale: "en", id: "20418" }) }));
+    render(await ListingPage({ params: Promise.resolve({ locale: "en", id: "20418" }), searchParams: Promise.resolve({}) }));
     expect(screen.queryByRole("region", { name: t.results.map })).toBeNull();
   });
 
   it("omits the rooms fact for property without rooms", async () => {
     db.getListing.mockResolvedValue({ ...fixtureListings[0], rooms: 0 });
-    render(await ListingPage({ params: Promise.resolve({ locale: "en", id: "20418" }) }));
+    render(await ListingPage({ params: Promise.resolve({ locale: "en", id: "20418" }), searchParams: Promise.resolve({}) }));
     expect(screen.queryByText(t.listing.rooms)).toBeNull();
   });
 });
