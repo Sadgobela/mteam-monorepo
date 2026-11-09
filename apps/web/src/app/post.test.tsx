@@ -1,17 +1,17 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { getDictionary } from "@mteam/shared";
 import { fixtureListings } from "@/test-fixtures";
 
-const db = vi.hoisted(() => ({ createListing: vi.fn(), getListing: vi.fn() }));
+const db = vi.hoisted(() => ({ getListing: vi.fn() }));
 const session = vi.hoisted(() => ({ currentUser: vi.fn(), hasSession: vi.fn() }));
-const photos = vi.hoisted(() => ({ readPhotos: vi.fn(), uploadPhoto: vi.fn() }));
+const router = vi.hoisted(() => ({ push: vi.fn() }));
 
 vi.mock("@mteam/db", () => db);
 vi.mock("@/lib/session", () => session);
-vi.mock("@/lib/photos", () => photos);
 vi.mock("@/lib/auth-actions", () => ({ logoutAction: vi.fn() }));
 vi.mock("next/navigation", () => ({
+  useRouter: () => router,
   redirect: (url: string) => {
     throw new Error(`REDIRECT ${url}`);
   },
@@ -34,84 +34,23 @@ vi.mock("leaflet", () => ({
 
 import { ListingCard } from "@/components/ListingCard";
 import { ListingForm } from "@/components/ListingForm";
-import { createListingAction } from "@/lib/listing-actions";
 import ListingPage from "./[locale]/listings/[id]/page";
 import NewListingPage from "./[locale]/listings/new/page";
 
 const t = getDictionary("en");
-const fields = {
-  locale: "en",
-  deal: "sale",
-  type: "apartment",
-  city: "tbilisi",
-  district: "Vake",
-  address: "Main 1",
-  title: "Flat",
-  description: "Sunny",
-  price: "1000",
-  currency: "USD",
-  area: "50",
-  rooms: "2",
-};
-const form = (overrides: Record<string, string> = {}, files: Blob[] = [new Blob(["x"])]) => {
-  const data = new FormData();
-  for (const [key, value] of Object.entries({ ...fields, ...overrides })) data.set(key, value);
-  for (const file of files) data.append("photos", file, "a.jpg");
-  return data;
-};
-
+const server = vi.fn();
+const reply = (status: number, body: unknown = {}) => server.mockResolvedValue({ ok: status < 400, status, json: async () => body });
 beforeEach(() => {
   vi.resetAllMocks();
   session.currentUser.mockResolvedValue({ id: "u1" });
-  photos.readPhotos.mockResolvedValue(["p1", "p2"]);
-  photos.uploadPhoto.mockImplementation(async (p: string) => `https://cdn/${p}.jpg`);
+  vi.stubGlobal("fetch", server);
 });
 
-describe("createListingAction", () => {
-  it("creates the listing for the signed-in user with uploaded photos in order", async () => {
-    await expect(createListingAction({}, form())).rejects.toThrow("REDIRECT /en/listings/new?sent=1");
-    expect(db.createListing).toHaveBeenCalledWith("u1", expect.objectContaining({ title: "Flat", price: 1000 }), [
-      "https://cdn/p1.jpg",
-      "https://cdn/p2.jpg",
-    ]);
-  });
-
-  it("sends a visitor to login and stores nothing", async () => {
-    session.currentUser.mockResolvedValue(null);
-    await expect(createListingAction({}, form())).rejects.toThrow("REDIRECT /en/login");
-    expect(photos.uploadPhoto).not.toHaveBeenCalled();
-    expect(db.createListing).not.toHaveBeenCalled();
-  });
-
-  it("reports invalid fields before touching photos", async () => {
-    expect(await createListingAction({}, form({ title: " " }))).toEqual({ error: "invalid" });
-    expect(photos.readPhotos).not.toHaveBeenCalled();
-  });
-
-  it("ignores the empty file a browser sends for an empty input", async () => {
-    photos.readPhotos.mockResolvedValue(null);
-    expect(await createListingAction({}, form({}, [new Blob([])]))).toEqual({ error: "photos" });
-    expect(photos.readPhotos).toHaveBeenCalledWith([]);
-    expect(db.createListing).not.toHaveBeenCalled();
-  });
-
-  it("creates no listing if an upload fails", async () => {
-    const log = vi.spyOn(console, "error").mockImplementation(() => undefined);
-    photos.uploadPhoto.mockRejectedValue(new Error("down"));
-    expect(await createListingAction({}, form())).toEqual({ error: "save" });
-    expect(db.createListing).not.toHaveBeenCalled();
-    expect(log).toHaveBeenCalled();
-  });
-
-  it("returns an error instead of crashing if the database fails", async () => {
-    vi.spyOn(console, "error").mockImplementation(() => undefined);
-    db.createListing.mockRejectedValue(new Error("down"));
-    expect(await createListingAction({}, form())).toEqual({ error: "save" });
-  });
-});
+afterEach(() => vi.unstubAllGlobals());
 
 describe("ListingForm", () => {
   it("keeps what was typed and shows the error when the server rejects it", async () => {
+    reply(422, { error: "invalid" });
     render(<ListingForm locale="en" t={t} />);
     const title = screen.getByLabelText(t.post.fields.title);
     fireEvent.change(title, { target: { value: "My flat" } });
@@ -119,6 +58,45 @@ describe("ListingForm", () => {
 
     expect(await screen.findByRole("alert")).toHaveTextContent(t.post.errors.invalid);
     await waitFor(() => expect(title).toHaveValue("My flat"));
+    expect(server).toHaveBeenCalledWith("/api/listings", expect.objectContaining({ method: "POST" }));
+  });
+
+  describe("sending", () => {
+    const send = () => {
+      render(<ListingForm locale="ka" t={t} />);
+      fireEvent.submit(screen.getByLabelText(t.post.fields.title).closest("form") as HTMLFormElement);
+    };
+
+    it("confirms a listing the server accepted", async () => {
+      reply(200);
+      send();
+      await waitFor(() => expect(router.push).toHaveBeenCalledWith("/ka/listings/new?sent=1"));
+    });
+
+    it("sends someone whose session ended to sign in", async () => {
+      reply(401, { error: "signedOut" });
+      send();
+      await waitFor(() => expect(router.push).toHaveBeenCalledWith("/ka/login"));
+    });
+
+    it("says so when the connection fails, and allows another try", async () => {
+      server.mockRejectedValue(new Error("offline"));
+      send();
+      expect(await screen.findByRole("alert")).toHaveTextContent(t.post.errors.save);
+      expect(router.push).not.toHaveBeenCalled();
+    });
+
+    it("treats a reply it does not understand as a failed save", async () => {
+      reply(500, { surprise: true });
+      send();
+      expect(await screen.findByRole("alert")).toHaveTextContent(t.post.errors.save);
+    });
+
+    it("shows the photo error from the server", async () => {
+      reply(422, { error: "photos" });
+      send();
+      expect(await screen.findByRole("alert")).toHaveTextContent(t.post.errors.photos);
+    });
   });
 
   it.each([
@@ -131,7 +109,7 @@ describe("ListingForm", () => {
     fireEvent.submit(screen.getByLabelText(t.post.fields.photos).closest("form") as HTMLFormElement);
 
     expect(await screen.findByRole("alert")).toHaveTextContent(t.post.errors.photos);
-    expect(session.currentUser).not.toHaveBeenCalled();
+    expect(server).not.toHaveBeenCalled();
     getAll.mockRestore();
   });
 
