@@ -7,6 +7,7 @@ import { Header } from "@/components/Header";
 import { ListingMap } from "@/components/ListingMap";
 import { GiveBand } from "@/components/LeadForm";
 import { ListingGrid } from "@/components/ListingGrid";
+import { Pager } from "@/components/Pager";
 import { SearchBar } from "@/components/SearchBar";
 import { Segmented } from "@/components/Segmented";
 import { resolveLocale } from "@/lib/locale";
@@ -130,12 +131,7 @@ export default async function HomePage({
           />
         )}
 
-        {isResults && !isMap && (display.page > 1 || display.page * PAGE_SIZE < total) && (
-          <nav className="pager" aria-label={t.results.pages}>
-            {display.page > 1 && <Link href={href({ page: String(display.page - 1) })}>{t.results.previous}</Link>}
-            {display.page * PAGE_SIZE < total && <Link href={href({ page: String(display.page + 1) })}>{t.results.next}</Link>}
-          </nav>
-        )}
+        {isResults && !isMap && total > PAGE_SIZE && <Pager locale={locale} t={t} query={query} page={display.page} total={total} size={PAGE_SIZE} />}
 
         <GiveBand t={t} />
       </main>

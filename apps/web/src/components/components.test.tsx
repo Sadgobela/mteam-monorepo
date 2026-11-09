@@ -4,6 +4,8 @@ import { getDictionary, type Listing } from "@mteam/shared";
 import { fixtureListings } from "@/test-fixtures";
 import { Select } from "antd";
 import { AntProvider } from "./AntProvider";
+import { CardPhotos } from "./CardPhotos";
+import { Pager } from "./Pager";
 import { LanguageMenu } from "./LanguageMenu";
 import { FilterChips } from "./FilterChips";
 import { Header } from "./Header";
@@ -141,6 +143,49 @@ describe("LanguageMenu", () => {
     option("Русский").addEventListener("click", (event) => event.preventDefault());
     fireEvent.click(option("Русский"));
     expect(option("Русский")).toHaveAttribute("href", "/ru/listings/5?cur=gel&deal=rent");
+  });
+});
+
+describe("CardPhotos", () => {
+  it("shows no arrows for a single photo", () => {
+    const { container } = render(<CardPhotos images={["https://cdn/a.jpg"]} alt="Flat" />);
+    expect(container.querySelector(".strip-nav")).toBeNull();
+    expect(container.querySelectorAll("img")).toHaveLength(1);
+  });
+
+  it("scrolls one photo at a time without following the card's link", () => {
+    const scrollBy = vi.fn();
+    Element.prototype.scrollBy = scrollBy;
+    const { container } = render(<CardPhotos images={["https://cdn/a.jpg", "https://cdn/b.jpg"]} alt="Flat" />);
+    Object.defineProperty(container.querySelector(".strip"), "clientWidth", { value: 300 });
+    expect(fireEvent.click(container.querySelector(".strip-nav.next") as Element)).toBe(false);
+    expect(scrollBy).toHaveBeenLastCalledWith({ left: 300, behavior: "smooth" });
+    fireEvent.click(container.querySelector(".strip-nav.previous") as Element);
+    expect(scrollBy).toHaveBeenLastCalledWith({ left: -300, behavior: "smooth" });
+  });
+});
+
+describe("Pager", () => {
+  const pager = (page: number, total = 96) => render(<Pager locale="en" t={t} query={{ deal: "sale" }} page={page} total={total} size={24} />);
+
+  it("links each page and keeps the filters", () => {
+    pager(2);
+    expect(screen.getByRole("link", { name: "3" })).toHaveAttribute("href", "/en?deal=sale&page=3");
+    expect(screen.getByRole("link", { name: "← Previous" })).toHaveAttribute("href", "/en?deal=sale&page=1");
+    expect(screen.getByRole("link", { name: "Next →" })).toHaveAttribute("href", "/en?deal=sale&page=3");
+  });
+
+  it("has no previous on the first page and no next on the last", () => {
+    pager(1);
+    expect(screen.queryByRole("link", { name: "← Previous" })).toBeNull();
+    pager(4);
+    expect(screen.getAllByRole("link", { name: "← Previous" })).toHaveLength(1);
+    expect(screen.getAllByRole("link", { name: "Next →" })).toHaveLength(1);
+  });
+
+  it("skips ahead on long result sets", () => {
+    pager(10, 480);
+    expect(screen.getAllByRole("link", { name: "…" }).length).toBeGreaterThan(0);
   });
 });
 
@@ -737,6 +782,11 @@ describe("ListingCard", () => {
   it("names the broker when there is one", () => {
     render(<ListingCard listing={fixtureListings[0]} locale="en" t={t} />);
     expect(screen.getByText(fixtureListings[0].agent?.name as string)).toBeInTheDocument();
+  });
+
+  it("says photo for a single one", () => {
+    render(<ListingCard listing={{ ...fixtureListings[0], images: ["https://cdn/a.jpg"] }} locale="en" t={t} />);
+    expect(screen.getByText("1 photo")).toBeInTheDocument();
   });
 
   it("shows how many photos there are", () => {
