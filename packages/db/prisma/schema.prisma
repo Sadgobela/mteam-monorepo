@@ -27,6 +27,8 @@ enum PropertyType {
   HOUSE
   COMMERCIAL
   LAND
+  COUNTRY_HOUSE
+  HOTEL
 }
 
 enum Currency {
