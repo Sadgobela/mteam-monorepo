@@ -83,6 +83,12 @@ export default async function ListingPage({
                 {formatPrice(Math.round(shown / listing.area), currency)} / {t.units.sqm}
               </span>
             )}
+            {/* Conversions use fixed rates, so the price the listing was actually posted at stays visible. */}
+            {listing.currency !== currency && (
+              <span className="meta">
+                {t.listing.listedPrice}: {formatPrice(listing.price, listing.currency)}
+              </span>
+            )}
             {listing.agent ? (
               <div className="who">
                 <span className="av" aria-hidden="true">

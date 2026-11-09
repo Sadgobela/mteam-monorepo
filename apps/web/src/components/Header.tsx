@@ -47,7 +47,7 @@ export function Header({ locale, t, signedIn }: { locale: Locale; t: Dict; signe
   return (
     <header className="nav">
       <div className="nav-main">
-        <Link href={`/${locale}`} className="brand">
+        <Link href={`/${locale}`} className="brand" aria-label="MTeam">
           <span className="logo">
             <Image src="/logo-mark.png" alt="" width={26} height={25} />
           </span>

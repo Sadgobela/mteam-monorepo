@@ -8,7 +8,7 @@ export function isLocale(value: string): value is Locale {
 
 const ka = {
   nav: { menu: "მენიუ", sale: "იყიდება", rent: "ქირავდება", daily: "დღიურად", dubai: "დუბაი", brokers: "ბროკერები", favorites: "რჩეულები", my: "ჩემი განცხადებები", login: "შესვლა", logout: "გასვლა", post: "+ განცხადება" },
-  search: { floorMin: "სართული, დან", floorMax: "სართული, მდე", areaMin: "ფართი, მ² დან", areaMax: "ფართი, მ² მდე", location: "მდებარეობა", locationHint: "მაგ. ვაკე, საბურთალო", verifiedOnly: "მხოლოდ Verified", more: "სხვა ფილტრები", deal: "გარიგება", city: "ქალაქი", type: "ტიპი", priceMin: "ფასი, $ დან", priceMax: "ფასი, $ მდე", rooms: "ოთახები", any: "ყველა", submit: "ძებნა", results: "ძებნის შედეგები", empty: "ამ ფილტრებით განცხადება ვერ მოიძებნა." },
+  search: { floorMin: "სართულიდან", floorMax: "სართულამდე", areaMin: "ფართი, მ² დან", areaMax: "ფართი, მ² მდე", location: "მდებარეობა", locationHint: "მაგ. ვაკე, საბურთალო", verifiedOnly: "მხოლოდ Verified", more: "სხვა ფილტრები", deal: "გარიგება", city: "ქალაქი", type: "ტიპი", priceMin: "ფასი, $ დან", priceMax: "ფასი, $ მდე", rooms: "ოთახები", any: "ყველა", submit: "ძებნა", results: "ძებნის შედეგები", empty: "ამ ფილტრებით განცხადება ვერ მოიძებნა." },
   results: { map: "რუკა", removeFilter: "ფილტრის მოხსნა", found: "მოიძებნა {count} განცხადება", sort: "დალაგება", sortNew: "ახალი", sortAsc: "ფასი ↑", sortDesc: "ფასი ↓", view: "ხედი", grid: "ბადე", list: "სია", currency: "ვალუტა", pages: "გვერდები", previous: "← წინა", next: "შემდეგი →" },
   home: { leadInvalid: "შეამოწმე სახელი და ნომერი, მაგალითად 555 12 34 56.", leadFailed: "ვერ შევინახეთ. სცადე თავიდან.", leadGoal: "რა გსურს?", leadName: "სახელი", leadSell: "მინდა გაყიდვა", leadRent: "მინდა გაქირავება", leadSubmit: "დაგვიტოვე ნომერი", leadSent: "მადლობა! ბროკერი მალე დაგიკავშირდება.", heading: "mTeam-ის მიერ გადამოწმებული", verifiedTitle: "გადამოწმებული განცხადებები", verifiedLead: "ადგილზე ნანახი ბროკერის მიერ", giveTitle: "მიეცი mTeam-ს", giveLead: "გაყიდვას ან გაქირავებას ჩვენ მივხედავთ", postTitle: "დაამატე განცხადება", postLead: "ფოტოებით, რამდენიმე წუთში", bandTitle: "გაქვს ბინა? მიეცი mTeam-ს", bandText: "საკომისიოს მხოლოდ მესაკუთრე იხდის. გაქირავებისას: დამქირავებელი ერთ წელიწადში, ან საკომისიოს ნახევარი უკან." },
   city: { tbilisi: "თბილისი", batumi: "ბათუმი", dubai: "დუბაი" },
@@ -16,7 +16,7 @@ const ka = {
   deal: { sale: "იყიდება", rent: "ქირავდება", daily: "დღიურად" },
   perMonth: "/ თვე",
   units: { rooms: "ოთახი", floor: "სართ.", sqm: "მ²" },
-  listing: { checkedBy: "შეამოწმა {name}, {date}", area: "ფართი", rooms: "ოთახები", floor: "სართული", condition: "მდგომარეობა", call: "დარეკვა", whatsapp: "WhatsApp", owner: "მესაკუთრე", broker: "mTeam ბროკერი", verifiedNote: "ფოტოები, ფართი და ფასი ბროკერმა ადგილზე გადაამოწმა." },
+  listing: { listedPrice: "ფასი განცხადებაში", checkedBy: "შეამოწმა {name}, {date}", area: "ფართი", rooms: "ოთახები", floor: "სართული", condition: "მდგომარეობა", call: "დარეკვა", whatsapp: "WhatsApp", owner: "მესაკუთრე", broker: "mTeam ბროკერი", verifiedNote: "ფოტოები, ფართი და ფასი ბროკერმა ადგილზე გადაამოწმა." },
   card: { title: "{deal} {rooms} ოთახიანი {type}", titleNoRooms: "{deal} {type}", photos: "ფოტო" },
   login: {
     title: "შესვლა",
@@ -69,7 +69,7 @@ const en: Dict = {
   deal: { sale: "For sale", rent: "For rent", daily: "Daily" },
   perMonth: "/ month",
   units: { rooms: "rooms", floor: "floor", sqm: "m²" },
-  listing: { checkedBy: "Checked by {name}, {date}", area: "Area", rooms: "Rooms", floor: "Floor", condition: "Condition", call: "Call", whatsapp: "WhatsApp", owner: "Owner", broker: "mTeam broker", verifiedNote: "Photos, area and price were checked on site by the broker." },
+  listing: { listedPrice: "Listed at", checkedBy: "Checked by {name}, {date}", area: "Area", rooms: "Rooms", floor: "Floor", condition: "Condition", call: "Call", whatsapp: "WhatsApp", owner: "Owner", broker: "mTeam broker", verifiedNote: "Photos, area and price were checked on site by the broker." },
   card: { title: "{deal}: {rooms}-room {type}", titleNoRooms: "{deal}: {type}", photos: "photos" },
   login: {
     title: "Sign in",
@@ -120,7 +120,7 @@ const ru: Dict = {
   deal: { sale: "Продажа", rent: "Аренда", daily: "Посуточно" },
   perMonth: "/ мес.",
   units: { rooms: "комн.", floor: "этаж", sqm: "м²" },
-  listing: { checkedBy: "Проверил(а) {name}, {date}", area: "Площадь", rooms: "Комнаты", floor: "Этаж", condition: "Состояние", call: "Позвонить", whatsapp: "WhatsApp", owner: "Собственник", broker: "Брокер mTeam", verifiedNote: "Фото, площадь и цену брокер проверил на месте." },
+  listing: { listedPrice: "Цена в объявлении", checkedBy: "Проверил(а) {name}, {date}", area: "Площадь", rooms: "Комнаты", floor: "Этаж", condition: "Состояние", call: "Позвонить", whatsapp: "WhatsApp", owner: "Собственник", broker: "Брокер mTeam", verifiedNote: "Фото, площадь и цену брокер проверил на месте." },
   card: { title: "{deal}: {rooms}-комн. {type}", titleNoRooms: "{deal}: {type}", photos: "фото" },
   login: {
     title: "Вход",

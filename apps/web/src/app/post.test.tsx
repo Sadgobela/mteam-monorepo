@@ -165,6 +165,7 @@ describe("ListingForm", () => {
     const completeSecond = () => {
       fill(t.post.fields.price, "1000");
       fill(t.post.fields.area, "50");
+      fill(t.post.fields.rooms, "2");
       fill(t.post.fields.title, "Flat");
       fill(t.post.fields.description, "Sunny");
       next();
@@ -200,6 +201,31 @@ describe("ListingForm", () => {
       expect(container.querySelectorAll("fieldset.off")).toHaveLength(2);
       expect(container.querySelector("fieldset:not(.off)")).toHaveAccessibleName(t.post.steps.details);
       expect(screen.getByLabelText(t.post.fields.district)).toHaveValue("Vake");
+    });
+
+    it("catches a rule across fields before the photos step, then lets it be corrected", () => {
+      render(<ListingForm locale="en" t={t} />);
+      completeFirst();
+      fill(t.post.fields.floor, "9");
+      fill(t.post.fields.floors, "5");
+      completeSecond();
+      expect(current()).toBe("2 Details");
+      expect(screen.getByRole("alert")).toHaveTextContent(t.post.errors.invalid);
+
+      fill(t.post.fields.floors, "12");
+      next();
+      expect(current()).toBe("3 Photos");
+      expect(screen.queryByRole("alert")).toBeNull();
+    });
+
+    it("clears that error when going back", () => {
+      render(<ListingForm locale="en" t={t} />);
+      completeFirst();
+      fill(t.post.fields.floor, "9");
+      completeSecond();
+      expect(screen.getByRole("alert")).toBeInTheDocument();
+      fireEvent.click(screen.getByRole("button", { name: t.post.back }));
+      expect(screen.queryByRole("alert")).toBeNull();
     });
 
     it("goes back without needing the current step to be valid", () => {

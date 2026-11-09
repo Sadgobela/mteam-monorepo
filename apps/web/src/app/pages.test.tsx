@@ -242,6 +242,16 @@ describe("listing page", () => {
     expect(screen.getByRole("link", { name: "₾" })).toHaveAttribute("aria-current", "true");
   });
 
+  it("keeps the posted price visible when it was converted", async () => {
+    render(await ListingPage({ params: p({ locale: "en", id: "20440" }), searchParams: p({}) }));
+    expect(screen.getByText("Listed at: AED 1,450,000")).toBeInTheDocument();
+  });
+
+  it("does not repeat the price when it needed no conversion", async () => {
+    render(await ListingPage({ params: p({ locale: "en", id: "20418" }), searchParams: p({}) }));
+    expect(screen.queryByText(/Listed at/)).toBeNull();
+  });
+
   it("shows a rental per month and without a price per m²", async () => {
     render(await ListingPage({ params: p({ locale: "en", id: "20422" }), searchParams: p({}) }));
     expect(screen.getByText("/ month")).toBeInTheDocument();

@@ -9,6 +9,7 @@ import {
   dealTypes,
   MAX_PHOTO_BYTES,
   MAX_PHOTOS,
+  parseListingDraft,
   propertyTypes,
   type Dict,
   type Locale,
@@ -42,7 +43,7 @@ function Input({ label, ...input }: { label: string } & React.InputHTMLAttribute
 
 export function ListingForm({ locale, t }: { locale: Locale; t: Dict }) {
   const [state, dispatch, pending] = useActionState(createListingAction, {});
-  const [photosRejected, setPhotosRejected] = useState(false);
+  const [rejected, setRejected] = useState<"photos" | "invalid" | null>(null);
   const [previews, setPreviews] = useState<string[]>([]);
   const [step, setStep] = useState(0);
 
@@ -53,9 +54,16 @@ export function ListingForm({ locale, t }: { locale: Locale; t: Dict }) {
   }
 
   function move(event: MouseEvent<HTMLButtonElement>, by: number) {
-    const steps = (event.currentTarget.form as HTMLFormElement).querySelectorAll("fieldset");
+    const form = event.currentTarget.form as HTMLFormElement;
+    const steps = form.querySelectorAll("fieldset");
     const controls = Array.from(steps[step].elements) as HTMLInputElement[];
+    setRejected(null);
     if (by > 0 && !controls.every((control) => control.reportValidity())) return;
+    // Rules across fields, such as floor against total floors. Checked before the photos, so nobody uploads them first to find out.
+    if (by > 0 && step === 1 && !parseListingDraft(Object.fromEntries(new FormData(form)))) {
+      setRejected("invalid");
+      return;
+    }
     // Rendered first so the next step is visible when it takes focus, which also scrolls it into view.
     flushSync(() => setStep(step + by));
     steps[step + by].focus();
@@ -69,14 +77,14 @@ export function ListingForm({ locale, t }: { locale: Locale; t: Dict }) {
     // Checked here because a set over the server's body limit would fail before any friendly error could be returned.
     const files = data.getAll("photos").filter((value): value is File => value instanceof File);
     const acceptable = files.length <= MAX_PHOTOS && files.every((file) => file.size <= MAX_PHOTO_BYTES);
-    setPhotosRejected(!acceptable);
+    setRejected(acceptable ? null : "photos");
     if (!acceptable) return;
 
     startTransition(() => dispatch(data));
   }
 
   const f = t.post.fields;
-  const error = photosRejected ? "photos" : state.error;
+  const error = rejected ?? state.error;
   const stepNames = [t.post.steps.place, t.post.steps.details, t.post.steps.photos];
   const last = stepNames.length - 1;
   // Every step stays in the form so its values are sent and survive going back.

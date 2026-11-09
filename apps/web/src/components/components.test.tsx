@@ -49,6 +49,18 @@ describe("Header", () => {
       expect(panel(container)).not.toBeNull();
     });
 
+    it("closes on submit rather than on the click, so sign out still reaches the server", () => {
+      const { container } = render(<Header locale="en" t={t} signedIn />);
+      fireEvent.click(menu());
+      const signOut = within(panel(container)).getByRole("button", { name: "Sign out" });
+      // Cancelled so only the click is seen here; removing the form on the click is what used to lose the submit.
+      panel(container).addEventListener("click", (event) => event.preventDefault());
+      fireEvent.click(signOut);
+      expect(panel(container)).not.toBeNull();
+      fireEvent.submit(signOut.closest("form") as HTMLFormElement);
+      expect(panel(container)).toBeNull();
+    });
+
     it("closes with a second press and offers the signed-in links", () => {
       const { container } = render(<Header locale="en" t={t} signedIn />);
       fireEvent.click(menu());

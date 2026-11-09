@@ -8,7 +8,7 @@ export function PhoneMenu({ label, children }: { label: string; children: ReactN
 
   // The header survives a same-page navigation such as ?deal=rent, so it has to close itself.
   function closeAfterLeaving(event: MouseEvent) {
-    if ((event.target as Element).closest("a, [type=submit]")) setOpen(false);
+    if ((event.target as Element).closest("a")) setOpen(false);
   }
 
   return (
@@ -17,7 +17,8 @@ export function PhoneMenu({ label, children }: { label: string; children: ReactN
         ☰
       </button>
       {open && (
-        <div className="menu-panel" onClick={closeAfterLeaving}>
+        // Closed on submit, not on the button's click: removing the form before the browser submits it cancels the submit.
+        <div className="menu-panel" onClick={closeAfterLeaving} onSubmit={() => setOpen(false)}>
           {children}
         </div>
       )}
