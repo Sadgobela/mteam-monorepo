@@ -88,7 +88,7 @@ export function SearchBar({ locale, t, filters, display }: { locale: Locale; t: 
             aria-label={t.search.deal}
             variant="borderless"
             allowClear
-            suffixIcon={null}
+            suffix={null}
             popupMatchSelectWidth={false}
             placeholder={t.search.any}
             value={draft.deal}
@@ -102,7 +102,7 @@ export function SearchBar({ locale, t, filters, display }: { locale: Locale; t: 
             aria-label={t.search.type}
             variant="borderless"
             allowClear
-            suffixIcon={null}
+            suffix={null}
             popupMatchSelectWidth={false}
             placeholder={t.search.any}
             value={draft.type}
