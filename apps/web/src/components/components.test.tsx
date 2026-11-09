@@ -189,7 +189,7 @@ describe("SearchBar", () => {
     expect(screen.getByText("For rent")).toBeInTheDocument();
     expect(screen.getByText("Land")).toBeInTheDocument();
     expect(keyword()).toHaveValue("vake");
-    expect(screen.getByRole("button", { name: "Location" })).toHaveTextContent("Batumi");
+    expect(screen.getByRole("button", { name: "Location: Batumi" })).toHaveTextContent("Batumi");
     expect(screen.getByLabelText("Verified only")).toBeChecked();
     expect(document.querySelector(".ant-badge-count")).toHaveAttribute("title", "5");
     openMore();
@@ -238,7 +238,7 @@ describe("SearchBar", () => {
   });
 
   describe("location picker", () => {
-    const openPicker = () => fireEvent.click(screen.getByRole("button", { name: "Location" }));
+    const openPicker = () => fireEvent.click(screen.getByRole("button", { name: /^Location/ }));
     // ByText, because ByRole works out accessibility for every node and there are thousands here.
     const picker = () => within(document.querySelector(".ant-modal") as HTMLElement);
     const cityButton = (name: string) => picker().getByText(name, { selector: "button" });
@@ -260,7 +260,7 @@ describe("SearchBar", () => {
       apply();
       await waitFor(() => expect(push).toHaveBeenCalled());
       expect(Object.fromEntries(pushed())).toMatchObject({ city: "თბილისი", district: "ვაკე,ვერა" });
-      expect(screen.getByRole("button", { name: "Location" })).toHaveTextContent("Tbilisi +2");
+      expect(screen.getByRole("button", { name: "Location: Tbilisi +2" })).toBeInTheDocument();
       await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
     });
 
@@ -309,6 +309,37 @@ describe("SearchBar", () => {
       noBox("Vake");
       fireEvent.change(picker().getByRole("textbox"), { target: { value: "ვაზისუბანი" } });
       expect(districtBox("Vazisubani")).toBeInTheDocument();
+    });
+
+    it("shows every district of a city that was found by its own name", () => {
+      bar();
+      openPicker();
+      fireEvent.change(picker().getByRole("textbox"), { target: { value: "kutaisi" } });
+      city("Kutaisi");
+      expect(districtBox("Nikea")).toBeInTheDocument();
+    });
+
+    it("ticks only the districts on show when a group is filtered", async () => {
+      bar();
+      openPicker();
+      fireEvent.change(picker().getByRole("textbox"), { target: { value: "vazis" } });
+      city("Tbilisi");
+      tick("Isani-Samgori");
+      expect(districtBox("Isani-Samgori")).toBeChecked();
+      apply();
+      await waitFor(() => expect(push).toHaveBeenCalled());
+      expect(pushed().get("district")).toBe("ვაზისუბანი");
+    });
+
+    it("sends no district list when every district is ticked, since that is the whole city", async () => {
+      bar();
+      openPicker();
+      city("Gurjaani");
+      tick("Gurjaani (Sopeli)");
+      apply();
+      await waitFor(() => expect(push).toHaveBeenCalled());
+      expect(pushed().get("city")).toBe("გურჯაანი");
+      expect(pushed().has("district")).toBe(false);
     });
 
     it("forgets ticked districts when the city changes, not when it is pressed again", () => {
@@ -383,8 +414,8 @@ describe("SearchBar", () => {
 
 describe("FilterChips districts", () => {
   it("names one district, and counts the rest", () => {
-    const { rerender } = render(<FilterChips locale="en" t={t} query={{}} filters={{ district: ["ვაკე"] }} />);
-    expect(screen.getByRole("link", { name: "Remove filter: Vake" })).toBeInTheDocument();
+    const { rerender } = render(<FilterChips locale="en" t={t} query={{ district: "ვაკე" }} filters={{ district: ["ვაკე"] }} />);
+    expect(screen.getByRole("link", { name: "Remove filter: Vake" })).toHaveAttribute("href", "/en?district=&page=1");
     rerender(<FilterChips locale="en" t={t} query={{}} filters={{ district: ["ვაკე", "ვერა", "ისანი"] }} />);
     expect(screen.getByRole("link", { name: "Remove filter: Vake +2" })).toBeInTheDocument();
   });

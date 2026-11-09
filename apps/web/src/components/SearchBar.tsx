@@ -112,7 +112,7 @@ export function SearchBar({ locale, t, filters, display }: { locale: Locale; t: 
         </label>
         <label className="grow">
           <small>{t.search.location}</small>
-          <button type="button" className={place ? "location-trigger" : "location-trigger empty"} aria-label={t.search.location} onClick={() => setLocationOpen(true)}>
+          <button type="button" className={place ? "location-trigger" : "location-trigger empty"} aria-label={place ? `${t.search.location}: ${place}` : t.search.location} onClick={() => setLocationOpen(true)}>
             {place || t.search.locationHint}
           </button>
         </label>

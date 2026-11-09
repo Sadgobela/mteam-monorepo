@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { Button, Checkbox, Input, Modal } from "antd";
-import { cities, cityAreas, placeLabel, popularCities, type Dict, type Locale } from "@mteam/shared";
+import { cities, cityAreas, cityDistricts, placeLabel, popularCities, type Dict, type Locale } from "@mteam/shared";
 
 type Picked = { city?: string; district?: string[] };
 
@@ -15,7 +15,11 @@ function Body({ locale, t, initial, onApply }: { locale: Locale; t: Dict; initia
   const matches = (name: string) => `${name} ${placeLabel(name, locale)}`.toLowerCase().includes(needle);
   const others = cities.slice(popularCities.length);
   const cityShown = (name: string) => matches(name) || cityAreas(name).some((area) => area.districts.some(matches));
-  const areas = city ? cityAreas(city).filter((area) => matches(area.name) || area.districts.some(matches)) : [];
+  // A city or group found by its own name shows everything in it, not only what also contains the typed text.
+  const wholeCity = city !== undefined && matches(city);
+  const shownIn = (area: { name: string; districts: string[] }) => (wholeCity || matches(area.name) ? area.districts : area.districts.filter(matches));
+  const areas = city ? cityAreas(city).filter((area) => shownIn(area).length > 0) : [];
+  const districtCount = city ? cityDistricts(city).length : 0;
 
   function choose(name: string) {
     if (name !== city) setPicked([]);
@@ -47,13 +51,14 @@ function Body({ locale, t, initial, onApply }: { locale: Locale; t: Dict; initia
           <div className="loc-columns">
           {areas.map((area) => {
             if (area.districts[0] === area.name) return box(area.name);
-            const on = area.districts.filter((name) => picked.includes(name)).length;
+            const shown = shownIn(area);
+            const on = shown.filter((name) => picked.includes(name)).length;
             return (
-              <div key={area.name} className="loc-group">
-                <Checkbox className="loc-head" checked={on === area.districts.length} indeterminate={on > 0 && on < area.districts.length} onChange={(event) => toggle(area.districts, event.target.checked)}>
+              <div key={area.name} className="loc-group" role="group" aria-label={placeLabel(area.name, locale)}>
+                <Checkbox className="loc-head" checked={on === shown.length} indeterminate={on > 0 && on < shown.length} onChange={(event) => toggle(shown, event.target.checked)}>
                   {placeLabel(area.name, locale)}
                 </Checkbox>
-                {area.districts.filter(matches).map(box)}
+                {shown.map(box)}
               </div>
             );
           })}
@@ -70,7 +75,7 @@ function Body({ locale, t, initial, onApply }: { locale: Locale; t: Dict; initia
         >
           {t.search.clear}
         </Button>
-        <Button type="primary" onClick={() => onApply({ city, district: picked.length > 0 ? picked : undefined })}>
+        <Button type="primary" onClick={() => onApply({ city, district: picked.length > 0 && picked.length < districtCount ? picked : undefined })}>
           {t.search.submit}
         </Button>
       </div>
