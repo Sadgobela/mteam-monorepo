@@ -6,7 +6,7 @@ import { ConfigProvider, type ThemeConfig } from "antd";
 import enUS from "antd/locale/en_US";
 import kaGE from "antd/locale/ka_GE";
 import ruRU from "antd/locale/ru_RU";
-import type { Locale } from "@mteam/shared";
+import { getDictionary, type Locale } from "@mteam/shared/i18n";
 
 const languages = { ka: kaGE, en: enUS, ru: ruRU };
 
@@ -25,9 +25,11 @@ const theme: ThemeConfig = {
 };
 
 export function AntProvider({ locale, children }: { locale: Locale; children: ReactNode }) {
+  // Ant's Georgian and Russian packs leave this label in English.
+  const language = { ...languages[locale], global: { ...languages[locale].global, clear: getDictionary(locale).search.clear } };
   return (
     <AntdRegistry>
-      <ConfigProvider locale={languages[locale]} theme={theme}>
+      <ConfigProvider locale={language} theme={theme}>
         {children}
       </ConfigProvider>
     </AntdRegistry>

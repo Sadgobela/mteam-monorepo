@@ -2,6 +2,8 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { getDictionary, type Listing } from "@mteam/shared";
 import { fixtureListings } from "@/test-fixtures";
+import { Select } from "antd";
+import { AntProvider } from "./AntProvider";
 import { FilterChips } from "./FilterChips";
 import { Header } from "./Header";
 import { ListingCard } from "./ListingCard";
@@ -92,13 +94,24 @@ describe("Header", () => {
   });
 });
 
+describe("AntProvider", () => {
+  it("names the clear button in the page language", () => {
+    const { container } = render(
+      <AntProvider locale="ka">
+        <Select allowClear value="a" options={[{ value: "a", label: "A" }]} />
+      </AntProvider>,
+    );
+    expect(container.querySelector(`[aria-label="${getDictionary("ka").search.clear}"]`)).not.toBeNull();
+  });
+});
+
 describe("Segmented", () => {
   const options = [
     { text: "One", href: "/one", active: true },
     { text: "Two", href: "/two", active: false },
   ];
 
-  it("goes to the chosen URL without scrolling, and moves the highlight at once", async () => {
+  it("goes to the chosen URL without scrolling", async () => {
     render(<Segmented label="Choice" options={options} />);
     expect(screen.getByRole("radiogroup", { name: "Choice" })).toBeInTheDocument();
     expect(screen.getByRole("radio", { name: "One" })).toBeChecked();
@@ -233,6 +246,7 @@ describe("SearchBar", () => {
     fireEvent.keyDown(screen.getByLabelText("Floor to"), { key: "Enter", keyCode: 13 });
     await waitFor(() => expect(push).toHaveBeenCalled());
     expect(Object.fromEntries(pushed())).toMatchObject({ city: "batumi", rooms: "4", priceMin: "500", floorMax: "9" });
+    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
   });
 
   it("turns panel choices back off one at a time", async () => {

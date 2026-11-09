@@ -44,7 +44,6 @@ export function SearchBar({ locale, t, filters, display }: { locale: Locale; t: 
       <InputNumber
         value={draft[name]}
         min={0}
-        max={100000000}
         precision={0}
         inputMode="numeric"
         onChange={(value) => change({ [name]: value ?? undefined })}
