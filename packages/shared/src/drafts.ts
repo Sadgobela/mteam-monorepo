@@ -115,6 +115,17 @@ export function parseListingDraft(fields: Record<string, unknown>): ListingDraft
   return result.success ? result.data : null;
 }
 
+/** The columns a listing can be given. */
+export const draftFields = Object.keys(draftSchema.shape);
+
+/** Which fields of a draft are wrong, for a bulk import's report. A rule across several fields has no single name. */
+export function draftProblems(fields: Record<string, unknown>): string[] {
+  const result = draftSchema.safeParse(fields);
+  if (result.success) return [];
+  const named = result.error.issues.map((issue) => issue.path.join(".")).filter(Boolean);
+  return named.length > 0 ? [...new Set(named)] : ["combination"];
+}
+
 export const reportReasons = ["sold", "wrongPrice", "wrongPhotos", "fake", "other"] as const;
 
 const reportSchema = z.object({

@@ -242,16 +242,23 @@ export async function getListing(rawId: string): Promise<Listing | undefined> {
   return row ? toListing(row) : undefined;
 }
 
+/** A validated draft as listing columns. */
+export function draftColumns(draft: ListingDraft) {
+  return {
+    ...draft,
+    priceUsd: priceInUsd(draft.price, draft.currency),
+    pricePerSqmUsd: Math.round(priceInUsd(draft.price, draft.currency) / draft.area),
+    building: draft.building && dbBuildings[draft.building],
+    deal: dbDeals[draft.deal],
+    type: dbPropertyTypes[draft.type],
+  };
+}
+
 /** Saves a user's listing. It stays PENDING and unverified until MTeam reviews it. */
 export async function createListing(ownerId: string, draft: ListingDraft, imageUrls: string[]): Promise<number> {
   const { id } = await db().listing.create({
     data: {
-      ...draft,
-      priceUsd: priceInUsd(draft.price, draft.currency),
-      pricePerSqmUsd: Math.round(priceInUsd(draft.price, draft.currency) / draft.area),
-      building: draft.building && dbBuildings[draft.building],
-      deal: dbDeals[draft.deal],
-      type: dbPropertyTypes[draft.type],
+      ...draftColumns(draft),
       status: "PENDING",
       verified: false,
       ownerId,

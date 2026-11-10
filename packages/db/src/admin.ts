@@ -1,15 +1,19 @@
 import type { Listing } from "@mteam/shared";
+import type { Prisma } from "@prisma/client";
 import { db } from "./client";
 import { publicInclude, toListing } from "./listings";
 
 const QUEUE_LIMIT = 50;
+
+// Imports go last, or thousands of them would keep what people post out of the queue.
+const queueOrder = [{ sourceRef: { sort: "asc", nulls: "first" } }, { id: "asc" }] satisfies Prisma.ListingOrderByWithRelationInput[];
 
 /** New listings waiting for a decision, oldest first so nobody waits longest. */
 export async function listPendingListings(): Promise<Listing[]> {
   const rows = await db().listing.findMany({
     where: { status: "PENDING" },
     include: publicInclude,
-    orderBy: { id: "asc" },
+    orderBy: queueOrder,
     take: QUEUE_LIMIT,
   });
   return rows.map(toListing);
@@ -25,7 +29,7 @@ export async function listUnverifiedListings(): Promise<Listing[]> {
   const rows = await db().listing.findMany({
     where: { status: "ACTIVE", verified: false },
     include: publicInclude,
-    orderBy: { id: "asc" },
+    orderBy: queueOrder,
     take: QUEUE_LIMIT,
   });
   return rows.map(toListing);

@@ -119,6 +119,7 @@ model Agent {
 
 model Listing {
   id          Int           @id @default(autoincrement())
+  sourceRef   String?       @unique // the listing's number in the file it was imported from, so a second run does not duplicate it
   status      ListingStatus @default(PENDING)
   deal        DealType
   type        PropertyType

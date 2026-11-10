@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { parseLead, parseListingDraft, parsePhone, parseReport } from "./index";
+import { draftFields, draftProblems, parseLead, parseListingDraft, parsePhone, parseReport } from "./index";
 
 describe("parsePhone", () => {
   it.each(["555123456", "555 12 34 56", "+995555123456", "+995 (555) 12-34-56", "00995555123456", "995555123456"])(
@@ -102,6 +102,13 @@ describe("parseListingDraft", () => {
 
   it("allows a metro station only in the city that has a metro", () => {
     expect(parseListingDraft({ ...valid, metro: "დელისი" })).toBeNull();
+  });
+
+  it("names what is wrong, for a bulk import", () => {
+    expect(draftFields).toContain("price");
+    expect(draftProblems(valid)).toEqual([]);
+    expect(draftProblems({ ...valid, price: "free", area: "x" })).toEqual(["price", "area"]);
+    expect(draftProblems({ ...valid, floor: "9", floors: "2" })).toEqual(["combination"]);
   });
 
   it("keeps a chosen street and treats a blank one as none", () => {

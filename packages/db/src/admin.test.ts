@@ -40,7 +40,7 @@ describe("moderation queue", () => {
   it("lists pending listings oldest first", async () => {
     prisma.listing.findMany.mockResolvedValue([row]);
     expect((await listPendingListings()).map((l) => l.id)).toEqual([7]);
-    expect(prisma.listing.findMany.mock.calls[0][0]).toMatchObject({ where: { status: "PENDING" }, orderBy: { id: "asc" } });
+    expect(prisma.listing.findMany.mock.calls[0][0]).toMatchObject({ where: { status: "PENDING" }, orderBy: [{ sourceRef: { sort: "asc", nulls: "first" } }, { id: "asc" }] });
   });
 
   it.each(["ACTIVE", "REJECTED"] as const)("only moves a listing that is still pending to %s", async (decision) => {
