@@ -64,7 +64,9 @@ Worth knowing: MTeam already has a page on myhome.ge with 16,349 listings and 85
 | Valuation, photo service | Sent to a partner site | No |
 | Paid S-VIP placement | Top of results | No, by design so far |
 
-Step 1 below is done. Project types are incomplete: only the six visible on their list, plus "other".
+Steps 1 and 2 below are done. Project types are incomplete: only the six visible on their list, plus "other".
+
+Step 3: the import tool is ready (`docs/IMPORT.md`). It is waiting for the export and photos from the brokers, and its columns may need mapping once a real export is seen.
 
 ## Suggested order
 
