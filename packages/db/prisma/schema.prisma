@@ -66,6 +66,7 @@ model User {
   agent     Agent?
   listings  Listing[]
   favorites Favorite[]
+  hidden    HiddenListing[]
   sessions  Session[]
   createdAt DateTime  @default(now())
 }
@@ -163,6 +164,8 @@ model Listing {
   agentId     String?
   images      ListingImage[]
   favorites   Favorite[]
+  hiddenBy    HiddenListing[]
+  reports     ListingReport[]
   views       Int           @default(0)
   createdAt   DateTime      @default(now())
   updatedAt   DateTime      @updatedAt
@@ -177,6 +180,29 @@ model ListingImage {
   listingId Int
   url       String
   position  Int     @default(0)
+}
+
+model HiddenListing {
+  user      User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    String
+  listing   Listing @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  listingId Int
+  createdAt DateTime @default(now())
+
+  @@id([userId, listingId])
+}
+
+model ListingReport {
+  id        String   @id @default(cuid())
+  listing   Listing  @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  listingId Int
+  reason    String
+  note      String?
+  ipHash    String
+  resolved  Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@unique([listingId, ipHash])
 }
 
 model Favorite {

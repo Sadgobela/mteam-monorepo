@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { featureLabel, groupKeys, groupNames, isFeature, specKeys, specLabel, specNames } from "./details";
 import { streetsIn } from "./streets";
-import { cities, cityAreas, cityDistricts, defaultLocale, formatDay, formatPrice, getDictionary, isCity, isLocale, isMetro, locales, metroStations, placeLabel, placeName, popularCities, priceUnit } from "./index";
+import { cities, cityAreas, cityDistricts, defaultLocale, formatDay, formatPrice, getDictionary, isCity, isLocale, isMetro, locales, maskPhone, monthlyPayment, metroStations, placeLabel, placeName, popularCities, priceUnit } from "./index";
 
 describe("formatDay", () => {
   it("writes a short date in the page language, independent of time zone", () => {
@@ -30,6 +30,28 @@ describe("i18n", () => {
       Object.entries(o).flatMap(([k, v]) => (typeof v === "object" ? keys(v).map((s) => `${k}.${s}`) : [k]));
     const ka = keys(getDictionary("ka")).sort();
     for (const l of locales) expect(keys(getDictionary(l)).sort()).toEqual(ka);
+  });
+});
+
+describe("monthlyPayment", () => {
+  it("works out a standard repayment", () => {
+    expect(monthlyPayment(100000, 20, 20, 11)).toBe(826);
+  });
+
+  it("divides evenly at zero interest", () => {
+    expect(monthlyPayment(12000, 0, 1, 0)).toBe(1000);
+  });
+
+  it("is zero when nothing is borrowed or there is no term", () => {
+    expect(monthlyPayment(1000, 100, 20, 11)).toBe(0);
+    expect(monthlyPayment(1000, 20, 0, 11)).toBe(0);
+  });
+});
+
+describe("maskPhone", () => {
+  it("hides the last three digits, keeping the layout", () => {
+    expect(maskPhone("+995 555 123 456")).toBe("+995 555 123 ***");
+    expect(maskPhone("555 12 34 56")).toBe("555 12 3* **");
   });
 });
 

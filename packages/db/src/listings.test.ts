@@ -6,7 +6,7 @@ const prisma = vi.hoisted(() => ({
 
 vi.mock("./client", () => ({ db: () => prisma }));
 
-import { countListings, createListing, getListing, searchListings } from "./index";
+import { countSellerListings, listSellerListings, listSimilarListings, countListings, createListing, getListing, searchListings } from "./index";
 
 const fullRow = {
   id: 20418,
@@ -377,6 +377,44 @@ describe("createListing building status", () => {
     prisma.listing.create.mockResolvedValue({ id: 8 });
     await createListing("u1", { deal: "sale", type: "house", city: "ბათუმი", address: "a", title: "t", description: "d", price: 100, currency: "USD", area: 10, building: "new" }, []);
     expect(prisma.listing.create.mock.calls[0][0].data).toMatchObject({ building: "NEW", pricePerSqmUsd: 10 });
+  });
+});
+
+describe("similar and seller listings", () => {
+  const listing = { id: 5, deal: "sale", type: "apartment", city: "თბილისი", price: 100000, currency: "USD", rooms: 3 } as Parameters<typeof listSimilarListings>[0];
+
+  it("finds the same kind of place at a nearby price and size, excluding itself", async () => {
+    prisma.listing.findMany.mockResolvedValue([fullRow]);
+    expect(await listSimilarListings(listing)).toHaveLength(1);
+    expect(prisma.listing.findMany.mock.calls[0][0]).toMatchObject({
+      where: { status: "ACTIVE", id: { not: 5 }, deal: "SALE", type: "APARTMENT", city: "თბილისი", priceUsd: { gte: 70000, lte: 130000 }, rooms: { gte: 2, lte: 4 } },
+      take: 4,
+    });
+  });
+
+  it("does not compare rooms for property without them", async () => {
+    prisma.listing.findMany.mockResolvedValue([]);
+    await listSimilarListings({ ...listing, rooms: 0 });
+    expect(prisma.listing.findMany.mock.calls[0][0].where.rooms).toBeUndefined();
+  });
+
+  it("lists and counts only an owner's own published listings", async () => {
+    prisma.listing.findMany.mockResolvedValue([fullRow]);
+    prisma.listing.count.mockResolvedValue(2);
+    expect(await listSellerListings("u1")).toHaveLength(1);
+    expect(await countSellerListings("u1")).toBe(2);
+    const where = { status: "ACTIVE", ownerId: "u1", agentId: null };
+    expect(prisma.listing.findMany.mock.calls[0][0].where).toEqual(where);
+    expect(prisma.listing.count.mock.calls[0][0].where).toEqual(where);
+  });
+
+  it("leaves out listings the user has hidden", async () => {
+    prisma.listing.findMany.mockResolvedValue([]);
+    prisma.listing.count.mockResolvedValue(0);
+    await searchListings({}, { hiddenIds: [7] });
+    await countListings({}, { hiddenIds: [7] });
+    expect(prisma.listing.findMany.mock.calls[0][0].where.id).toEqual({ notIn: [7] });
+    expect(prisma.listing.count.mock.calls[0][0].where.id).toEqual({ notIn: [7] });
   });
 });
 

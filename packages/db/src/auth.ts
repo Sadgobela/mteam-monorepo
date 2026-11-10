@@ -36,6 +36,11 @@ function assertCodesCanBeSent(): void {
 }
 
 /** One customer on IPv6 is given a whole /64 block and can use a new address for every request, so the block is what gets counted. */
+/** A keyed hash of the visitor's network, so addresses are never stored. */
+export function addressHash(ip: string): string {
+  return keyedHash(`ip:${addressBucket(ip)}`);
+}
+
 function addressBucket(ip: string): string {
   const embedded = /^::ffff:(\d+\.\d+\.\d+\.\d+)$/i.exec(ip);
   if (embedded) return embedded[1];
@@ -50,7 +55,7 @@ function addressBucket(ip: string): string {
 /** Counts one code request against an address and says whether it is within the limit. Single conditional writes, like the phone limit. */
 async function claimAddressQuota(ip: string, now: number): Promise<boolean> {
   const limits = db().codeRequestLimit;
-  const ipHash = keyedHash(`ip:${addressBucket(ip)}`);
+  const ipHash = addressHash(ip);
   const opened = new Date(now);
   const claimed =
     (

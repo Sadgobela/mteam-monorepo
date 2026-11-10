@@ -5,6 +5,9 @@ export {
   createListing,
   getListing,
   listMyListings,
+  listSellerListings,
+  listSimilarListings,
+  countSellerListings,
   PAGE_SIZE,
   parseListingId,
   searchListings,
@@ -20,4 +23,6 @@ export {
 export { getBroker, listBrokers, type Broker } from "./brokers";
 export { getFavoriteIds, listFavorites, setFavorite } from "./favorites";
 export { createLead } from "./leads";
+export { getHiddenIds, setHidden } from "./hidden";
+export { listOpenReports, reportListing, resolveReport } from "./reports";
 export { deleteSession, getSessionUser, requestLoginCode, verifyLoginCode } from "./auth";

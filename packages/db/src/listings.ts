@@ -99,6 +99,7 @@ export function toListing(row: ListingRow): Listing {
       ? { by: row.verifiedBy?.user.name ?? "MTeam", at: row.verifiedAt.toISOString().slice(0, 10) }
       : undefined,
     contactPhone: agent?.user.phone ?? row.owner.phone,
+    sellerId: row.ownerId,
     images: row.images.map((image) => image.url),
     // ponytail: placeholder gradient picked from the id, remove once every listing has photos.
     tone: tones[row.id % tones.length],
@@ -129,9 +130,10 @@ function textClause(q: string | undefined): Prisma.ListingWhereInput[] | undefin
   return [{ district: match }, { address: match }, { street: match }, { city: match }, { title: match }, ...byId];
 }
 
-function whereFor(filters: ListingFilters, located = false): Prisma.ListingWhereInput {
+function whereFor(filters: ListingFilters, located = false, hiddenIds: number[] = []): Prisma.ListingWhereInput {
   return {
     status: "ACTIVE",
+    id: hiddenIds.length > 0 ? { notIn: hiddenIds } : undefined,
     deal: filters.deal && dbDeals[filters.deal],
     type: filters.type && dbPropertyTypes[filters.type],
     city: filters.city,
@@ -172,10 +174,11 @@ export async function searchListings(
     page = 1,
     limit = PAGE_SIZE,
     located = false,
-  }: { sort?: SortOrder; page?: number; limit?: number; located?: boolean } = {},
+    hiddenIds = [],
+  }: { sort?: SortOrder; page?: number; limit?: number; located?: boolean; hiddenIds?: number[] } = {},
 ): Promise<Listing[]> {
   const rows = await db().listing.findMany({
-    where: whereFor(filters, located),
+    where: whereFor(filters, located, hiddenIds),
     include: publicInclude,
     orderBy: orderings[sort],
     skip: (page - 1) * limit,
@@ -185,8 +188,43 @@ export async function searchListings(
 }
 
 /** How many published listings match the filters, across all pages. */
-export function countListings(filters: ListingFilters = {}, { located = false }: { located?: boolean } = {}): Promise<number> {
-  return db().listing.count({ where: whereFor(filters, located) });
+export function countListings(filters: ListingFilters = {}, { located = false, hiddenIds = [] }: { located?: boolean; hiddenIds?: number[] } = {}): Promise<number> {
+  return db().listing.count({ where: whereFor(filters, located, hiddenIds) });
+}
+
+const SIMILAR_LIMIT = 4;
+const SIMILAR_PRICE_SPREAD = 0.3;
+
+/** Same deal, type and city at a nearby price and size. */
+export async function listSimilarListings(listing: Listing): Promise<Listing[]> {
+  const usd = priceInUsd(listing.price, listing.currency);
+  const rows = await db().listing.findMany({
+    where: {
+      status: "ACTIVE",
+      id: { not: listing.id },
+      deal: dbDeals[listing.deal],
+      type: dbPropertyTypes[listing.type],
+      city: listing.city,
+      priceUsd: { gte: Math.round(usd * (1 - SIMILAR_PRICE_SPREAD)), lte: Math.round(usd * (1 + SIMILAR_PRICE_SPREAD)) },
+      rooms: listing.rooms > 0 ? { gte: listing.rooms - 1, lte: listing.rooms + 1 } : undefined,
+    },
+    include: publicInclude,
+    orderBy: [{ verified: "desc" }, { id: "desc" }],
+    take: SIMILAR_LIMIT,
+  });
+  return rows.map(toListing);
+}
+
+const sellerWhere = (ownerId: string) => ({ status: "ACTIVE", ownerId, agentId: null }) satisfies Prisma.ListingWhereInput;
+
+/** An owner's own published listings. Listings handled by a broker belong on the broker's page. */
+export async function listSellerListings(ownerId: string): Promise<Listing[]> {
+  const rows = await db().listing.findMany({ where: sellerWhere(ownerId), include: publicInclude, orderBy: { id: "desc" }, take: 100 });
+  return rows.map(toListing);
+}
+
+export function countSellerListings(ownerId: string): Promise<number> {
+  return db().listing.count({ where: sellerWhere(ownerId) });
 }
 
 /** Reads an id from untrusted text. Returns null for anything that is not a possible listing id. */

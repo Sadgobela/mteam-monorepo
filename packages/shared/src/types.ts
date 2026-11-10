@@ -42,6 +42,7 @@ export interface Listing {
   verification?: { by: string; at: string };
   /** The number to call: the broker's if there is one, otherwise the owner's. */
   contactPhone: string;
+  sellerId: string;
   /** Public photo URLs in display order. */
   images: string[];
   /** Placeholder gradient until real photos are uploaded. */
