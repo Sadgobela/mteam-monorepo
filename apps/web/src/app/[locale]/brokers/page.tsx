@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { listBranches, listBrokers } from "@mteam/db";
 import { getDictionary, placeLabel } from "@mteam/shared";
@@ -5,9 +6,16 @@ import { BrokerTiles } from "@/components/BrokerTiles";
 import { EmptyState } from "@/components/EmptyState";
 import { Header } from "@/components/Header";
 import { resolveLocale } from "@/lib/locale";
+import { languageAlternates } from "@/lib/seo";
 import { hasSession } from "@/lib/session";
 
 export const dynamic = "force-dynamic";
+
+export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }): Promise<Metadata> {
+  const locale = resolveLocale((await params).locale);
+  const t = getDictionary(locale);
+  return { title: t.brokers.heading, alternates: languageAlternates("/brokers", locale) };
+}
 
 export default async function BrokersPage({ params }: { params: Promise<{ locale: string }> }) {
   const locale = resolveLocale((await params).locale);

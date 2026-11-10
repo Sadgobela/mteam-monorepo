@@ -1,3 +1,5 @@
+import { cache } from "react";
+import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { ReactNode } from "react";
@@ -10,6 +12,7 @@ import { GiveBand } from "@/components/LeadForm";
 import { ListingMap } from "@/components/ListingMap";
 import { Segmented } from "@/components/Segmented";
 import { resolveLocale } from "@/lib/locale";
+import { listingMetadata } from "@/lib/seo";
 import { currentUser } from "@/lib/session";
 import { setHiddenAction } from "@/lib/account-actions";
 import { ListingGrid } from "@/components/ListingGrid";
@@ -44,6 +47,15 @@ function Fact({ icon, label, children }: { icon: keyof typeof factIcons; label: 
   );
 }
 
+// The metadata and the page need the same listing, so it is read once per request.
+const loadListing = cache(getListing);
+
+export async function generateMetadata({ params }: { params: Promise<{ locale: string; id: string }> }): Promise<Metadata> {
+  const { locale: raw, id } = await params;
+  const listing = await loadListing(id);
+  return listing ? listingMetadata(listing, resolveLocale(raw)) : {};
+}
+
 export default async function ListingPage({
   params,
   searchParams,
@@ -53,7 +65,7 @@ export default async function ListingPage({
 }) {
   const { locale: raw, id } = await params;
   const locale = resolveLocale(raw);
-  const listing = await getListing(id);
+  const listing = await loadListing(id);
   if (!listing) notFound();
   const t = getDictionary(locale);
   const { cur } = parseListingDisplay(await searchParams);
