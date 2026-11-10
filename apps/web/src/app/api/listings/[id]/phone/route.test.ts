@@ -2,7 +2,9 @@
 import { describe, expect, it, vi } from "vitest";
 
 const getListing = vi.hoisted(() => vi.fn());
-vi.mock("@mteam/db", () => ({ getListing }));
+const claimPhoneLookup = vi.hoisted(() => vi.fn(async () => true));
+vi.mock("@mteam/db", () => ({ claimPhoneLookup, getListing }));
+vi.mock("@/lib/session", () => ({ clientIp: async () => "1.2.3.4" }));
 
 import { GET } from "./route";
 
@@ -14,6 +16,13 @@ describe("GET phone", () => {
     const response = await call("7");
     expect(await response.json()).toEqual({ phone: "+995555" });
     expect(getListing).toHaveBeenCalledWith("7");
+  });
+
+  it("refuses an address past its limit without looking anything up", async () => {
+    getListing.mockClear();
+    claimPhoneLookup.mockResolvedValueOnce(false);
+    expect((await call("7")).status).toBe(429);
+    expect(getListing).not.toHaveBeenCalled();
   });
 
   it("is not found for anything else", async () => {
