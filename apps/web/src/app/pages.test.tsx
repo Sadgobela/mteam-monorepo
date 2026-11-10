@@ -212,7 +212,6 @@ describe("listing page", () => {
     render(await ListingPage({ params: p({ locale: "en", id: "20418" }), searchParams: p({}) }));
     expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("ვაკეში");
     expect(screen.getByText("Floor")).toBeInTheDocument();
-    expect(screen.getByText("Condition")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Call" })).toHaveAttribute("href", "tel:+995555000000");
     expect(screen.getByRole("link", { name: "WhatsApp" })).toHaveAttribute("href", "https://wa.me/995555000000");
     expect(screen.getByText(/MTeam broker/)).toBeInTheDocument();
@@ -294,7 +293,7 @@ describe("listing page", () => {
 
   it("draws an icon beside each fact", async () => {
     const { container } = render(await ListingPage({ params: p({ locale: "en", id: "20418" }), searchParams: p({}) }));
-    expect(container.querySelectorAll(".facts dt svg")).toHaveLength(4);
+    expect(container.querySelectorAll(".facts dt svg")).toHaveLength(3);
   });
 
   it("shows 404 for an unknown listing", async () => {

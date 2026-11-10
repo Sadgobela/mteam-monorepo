@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { featureLabel, groupKeys, groupNames, isFeature, specKeys, specLabel, specNames } from "./details";
 import { streetsIn } from "./streets";
 import { cities, cityAreas, cityDistricts, defaultLocale, formatDay, formatPrice, getDictionary, isCity, isLocale, isMetro, locales, metroStations, placeLabel, placeName, popularCities, priceUnit } from "./index";
 
@@ -79,6 +80,29 @@ describe("places", () => {
     expect(placeLabel("Old town", "en")).toBe("Old Town");
     expect(placeLabel("რუსთაველის გამზირი", "en")).toBe("Rustavelis Ave.");
     expect(placeLabel("ატენის ქ.", "ru")).toBe("Атенис ул.");
+  });
+});
+
+describe("listing details", () => {
+  it("has every choice in all three languages", () => {
+    for (const name of specNames) {
+      for (const key of specKeys(name)) for (const locale of ["ka", "en", "ru"] as const) expect(specLabel(name, key, locale)).not.toBe("");
+    }
+    for (const group of groupNames) {
+      for (const key of groupKeys(group)) for (const locale of ["ka", "en", "ru"] as const) expect(featureLabel(key, locale)).not.toBe("");
+    }
+  });
+
+  it("never uses one feature key in two groups, since a listing stores them together", () => {
+    const keys = groupNames.flatMap(groupKeys);
+    expect(new Set(keys).size).toBe(keys.length);
+  });
+
+  it("knows its own features and names choices", () => {
+    expect(isFeature("lift")).toBe(true);
+    expect(isFeature("castle")).toBe(false);
+    expect(specLabel("heating", "central", "en")).toBe("Central heating");
+    expect(featureLabel("freight_lift", "ka")).toBe("სატვირთო ლიფტი");
   });
 });
 

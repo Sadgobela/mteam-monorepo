@@ -1,3 +1,4 @@
+import type { SpecName } from "./details";
 import type { Currency, DealType, PropertyType, BuildingStatus } from "./search";
 
 
@@ -28,7 +29,11 @@ export interface Listing {
   rooms: number;
   floor?: number;
   floors?: number;
-  condition?: string;
+  specs: Partial<Record<SpecName, string>>;
+  features: string[];
+  bedrooms?: number;
+  ceiling?: number;
+  yearBuilt?: number;
   description: string;
   /** Checked on site by an MTeam broker. */
   verified: boolean;

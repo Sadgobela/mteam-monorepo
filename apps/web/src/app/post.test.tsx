@@ -238,6 +238,7 @@ describe("ListingForm", () => {
       expect(screen.getByRole("group", { name: t.post.steps.details })).toHaveFocus();
       completeSecond();
       expect(current()).toBe("3 Photos");
+      expect(screen.getByRole("group", { name: t.post.steps.photos })).toHaveFocus();
       expect(screen.getByRole("button", { name: t.post.submit })).toHaveAttribute("type", "submit");
       expect(screen.queryByRole("button", { name: t.post.next })).toBeNull();
     });

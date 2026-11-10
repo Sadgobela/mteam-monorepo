@@ -26,7 +26,11 @@ const fullRow = {
   floors: 12,
   lat: 41.7,
   lng: 44.7,
-  condition: "New",
+  condition: "new_renovated",
+  features: ["lift"],
+  bedrooms: 2,
+  ceiling: 3,
+  yearBuilt: 2019,
   verified: true,
   agent: { id: "a1", user: { name: "Nino", phone: "+995", role: "AGENT" }, branch: { name: "Vake" } },
   images: [{ url: "https://cdn/a.jpg" }, { url: "https://cdn/b.jpg" }],
@@ -47,6 +51,10 @@ const bareRow = {
   lat: null,
   lng: null,
   condition: null,
+  features: [],
+  bedrooms: null,
+  ceiling: null,
+  yearBuilt: null,
   verified: false,
   agent: null,
 };
@@ -73,7 +81,11 @@ describe("getListing", () => {
       floors: 12,
       lat: 41.7,
       lng: 44.7,
-      condition: "New",
+      specs: { condition: "new_renovated" },
+      features: ["lift"],
+      bedrooms: 2,
+      ceiling: 3,
+      yearBuilt: 2019,
       verified: true,
       agent: { id: "a1", name: "Nino", branch: "Vake", phone: "+995" },
       contactPhone: "+995",
@@ -93,7 +105,10 @@ describe("getListing", () => {
       rooms: 0,
       floor: undefined,
       floors: undefined,
-      condition: undefined,
+      specs: {},
+      bedrooms: undefined,
+      ceiling: undefined,
+      yearBuilt: undefined,
       agent: undefined,
       contactPhone: "+995owner",
       tone: "sand",
@@ -103,6 +118,11 @@ describe("getListing", () => {
   it("maps building status and metro", async () => {
     prisma.listing.findFirst.mockResolvedValue({ ...fullRow, building: "CONSTRUCTION", metro: "დელისი", street: "ატენის ქ." });
     expect(await getListing("20418")).toMatchObject({ building: "construction", metro: "დელისი", street: "ატენის ქ." });
+  });
+
+  it("ignores a stored detail that is no longer a known choice", async () => {
+    prisma.listing.findFirst.mockResolvedValue({ ...fullRow, condition: "retired_value" });
+    expect((await getListing("20418"))?.specs).toEqual({});
   });
 
   it("copes with a broker who has no name or branch", async () => {

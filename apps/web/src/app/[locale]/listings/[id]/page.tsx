@@ -4,6 +4,7 @@ import type { ReactNode } from "react";
 import { getListing } from "@mteam/db";
 import { placeLabel, priceUnit, convertPrice, formatDay, formatPrice, getDictionary, parseListingDisplay } from "@mteam/shared";
 import { Gallery } from "@/components/Gallery";
+import { ListingDetails } from "@/components/ListingDetails";
 import { Header } from "@/components/Header";
 import { GiveBand } from "@/components/LeadForm";
 import { ListingMap } from "@/components/ListingMap";
@@ -156,13 +157,9 @@ export default async function ListingPage({
                 {placeLabel(listing.metro, locale)}
               </Fact>
             )}
-            {listing.condition && (
-              <Fact icon="condition" label={t.listing.condition}>
-                {listing.condition}
-              </Fact>
-            )}
           </dl>
           <p>{listing.description}</p>
+          <ListingDetails listing={listing} locale={locale} t={t} />
           {listing.lat !== undefined && listing.lng !== undefined && (
             <ListingMap
               label={t.results.map}
