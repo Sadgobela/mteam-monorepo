@@ -82,7 +82,11 @@ describe("leads", () => {
 });
 
 describe("promoteUser", () => {
-  const fake = () => ({ user: { update: vi.fn().mockResolvedValue({ id: "u1" }) } });
+  const fake = () => ({
+    user: { update: vi.fn().mockResolvedValue({ id: "u1" }) },
+    $executeRaw: vi.fn().mockResolvedValue(0),
+    $transaction: vi.fn(async (writes: Promise<unknown>[]) => Promise.all(writes)),
+  });
   const staffWrite = { upsert: { create: {}, update: {} } };
 
   it.each(["AGENT", "ADMIN"])("makes %s a broker record in the same write", async (role) => {
@@ -95,6 +99,20 @@ describe("promoteUser", () => {
     const client = fake();
     await promoteUser(client as unknown as PrismaClient, "+995", "AGENT", "Nino");
     expect(client.user.update.mock.calls[0][0].data.name).toBe("Nino");
+  });
+
+  it("leaves a broker's chats alone while they stay one", async () => {
+    const client = fake();
+    await promoteUser(client as unknown as PrismaClient, "+995", "AGENT");
+    expect(client.$transaction).not.toHaveBeenCalled();
+    expect(client.$executeRaw).not.toHaveBeenCalled();
+  });
+
+  it.each(["USER", "ADMIN"])("hands a former broker's chats to the owners when they become %s, in one write", async (role) => {
+    const client = fake();
+    await promoteUser(client as unknown as PrismaClient, "+995", role);
+    expect(client.$transaction).toHaveBeenCalledTimes(1);
+    expect(client.$executeRaw.mock.calls[0].slice(1)).toEqual(["+995"]);
   });
 
   it("creates no broker record for an ordinary user", async () => {
