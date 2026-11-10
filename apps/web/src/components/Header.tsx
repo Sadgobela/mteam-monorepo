@@ -13,6 +13,7 @@ export function Header({ locale, t, signedIn }: { locale: Locale; t: Dict; signe
       {signedIn && (
         <>
           <Link href={`/${locale}/favorites`} className="nav-link">{t.nav.favorites}</Link>
+          <Link href={`/${locale}/saved`} className="nav-link">{t.nav.saved}</Link>
           <Link href={`/${locale}/my-listings`} className="nav-link">{t.nav.my}</Link>
         </>
       )}

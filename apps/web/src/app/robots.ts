@@ -2,7 +2,7 @@ import type { MetadataRoute } from "next";
 import { locales } from "@mteam/shared";
 import { siteUrl } from "@/lib/site-url";
 
-const PRIVATE_PAGES = ["admin", "login", "favorites", "my-listings", "listings/new"];
+const PRIVATE_PAGES = ["admin", "login", "favorites", "saved", "my-listings", "listings/new"];
 
 export const dynamic = "force-dynamic";
 

@@ -2,7 +2,8 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { archiveListing, parseListingId, setFavorite, setHidden } from "@mteam/db";
+import { archiveListing, deleteSavedSearch, openSavedSearch, parseListingId, saveSearch, setFavorite, setHidden } from "@mteam/db";
+import { canonicalSearch } from "@mteam/shared";
 import { resolveLocale } from "./locale";
 import { currentUser } from "./session";
 
@@ -23,6 +24,37 @@ export async function setFavoriteAction(form: FormData): Promise<void> {
 export async function setHiddenAction(form: FormData): Promise<void> {
   const want = form.get("want") === "1";
   await run(form, (userId, listingId) => setHidden(userId, listingId, want));
+}
+
+/** The signed-in user and the language, or off to the sign-in page. */
+async function signedIn(form: FormData) {
+  const locale = resolveLocale(String(form.get("locale")));
+  const user = await currentUser();
+  if (!user) redirect(`/${locale}/login`);
+  return { locale, user };
+}
+
+const savedSearchId = (form: FormData) => /^[\w-]{1,40}$/.exec(String(form.get("id")))?.[0] ?? "";
+
+export async function saveSearchAction(form: FormData): Promise<void> {
+  const { locale, user } = await signedIn(form);
+  const query = canonicalSearch(Object.fromEntries(new URLSearchParams(String(form.get("query")))));
+  // At the limit the list is where one can be removed to make room.
+  if (query && !(await saveSearch(user.id, query))) redirect(`/${locale}/saved`);
+  revalidatePath("/", "layout");
+}
+
+export async function deleteSavedSearchAction(form: FormData): Promise<void> {
+  const { user } = await signedIn(form);
+  await deleteSavedSearch(user.id, savedSearchId(form));
+  revalidatePath("/", "layout");
+}
+
+/** Counts its results as seen, then shows them. */
+export async function openSavedSearchAction(form: FormData): Promise<void> {
+  const { locale, user } = await signedIn(form);
+  const query = await openSavedSearch(user.id, savedSearchId(form));
+  redirect(query === null ? `/${locale}/saved` : `/${locale}?${query}`);
 }
 
 export async function archiveListingAction(form: FormData): Promise<void> {

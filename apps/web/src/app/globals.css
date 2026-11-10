@@ -216,6 +216,10 @@ html:has(.viewer[open]) { overflow: hidden; }
 .ph img { object-fit: cover; }
 .narrow h1 { font-size: 24px; }
 .heading { font-size: 22px; font-weight: 800; }
+.save-search { margin-left: auto; }
+.saved-list { display: grid; gap: 10px; list-style: none; margin: 0; padding: 0; }
+.saved-list li { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; padding: 14px 16px; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; }
+.saved-new { color: var(--brand-deep); font-size: 14px; font-weight: 700; }
 .market { display: grid; gap: 6px; }
 .market-bar { display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; }
 .market-bar span { height: 8px; border-radius: 4px; background: var(--line); }
