@@ -40,3 +40,5 @@ Development runs entirely locally for now. These must be done before real users 
 - Hosting: the proxy in front of the site must add the visitor's address as the last `x-forwarded-for` entry, because the limit on login codes trusts only that entry. It must also allow 55 MB requests to `/api/listings`.
 - A map tile provider: the free OpenStreetMap tile server is for development only.
 - A real exchange rate: search, sorting and the ₾/$ switch use fixed rates.
+- Set `SITE_URL` to the real address, or the sitemap and page links will point at localhost.
+- Run `db:market` every night, so market levels follow new listings.
