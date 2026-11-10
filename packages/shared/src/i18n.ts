@@ -56,7 +56,7 @@ const ka = {
   favorites: { heading: "რჩეულები", empty: "ჯერ არაფერი შეგინახავს. დააჭირე გულს განცხადებაზე.", add: "რჩეულებში დამატება", remove: "რჩეულებიდან ამოღება" },
   my: { confirmArchive: "მოვხსნა ეს განცხადება?", heading: "ჩემი განცხადებები", empty: "ჯერ განცხადება არ დაგიმატებია.", archive: "მოხსნა", status: { DRAFT: "დრაფტი", PENDING: "მოდერაციაზე", ACTIVE: "გამოქვეყნებული", ARCHIVED: "მოხსნილი", REJECTED: "უარყოფილი" } },
   admin: { reports: "საჩივრები", resolve: "განხილულია", confirmReject: "უარვყო ეს განცხადება?", heading: "მართვის პანელი", pending: "მოდერაციას ელოდება", unverified: "გადასამოწმებელი", leads: "მიეცი MTeam-ს: მოთხოვნები", nothing: "ცარიელია.", approve: "გამოქვეყნება", reject: "უარყოფა", verify: "ადგილზე შევამოწმე", contacted: "დავუკავშირდი", contactedDone: "დაკავშირებული" },
-  brokers: { heading: "MTeam-ის ბროკერები", empty: "ბროკერები ჯერ არ არის დამატებული.", listings: "განცხადებები: {count}" },
+  brokers: { heading: "MTeam-ის ბროკერები", empty: "ბროკერები ჯერ არ არის დამატებული.", listings: "განცხადებები: {count}", branches: "ფილიალები", team: "ბროკერები", people: "ბროკერები: {count}" },
   gallery: { close: "დახურვა", previous: "წინა ფოტო", next: "შემდეგი ფოტო" },
   theme: { dark: "მუქი რეჟიმი", light: "ნათელი რეჟიმი" },
 };
@@ -110,7 +110,7 @@ const en: Dict = {
   favorites: { heading: "Favourites", empty: "Nothing saved yet. Tap the heart on a listing.", add: "Add to favourites", remove: "Remove from favourites" },
   my: { confirmArchive: "Take this listing down?", heading: "My listings", empty: "You have not posted anything yet.", archive: "Take down", status: { DRAFT: "Draft", PENDING: "In review", ACTIVE: "Published", ARCHIVED: "Taken down", REJECTED: "Rejected" } },
   admin: { reports: "Reports", resolve: "Done", confirmReject: "Reject this listing?", heading: "Admin panel", pending: "Waiting for moderation", unverified: "To verify on site", leads: "Give it to MTeam requests", nothing: "Nothing here.", approve: "Publish", reject: "Reject", verify: "I checked it on site", contacted: "Mark contacted", contactedDone: "Contacted" },
-  brokers: { heading: "MTeam brokers", empty: "No brokers have been added yet.", listings: "Listings: {count}" },
+  brokers: { heading: "MTeam brokers", empty: "No brokers have been added yet.", listings: "Listings: {count}", branches: "Branches", team: "Brokers", people: "Brokers: {count}" },
   gallery: { close: "Close", previous: "Previous photo", next: "Next photo" },
   theme: { dark: "Dark mode", light: "Light mode" },
 };
@@ -162,7 +162,7 @@ const ru: Dict = {
   favorites: { heading: "Избранное", empty: "Пока ничего не сохранено. Нажмите на сердечко в объявлении.", add: "Добавить в избранное", remove: "Убрать из избранного" },
   my: { confirmArchive: "Снять это объявление?", heading: "Мои объявления", empty: "Вы ещё ничего не публиковали.", archive: "Снять", status: { DRAFT: "Черновик", PENDING: "На модерации", ACTIVE: "Опубликовано", ARCHIVED: "Снято", REJECTED: "Отклонено" } },
   admin: { reports: "Жалобы", resolve: "Рассмотрено", confirmReject: "Отклонить это объявление?", heading: "Панель управления", pending: "Ждут модерации", unverified: "Проверить на месте", leads: "Заявки «Доверьте MTeam»", nothing: "Пусто.", approve: "Опубликовать", reject: "Отклонить", verify: "Проверено на месте", contacted: "Связались", contactedDone: "Связались" },
-  brokers: { heading: "Брокеры MTeam", empty: "Брокеры пока не добавлены.", listings: "Объявления: {count}" },
+  brokers: { heading: "Брокеры MTeam", empty: "Брокеры пока не добавлены.", listings: "Объявления: {count}", branches: "Филиалы", team: "Брокеры", people: "Брокеры: {count}" },
   gallery: { close: "Закрыть", previous: "Предыдущее фото", next: "Следующее фото" },
   theme: { dark: "Тёмная тема", light: "Светлая тема" },
 };
