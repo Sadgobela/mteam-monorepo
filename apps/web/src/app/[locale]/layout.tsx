@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { getDictionary, locales } from "@mteam/shared";
 import { AntProvider } from "@/components/AntProvider";
 import { resolveLocale } from "@/lib/locale";
-import { siteUrl } from "@/lib/seo";
+import { siteUrl } from "@/lib/site-url";
 import { themeInitScript } from "@/lib/theme";
 import "../globals.css";
 

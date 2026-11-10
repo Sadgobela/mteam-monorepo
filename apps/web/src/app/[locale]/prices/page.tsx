@@ -5,7 +5,7 @@ import { getDictionary, METRO_CITY, parseListingFilters, placeLabel, popularCiti
 import { EmptyState } from "@/components/EmptyState";
 import { Header } from "@/components/Header";
 import { resolveLocale } from "@/lib/locale";
-import { languageAlternates } from "@/lib/seo";
+import { languageAlternates, searchPath } from "@/lib/seo";
 import { hasSession } from "@/lib/session";
 import type { Query } from "@/lib/url";
 
@@ -14,18 +14,24 @@ export const dynamic = "force-dynamic";
 const ROOMS = [1, 2, 3, 4];
 const DEALS = ["sale", "rent"] as const;
 
-export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }): Promise<Metadata> {
+/** Which figures a query asks for. Anything else means Tbilisi sales. */
+function chosen(query: Query) {
+  const filters = parseListingFilters(query);
+  return { city: filters.city ?? METRO_CITY, deal: filters.deal === "rent" ? ("rent" as const) : ("sale" as const) };
+}
+
+export async function generateMetadata({ params, searchParams }: { params: Promise<{ locale: string }>; searchParams: Promise<Query> }): Promise<Metadata> {
   const locale = resolveLocale((await params).locale);
   const t = getDictionary(locale);
-  return { title: t.market.statsHeading, alternates: languageAlternates("/prices", locale) };
+  const { city, deal } = chosen(await searchParams);
+  const path = `/prices${searchPath({ deal: deal === "sale" ? undefined : deal, city: city === METRO_CITY ? undefined : city })}`;
+  return { title: `${t.market.statsHeading} · ${placeLabel(city, locale)}`, alternates: languageAlternates(path, locale) };
 }
 
 export default async function PricesPage({ params, searchParams }: { params: Promise<{ locale: string }>; searchParams: Promise<Query> }) {
   const locale = resolveLocale((await params).locale);
   const t = getDictionary(locale);
-  const filters = parseListingFilters(await searchParams);
-  const city = filters.city ?? METRO_CITY;
-  const deal = filters.deal === "rent" ? "rent" : "sale";
+  const { city, deal } = chosen(await searchParams);
   const stats = await priceStats(city, deal);
   const districts = [...new Set(stats.map((stat) => stat.district))];
   const href = (nextCity: string, nextDeal: string) => `/${locale}/prices?city=${encodeURIComponent(nextCity)}&deal=${nextDeal}`;

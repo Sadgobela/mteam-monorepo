@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { fixtureListings } from "@/test-fixtures";
 
-const db = vi.hoisted(() => ({ getListing: vi.fn(), sitemapListings: vi.fn(), sitemapSearches: vi.fn() }));
+const db = vi.hoisted(() => ({ countListings: vi.fn(), getListing: vi.fn(), sitemapListings: vi.fn(), sitemapSearches: vi.fn() }));
 
 vi.mock("@mteam/db", () => db);
 vi.mock("@/lib/session", () => ({}));
@@ -16,6 +16,7 @@ import { generateMetadata as layoutMetadata } from "./[locale]/layout";
 import { generateMetadata as listingMetadata } from "./[locale]/listings/[id]/page";
 import { generateMetadata as homeMetadata } from "./[locale]/page";
 import { generateMetadata as pricesMetadata } from "./[locale]/prices/page";
+import { register } from "../instrumentation";
 import robots from "./robots";
 import sitemap from "./sitemap";
 
@@ -34,10 +35,22 @@ describe("page metadata", () => {
     expect(metadata.metadataBase?.href).toBe("https://example.test/");
   });
 
-  it("falls back to the local address, and refuses a broken one", async () => {
+  it("uses the local address during development, also when the setting is blank", async () => {
     expect((await layoutMetadata({ params: locale("en") })).metadataBase?.href).toBe("http://localhost:3111/");
-    vi.stubEnv("SITE_URL", "not an address");
-    await expect(layoutMetadata({ params: locale("en") })).rejects.toThrow();
+    vi.stubEnv("SITE_URL", "");
+    expect((await layoutMetadata({ params: locale("en") })).metadataBase?.href).toBe("http://localhost:3111/");
+  });
+
+  it("stops the server starting on a missing or broken address", () => {
+    vi.stubEnv("NODE_ENV", "production");
+    vi.stubEnv("SITE_URL", "");
+    expect(() => register()).toThrow();
+    for (const broken of ["mteam.example", "localhost:3111", "javascript:alert(1)"]) {
+      vi.stubEnv("SITE_URL", broken);
+      expect(() => register()).toThrow();
+    }
+    vi.stubEnv("SITE_URL", "https://example.test/");
+    expect(() => register()).not.toThrow();
   });
 
   it("leaves the home page's title to the site and points at itself", async () => {
@@ -47,7 +60,14 @@ describe("page metadata", () => {
     expect(metadata.alternates?.canonical).toBe("/en");
   });
 
+  it("keeps a search with no results out of the index", async () => {
+    db.countListings.mockResolvedValue(0);
+    const metadata = await homeMetadata({ params: locale("en"), searchParams: query({ deal: "sale", type: "hotel" }) });
+    expect(metadata.robots).toEqual({ index: false, follow: true });
+  });
+
   it("names and indexes a search by deal, type and city", async () => {
+    db.countListings.mockResolvedValue(3);
     const metadata = await homeMetadata({ params: locale("en"), searchParams: query({ deal: "sale", type: "apartment", city: "თბილისი" }) });
     expect(metadata.title).toBe("For sale · Apartment · Tbilisi | MTeam");
     expect(metadata.robots).toBeUndefined();
@@ -77,13 +97,20 @@ describe("page metadata", () => {
 
   it("titles the brokers and prices pages", async () => {
     expect(await brokersMetadata({ params: locale("en") })).toMatchObject({ title: "MTeam brokers", alternates: { canonical: "/en/brokers" } });
-    expect(await pricesMetadata({ params: locale("ru") })).toMatchObject({ title: "Цены по районам", alternates: { canonical: "/ru/prices" } });
+    expect(await pricesMetadata({ params: locale("ru"), searchParams: query({}) })).toMatchObject({ title: "Цены по районам · Тбилиси", alternates: { canonical: "/ru/prices" } });
+  });
+
+  it("gives each city's prices their own address, and the default figures one address", async () => {
+    const batumi = await pricesMetadata({ params: locale("en"), searchParams: query({ city: "ბათუმი", deal: "rent" }) });
+    expect(batumi.title).toBe("Prices by district · Batumi");
+    expect(batumi.alternates?.canonical).toBe(`/en/prices?${new URLSearchParams({ deal: "rent", city: "ბათუმი" })}`);
+    expect((await pricesMetadata({ params: locale("en"), searchParams: query({ city: "თბილისი", deal: "sale" }) })).alternates?.canonical).toBe("/en/prices");
   });
 });
 
 describe("sitemap", () => {
   it("lists pages, searches and listings, written so the XML stays valid", async () => {
-    vi.stubEnv("SITE_URL", "https://example.test");
+    vi.stubEnv("SITE_URL", "https://example.test/");
     const updatedAt = new Date("2026-11-01");
     db.sitemapListings.mockResolvedValue([{ id: 7, updatedAt }]);
     db.sitemapSearches.mockResolvedValue([{ deal: "sale", type: "apartment", city: "Batumi" }]);
