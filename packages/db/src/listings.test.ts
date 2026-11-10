@@ -392,6 +392,17 @@ describe("similar and seller listings", () => {
     });
   });
 
+  it("leaves out hidden listings", async () => {
+    prisma.listing.findMany.mockResolvedValue([]);
+    await listSimilarListings(listing, [9]);
+    expect(prisma.listing.findMany.mock.calls[0][0].where.id).toEqual({ not: 5, notIn: [9] });
+  });
+
+  it("finds nothing for a malformed seller id without querying", async () => {
+    expect(await listSellerListings("bad id")).toEqual([]);
+    expect(prisma.listing.findMany).not.toHaveBeenCalled();
+  });
+
   it("does not compare rooms for property without them", async () => {
     prisma.listing.findMany.mockResolvedValue([]);
     await listSimilarListings({ ...listing, rooms: 0 });
@@ -403,7 +414,7 @@ describe("similar and seller listings", () => {
     prisma.listing.count.mockResolvedValue(2);
     expect(await listSellerListings("u1")).toHaveLength(1);
     expect(await countSellerListings("u1")).toBe(2);
-    const where = { status: "ACTIVE", ownerId: "u1", agentId: null };
+    const where = { status: "ACTIVE", ownerId: "u1", agentId: null, owner: { role: "USER" } };
     expect(prisma.listing.findMany.mock.calls[0][0].where).toEqual(where);
     expect(prisma.listing.count.mock.calls[0][0].where).toEqual(where);
   });

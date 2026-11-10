@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const prisma = vi.hoisted(() => ({
   listing: { findFirst: vi.fn() },
-  listingReport: { createMany: vi.fn(), findMany: vi.fn(), updateMany: vi.fn() },
+  listingReport: { count: vi.fn(async () => 0), createMany: vi.fn(), findMany: vi.fn(), updateMany: vi.fn() },
 }));
 
 vi.mock("./client", () => ({ db: () => prisma }));
@@ -17,6 +17,13 @@ describe("reportListing", () => {
     prisma.listing.findFirst.mockResolvedValue({ id: 7 });
     await reportListing(7, { reason: "fake" }, "1.2.3.4");
     expect(prisma.listingReport.createMany).toHaveBeenCalledWith({ data: [{ listingId: 7, reason: "fake", ipHash: "hash:1.2.3.4" }], skipDuplicates: true });
+  });
+
+  it("stops one address from filling the queue", async () => {
+    prisma.listingReport.count.mockResolvedValueOnce(20);
+    await reportListing(7, { reason: "fake" }, "1.2.3.4");
+    expect(prisma.listing.findFirst).not.toHaveBeenCalled();
+    expect(prisma.listingReport.createMany).not.toHaveBeenCalled();
   });
 
   it("ignores a listing that is not published", async () => {

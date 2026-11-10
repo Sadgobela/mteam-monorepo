@@ -196,12 +196,12 @@ const SIMILAR_LIMIT = 4;
 const SIMILAR_PRICE_SPREAD = 0.3;
 
 /** Same deal, type and city at a nearby price and size. */
-export async function listSimilarListings(listing: Listing): Promise<Listing[]> {
+export async function listSimilarListings(listing: Listing, hiddenIds: number[] = []): Promise<Listing[]> {
   const usd = priceInUsd(listing.price, listing.currency);
   const rows = await db().listing.findMany({
     where: {
       status: "ACTIVE",
-      id: { not: listing.id },
+      id: { not: listing.id, notIn: hiddenIds },
       deal: dbDeals[listing.deal],
       type: dbPropertyTypes[listing.type],
       city: listing.city,
@@ -215,10 +215,11 @@ export async function listSimilarListings(listing: Listing): Promise<Listing[]> 
   return rows.map(toListing);
 }
 
-const sellerWhere = (ownerId: string) => ({ status: "ACTIVE", ownerId, agentId: null }) satisfies Prisma.ListingWhereInput;
+const sellerWhere = (ownerId: string) => ({ status: "ACTIVE", ownerId, agentId: null, owner: { role: "USER" } }) satisfies Prisma.ListingWhereInput;
 
 /** An owner's own published listings. Listings handled by a broker belong on the broker's page. */
 export async function listSellerListings(ownerId: string): Promise<Listing[]> {
+  if (!/^[\w-]{1,40}$/.test(ownerId)) return [];
   const rows = await db().listing.findMany({ where: sellerWhere(ownerId), include: publicInclude, orderBy: { id: "desc" }, take: 100 });
   return rows.map(toListing);
 }

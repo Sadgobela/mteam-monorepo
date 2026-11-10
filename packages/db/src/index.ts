@@ -25,4 +25,4 @@ export { getFavoriteIds, listFavorites, setFavorite } from "./favorites";
 export { createLead } from "./leads";
 export { getHiddenIds, setHidden } from "./hidden";
 export { listOpenReports, reportListing, resolveReport } from "./reports";
-export { deleteSession, getSessionUser, requestLoginCode, verifyLoginCode } from "./auth";
+export { claimPhoneLookup, deleteSession, getSessionUser, requestLoginCode, verifyLoginCode } from "./auth";

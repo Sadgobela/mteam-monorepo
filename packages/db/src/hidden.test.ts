@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const prisma = vi.hoisted(() => ({ hiddenListing: { createMany: vi.fn(), deleteMany: vi.fn(), findMany: vi.fn() } }));
+const prisma = vi.hoisted(() => ({ listing: { findFirst: vi.fn() }, hiddenListing: { createMany: vi.fn(), deleteMany: vi.fn(), findMany: vi.fn() } }));
 
 vi.mock("./client", () => ({ db: () => prisma }));
 
@@ -9,7 +9,14 @@ import { getHiddenIds, setHidden } from "./hidden";
 beforeEach(() => vi.clearAllMocks());
 
 describe("hidden listings", () => {
+  it("does not hide a listing that is not published", async () => {
+    prisma.listing.findFirst.mockResolvedValue(null);
+    await setHidden("u1", 7, true);
+    expect(prisma.hiddenListing.createMany).not.toHaveBeenCalled();
+  });
+
   it("hides a listing, tolerating a repeat", async () => {
+    prisma.listing.findFirst.mockResolvedValue({ id: 7 });
     await setHidden("u1", 7, true);
     expect(prisma.hiddenListing.createMany).toHaveBeenCalledWith({ data: [{ userId: "u1", listingId: 7 }], skipDuplicates: true });
   });
