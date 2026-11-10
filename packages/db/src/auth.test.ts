@@ -10,7 +10,7 @@ const prisma = vi.hoisted(() => ({
 
 vi.mock("./client", () => ({ db: () => prisma }));
 
-import { deleteSession, getSessionUser, requestLoginCode, verifyLoginCode } from "./index";
+import { claimPhoneLookup, deleteSession, getSessionUser, requestLoginCode, verifyLoginCode } from "./index";
 
 const phone = "+995555123456";
 const sha256 = (value: string) => createHash("sha256").update(value).digest("hex");
@@ -263,5 +263,23 @@ describe("sessions", () => {
     prisma.session.deleteMany.mockResolvedValue({ count: 1 });
     await deleteSession("tok");
     expect(prisma.session.deleteMany).toHaveBeenCalledWith({ where: { tokenHash: sha256("tok") } });
+  });
+});
+
+describe("claimPhoneLookup", () => {
+  it("counts lookups separately from login codes, and refuses past the limit", async () => {
+    prisma.codeRequestLimit.updateMany.mockReset();
+    prisma.codeRequestLimit.updateMany.mockResolvedValue({ count: 1 });
+    expect(await claimPhoneLookup("1.2.3.4", 1000)).toBe(true);
+    expect(prisma.codeRequestLimit.updateMany.mock.calls[0][0].where.ipHash).toMatch(/^phone:/);
+    prisma.codeRequestLimit.updateMany.mockResolvedValue({ count: 0 });
+    prisma.codeRequestLimit.createMany.mockResolvedValue({ count: 0 });
+    expect(await claimPhoneLookup("1.2.3.4", 1000)).toBe(false);
+  });
+
+  it("uses the current time by default", async () => {
+    prisma.codeRequestLimit.updateMany.mockReset();
+    prisma.codeRequestLimit.updateMany.mockResolvedValue({ count: 1 });
+    expect(await claimPhoneLookup("1.2.3.4")).toBe(true);
   });
 });

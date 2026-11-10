@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { notFound } from "next/navigation";
-import { markLeadContacted, parseListingId, reviewListing, verifyListing } from "@mteam/db";
+import { markLeadContacted, parseListingId, resolveReport, reviewListing, verifyListing } from "@mteam/db";
 import { currentUser } from "./session";
 
 async function staffUser() {
@@ -12,6 +12,13 @@ async function staffUser() {
 }
 
 const refresh = () => revalidatePath("/", "layout");
+
+export async function resolveReportAction(form: FormData): Promise<void> {
+  const user = await staffUser();
+  if (user.role !== "ADMIN") notFound();
+  await resolveReport(String(form.get("reportId")));
+  refresh();
+}
 
 export async function reviewListingAction(form: FormData): Promise<void> {
   const user = await staffUser();

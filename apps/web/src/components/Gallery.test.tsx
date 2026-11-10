@@ -46,6 +46,16 @@ describe("Gallery", () => {
     expect(container.querySelector(".gal")).toHaveAttribute("data-tiles", String(tiles));
   });
 
+  it("jumps to a photo from its thumbnail", () => {
+    openOn(3, 1);
+    const thumbs = document.querySelectorAll(".viewer-thumbs button");
+    expect(thumbs).toHaveLength(3);
+    expect(thumbs[1]).toHaveAttribute("aria-current", "true");
+    fireEvent.click(thumbs[2]);
+    expect(thumbs[2]).toHaveAttribute("aria-current", "true");
+    expect(thumbs[1]).not.toHaveAttribute("aria-current");
+  });
+
   it("states the total on the first tile", () => {
     render(<Gallery images={photos(8)} title="Flat" tone="violet" t={t} />);
     expect(screen.getByText("8 photos")).toBeInTheDocument();

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { parseLead, parseListingDraft, parsePhone } from "./index";
+import { parseLead, parseListingDraft, parsePhone, parseReport } from "./index";
 
 describe("parsePhone", () => {
   it.each(["555123456", "555 12 34 56", "+995555123456", "+995 (555) 12-34-56", "00995555123456", "995555123456"])(
@@ -30,6 +30,22 @@ describe("parseLead", () => {
     ["NUL in name", { name: "a\0b" }],
   ])("rejects %s", (_name, change) => {
     expect(parseLead({ name: "Nino", phone: "555123456", deal: "sale", ...change })).toBeNull();
+  });
+});
+
+describe("parseReport", () => {
+  it("accepts a reason and trims the note", () => {
+    expect(parseReport({ reason: "fake", note: "  not real " })).toEqual({ reason: "fake", note: "not real" });
+  });
+
+  it("treats a blank note as none and drops unknown fields", () => {
+    expect(parseReport({ reason: "sold", note: " ", listingId: "1" })).toEqual({ reason: "sold", note: undefined });
+    expect(parseReport({ reason: "sold" })).toEqual({ reason: "sold" });
+  });
+
+  it("refuses an unknown reason or an overlong note", () => {
+    expect(parseReport({ reason: "castle" })).toBeNull();
+    expect(parseReport({ reason: "other", note: "x".repeat(501) })).toBeNull();
   });
 });
 

@@ -5,6 +5,8 @@ import { fixtureListings } from "@/test-fixtures";
 
 const db = vi.hoisted(() => ({
   listOpenLeads: vi.fn(),
+  listOpenReports: vi.fn(async (): Promise<unknown[]> => []),
+  resolveReport: vi.fn(),
   listPendingListings: vi.fn(),
   listUnverifiedListings: vi.fn(),
   markLeadContacted: vi.fn(),
@@ -24,7 +26,7 @@ vi.mock("next/navigation", () => ({
   },
 }));
 
-import { markLeadContactedAction, reviewListingAction, verifyListingAction } from "@/lib/admin-actions";
+import { markLeadContactedAction, resolveReportAction, reviewListingAction, verifyListingAction } from "@/lib/admin-actions";
 import AdminPage from "./[locale]/admin/page";
 
 const t = getDictionary("en");
@@ -91,6 +93,22 @@ describe("verifyListingAction", () => {
   });
 });
 
+describe("resolveReportAction", () => {
+  it("is not open to brokers", async () => {
+    session.currentUser.mockResolvedValue({ id: "b1", role: "AGENT" });
+    await expect(resolveReportAction(form({ reportId: "r1" }))).rejects.toThrow("NEXT_NOT_FOUND");
+    expect(db.resolveReport).not.toHaveBeenCalled();
+  });
+
+  it("marks a report done for admins only", async () => {
+    session.currentUser.mockResolvedValue(admin);
+    await resolveReportAction(form({ reportId: "r1" }));
+    expect(db.resolveReport).toHaveBeenCalledWith("r1");
+    session.currentUser.mockResolvedValue(null);
+    await expect(resolveReportAction(form({ reportId: "r1" }))).rejects.toThrow("NEXT_NOT_FOUND");
+  });
+});
+
 describe("markLeadContactedAction", () => {
   it("updates a lead for staff", async () => {
     session.currentUser.mockResolvedValue(broker);
@@ -140,9 +158,23 @@ describe("AdminPage", () => {
     expect(db.listPendingListings).not.toHaveBeenCalled();
   });
 
+  it("lists open reports with their reason and note", async () => {
+    session.currentUser.mockResolvedValue(admin);
+    const report = { id: "r1", createdAt: new Date("2026-11-10"), listing: { id: 7, title: "Reported flat" } };
+    db.listOpenReports.mockResolvedValue([
+      { ...report, reason: "fake", note: "Not real" },
+      { ...report, id: "r2", reason: "retired", note: null },
+    ]);
+    render(await AdminPage({ params }));
+    expect(screen.getAllByRole("link", { name: "Reported flat" })[0]).toHaveAttribute("href", "/en/listings/7");
+    expect(screen.getByText(/Fake listing/)).toBeInTheDocument();
+    expect(screen.getByText("Not real")).toBeInTheDocument();
+    expect(screen.getByText(/^retired/)).toBeInTheDocument();
+  });
+
   it("says when each queue is empty", async () => {
     session.currentUser.mockResolvedValue(admin);
     render(await AdminPage({ params }));
-    expect(screen.getAllByText(t.admin.nothing)).toHaveLength(3);
+    expect(screen.getAllByText(t.admin.nothing)).toHaveLength(4);
   });
 });

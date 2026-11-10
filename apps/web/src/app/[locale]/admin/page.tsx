@@ -1,14 +1,20 @@
 import Image from "next/image";
+import Link from "next/link";
 import { notFound } from "next/navigation";
-import { listOpenLeads, listPendingListings, listUnverifiedListings } from "@mteam/db";
-import { formatDay, formatPrice, getDictionary, type Dict, type Listing } from "@mteam/shared";
+import { listOpenLeads, listOpenReports, listPendingListings, listUnverifiedListings } from "@mteam/db";
+import { formatDay, formatPrice, getDictionary, reportReasons, type Dict, type Listing } from "@mteam/shared";
 import { ConfirmSubmit } from "@/components/ConfirmSubmit";
 import { Header } from "@/components/Header";
-import { markLeadContactedAction, reviewListingAction, verifyListingAction } from "@/lib/admin-actions";
+import { markLeadContactedAction, resolveReportAction, reviewListingAction, verifyListingAction } from "@/lib/admin-actions";
 import { resolveLocale } from "@/lib/locale";
 import { currentUser } from "@/lib/session";
 
 export const dynamic = "force-dynamic";
+
+function reportLabel(reason: string, t: Dict): string {
+  const known = reportReasons.find((item) => item === reason);
+  return known ? t.listing.reportReasons[known] : reason;
+}
 
 function ListingSummary({ listing, t }: { listing: Listing; t: Dict }) {
   return (
@@ -34,10 +40,11 @@ export default async function AdminPage({ params }: { params: Promise<{ locale: 
   if (!user || user.role === "USER") notFound();
   const t = getDictionary(locale);
   const isAdmin = user.role === "ADMIN";
-  const [pending, unverified, leads] = await Promise.all([
+  const [pending, unverified, leads, reports] = await Promise.all([
     isAdmin ? listPendingListings() : [],
     listUnverifiedListings(),
     listOpenLeads(),
+    isAdmin ? listOpenReports() : [],
   ]);
 
   return (
@@ -80,6 +87,28 @@ export default async function AdminPage({ params }: { params: Promise<{ locale: 
             ))}
           </ul>
         </section>
+
+        {isAdmin && (
+        <section className="queue">
+          <h2>{t.admin.reports}</h2>
+          {reports.length === 0 && <p className="meta">{t.admin.nothing}</p>}
+          <ul className="mine">
+            {reports.map((report) => (
+              <li key={report.id}>
+                <div>
+                  <Link href={`/${locale}/listings/${report.listing.id}`}><b>{report.listing.title}</b></Link>
+                  <div className="meta">{reportLabel(report.reason, t)} · {formatDay(report.createdAt.toISOString(), locale)}</div>
+                  {report.note && <p className="meta">{report.note}</p>}
+                </div>
+                <form action={resolveReportAction}>
+                  <input type="hidden" name="reportId" value={report.id} />
+                  <button type="submit" className="btn ghost">{t.admin.resolve}</button>
+                </form>
+              </li>
+            ))}
+          </ul>
+        </section>
+        )}
 
         <section className="queue">
           <h2>{t.admin.leads}</h2>

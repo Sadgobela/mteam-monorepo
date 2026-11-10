@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { archiveListing, parseListingId, setFavorite } from "@mteam/db";
+import { archiveListing, parseListingId, setFavorite, setHidden } from "@mteam/db";
 import { resolveLocale } from "./locale";
 import { currentUser } from "./session";
 
@@ -18,6 +18,11 @@ async function run(form: FormData, action: (userId: string, listingId: number) =
 export async function setFavoriteAction(form: FormData): Promise<void> {
   const want = form.get("want") === "1";
   await run(form, (userId, listingId) => setFavorite(userId, listingId, want));
+}
+
+export async function setHiddenAction(form: FormData): Promise<void> {
+  const want = form.get("want") === "1";
+  await run(form, (userId, listingId) => setHidden(userId, listingId, want));
 }
 
 export async function archiveListingAction(form: FormData): Promise<void> {

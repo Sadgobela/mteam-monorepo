@@ -3,7 +3,13 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { getDictionary } from "@mteam/shared";
 import { fixtureListings } from "@/test-fixtures";
 
-const db = vi.hoisted(() => ({ getListing: vi.fn() }));
+const db = vi.hoisted(() => ({
+  getListing: vi.fn(),
+  countSellerListings: vi.fn(async () => 0),
+  getFavoriteIds: vi.fn(async () => []),
+  getHiddenIds: vi.fn(async () => []),
+  listSimilarListings: vi.fn(async () => []),
+}));
 const session = vi.hoisted(() => ({ currentUser: vi.fn(), hasSession: vi.fn() }));
 const router = vi.hoisted(() => ({ push: vi.fn() }));
 

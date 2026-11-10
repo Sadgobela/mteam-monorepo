@@ -13,6 +13,24 @@ export function priceUnit(deal: DealType, t: Dict): string | undefined {
   return units[deal];
 }
 
+/** Typical terms for a first estimate. Visitors can change them; the bank sets the real ones. */
+export const LOAN_DEFAULTS = { down: 20, years: 20, rate: 11 };
+
+/** The monthly payment on a standard repayment loan, with the deposit as a percentage of the price. */
+export function monthlyPayment(price: number, downPercent: number, years: number, ratePercent: number): number {
+  const principal = price * (1 - downPercent / 100);
+  const months = years * 12;
+  if (principal <= 0 || months <= 0) return 0;
+  const monthlyRate = ratePercent / 100 / 12;
+  if (monthlyRate === 0) return Math.round(principal / months);
+  return Math.round((principal * monthlyRate) / (1 - (1 + monthlyRate) ** -months));
+}
+
+/** A phone number with its last three digits hidden. */
+export function maskPhone(phone: string): string {
+  return phone.replace(/\d(?=(\D*\d){0,2}\D*$)/g, "*");
+}
+
 /** A short date such as "6 Nov", in the page language. */
 export function formatDay(date: string, locale: Locale): string {
   return new Intl.DateTimeFormat(locale, { day: "numeric", month: "short", timeZone: "UTC" }).format(new Date(date));

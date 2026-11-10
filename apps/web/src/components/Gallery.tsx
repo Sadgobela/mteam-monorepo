@@ -89,6 +89,13 @@ export function Gallery({ images, title, tone, t }: { images: string[]; title: s
                 <span className="count">
                   {current + 1} / {total}
                 </span>
+                <div className="viewer-thumbs">
+                  {images.map((url, index) => (
+                    <button key={url} type="button" aria-label={`${title} ${index + 1}`} aria-current={index === current ? "true" : undefined} onClick={() => setCurrent(index)}>
+                      <Image src={url} alt="" fill unoptimized />
+                    </button>
+                  ))}
+                </div>
               </>
             )}
           </>

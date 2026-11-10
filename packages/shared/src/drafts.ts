@@ -115,6 +115,26 @@ export function parseListingDraft(fields: Record<string, unknown>): ListingDraft
   return result.success ? result.data : null;
 }
 
+export const reportReasons = ["sold", "wrongPrice", "wrongPhotos", "fake", "other"] as const;
+
+const reportSchema = z.object({
+  reason: z.enum(reportReasons),
+  note: z
+    .string()
+    .trim()
+    .max(500)
+    .transform((value) => value || undefined)
+    .optional(),
+});
+
+export type ReportDraft = z.infer<typeof reportSchema>;
+
+/** Validates a report on a listing. Unknown form fields are dropped. */
+export function parseReport(fields: Record<string, unknown>): ReportDraft | null {
+  const result = reportSchema.safeParse(fields);
+  return result.success ? result.data : null;
+}
+
 const leadSchema = z.object({
   name: text(100),
   phone: z.string().transform((value, context) => {

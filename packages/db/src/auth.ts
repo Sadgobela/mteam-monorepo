@@ -10,6 +10,7 @@ const ATTEMPT_WINDOW_MS = 60 * 60_000;
 const SESSION_TTL_MS = 30 * 24 * 60 * 60_000;
 // Generous, because Georgian mobile carriers put many customers behind one address. It exists to cap what a script can cost in SMS.
 const CODES_PER_ADDRESS = 20;
+const PHONE_LOOKUPS_PER_ADDRESS = 60;
 const ADDRESS_WINDOW_MS = 60 * 60_000;
 
 const smsEnvSchema = z.object({ SMS_PROVIDER: z.literal("console") });
@@ -35,6 +36,11 @@ function assertCodesCanBeSent(): void {
   if (process.env.NODE_ENV === "production") throw new Error("SMS_PROVIDER=console is not allowed in production");
 }
 
+/** A keyed hash of the visitor's network, so addresses are never stored. */
+export function addressHash(ip: string): string {
+  return keyedHash(`ip:${addressBucket(ip)}`);
+}
+
 /** One customer on IPv6 is given a whole /64 block and can use a new address for every request, so the block is what gets counted. */
 function addressBucket(ip: string): string {
   const embedded = /^::ffff:(\d+\.\d+\.\d+\.\d+)$/i.exec(ip);
@@ -47,10 +53,9 @@ function addressBucket(ip: string): string {
   return `${block.map((group) => parseInt(group, 16).toString(16)).join(":")}::/64`;
 }
 
-/** Counts one code request against an address and says whether it is within the limit. Single conditional writes, like the phone limit. */
-async function claimAddressQuota(ip: string, now: number): Promise<boolean> {
+/** Counts one use against a key and says whether it is within the limit. Single conditional writes, like the phone limit. */
+async function claimQuota(ipHash: string, limit: number, now: number): Promise<boolean> {
   const limits = db().codeRequestLimit;
-  const ipHash = keyedHash(`ip:${addressBucket(ip)}`);
   const opened = new Date(now);
   const claimed =
     (
@@ -59,9 +64,14 @@ async function claimAddressQuota(ip: string, now: number): Promise<boolean> {
         data: { windowStart: opened, count: 1 },
       })
     ).count ||
-    (await limits.updateMany({ where: { ipHash, count: { lt: CODES_PER_ADDRESS } }, data: { count: { increment: 1 } } })).count ||
+    (await limits.updateMany({ where: { ipHash, count: { lt: limit } }, data: { count: { increment: 1 } } })).count ||
     (await limits.createMany({ data: [{ ipHash, windowStart: opened, count: 1 }], skipDuplicates: true })).count;
   return claimed > 0;
+}
+
+/** Enough for someone comparing flats, too few to walk through every listing's number. */
+export function claimPhoneLookup(ip: string, now = Date.now()): Promise<boolean> {
+  return claimQuota(`phone:${addressHash(ip)}`, PHONE_LOOKUPS_PER_ADDRESS, now);
 }
 
 /**
@@ -74,7 +84,7 @@ export async function requestLoginCode(phone: string, ip: string): Promise<boole
   assertCodesCanBeSent();
   const client = db();
   const now = Date.now();
-  if (!(await claimAddressQuota(ip, now))) return false;
+  if (!(await claimQuota(addressHash(ip), CODES_PER_ADDRESS, now))) return false;
 
   const code = String(randomInt(100_000, 1_000_000));
   const fresh = { codeHash: hashCode(phone, code), sentAt: new Date(now), expiresAt: new Date(now + CODE_TTL_MS) };

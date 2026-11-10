@@ -1,8 +1,8 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { ReactNode } from "react";
-import { getListing } from "@mteam/db";
-import { placeLabel, priceUnit, convertPrice, formatDay, formatPrice, getDictionary, parseListingDisplay } from "@mteam/shared";
+import { countSellerListings, getFavoriteIds, getHiddenIds, listSimilarListings, getListing } from "@mteam/db";
+import { LOAN_DEFAULTS, maskPhone, monthlyPayment, placeLabel, priceUnit, convertPrice, formatDay, formatPrice, getDictionary, parseListingDisplay } from "@mteam/shared";
 import { Gallery } from "@/components/Gallery";
 import { ListingDetails } from "@/components/ListingDetails";
 import { Header } from "@/components/Header";
@@ -10,7 +10,13 @@ import { GiveBand } from "@/components/LeadForm";
 import { ListingMap } from "@/components/ListingMap";
 import { Segmented } from "@/components/Segmented";
 import { resolveLocale } from "@/lib/locale";
-import { hasSession } from "@/lib/session";
+import { currentUser } from "@/lib/session";
+import { setHiddenAction } from "@/lib/account-actions";
+import { ListingGrid } from "@/components/ListingGrid";
+import { LoanCalculator } from "@/components/LoanCalculator";
+import { PhoneReveal } from "@/components/PhoneReveal";
+import { ReportListing } from "@/components/ReportListing";
+import { ShareButton } from "@/components/ShareButton";
 import type { Query } from "@/lib/url";
 
 export const dynamic = "force-dynamic";
@@ -54,10 +60,15 @@ export default async function ListingPage({
   const currency = cur === "gel" ? "GEL" : "USD";
   const unit = priceUnit(listing.deal, t);
   const here = `/${locale}/listings/${listing.id}`;
+  const user = await currentUser();
+  const favoriteIds = user ? await getFavoriteIds(user.id) : [];
+  const hiddenIds = user ? await getHiddenIds(user.id) : [];
+  const [similar, sellerCount] = await Promise.all([listSimilarListings(listing, hiddenIds), listing.agent ? 0 : countSellerListings(listing.sellerId)]);
+  const hidden = hiddenIds.includes(listing.id);
 
   return (
     <>
-      <Header locale={locale} t={t} signedIn={await hasSession()} />
+      <Header locale={locale} t={t} signedIn={user !== null} />
       <main className="listing">
         <Gallery images={listing.images} title={listing.title} tone={listing.tone} t={t} />
         <div className="lhead">
@@ -91,6 +102,11 @@ export default async function ListingPage({
                 {formatPrice(Math.round(shown / listing.area), currency)} / {t.units.sqm}
               </span>
             )}
+            {listing.deal === "sale" && (
+              <span className="meta">
+                {t.listing.loanFrom}: {formatPrice(monthlyPayment(shown, LOAN_DEFAULTS.down, LOAN_DEFAULTS.years, LOAN_DEFAULTS.rate), currency)}
+              </span>
+            )}
             {/* Conversions use fixed rates, so the price the listing was actually posted at stays visible. */}
             {listing.currency !== currency && (
               <span className="meta">
@@ -112,12 +128,28 @@ export default async function ListingPage({
             ) : (
               <b>{t.listing.owner}</b>
             )}
+            {!listing.agent && sellerCount > 1 && (
+              <Link href={`/${locale}/sellers/${listing.sellerId}`} className="meta">
+                {t.listing.sellerListings.replace("{count}", String(sellerCount))}
+              </Link>
+            )}
             <div className="btns">
-              <a className="btn" href={`tel:${listing.contactPhone}`}>{t.listing.call}</a>
-              <a className="btn wa" href={`https://wa.me/${listing.contactPhone.replace(/\D/g, "")}`} target="_blank" rel="noreferrer">
-                {t.listing.whatsapp}
-              </a>
+              <PhoneReveal listingId={listing.id} masked={maskPhone(listing.contactPhone)} t={t} />
             </div>
+          </div>
+          <div className="listing-actions">
+            <ShareButton title={listing.title} t={t} />
+            {user ? (
+              <form action={setHiddenAction}>
+                <input type="hidden" name="locale" value={locale} />
+                <input type="hidden" name="listingId" value={listing.id} />
+                <input type="hidden" name="want" value={hidden ? "0" : "1"} />
+                <button type="submit" className="btn ghost">{hidden ? t.listing.unhide : t.listing.hide}</button>
+              </form>
+            ) : (
+              <Link href={`/${locale}/login`} className="btn ghost">{t.listing.hide}</Link>
+            )}
+            <ReportListing listingId={listing.id} t={t} />
           </div>
           {listing.verified && (
             <div className="note">
@@ -165,6 +197,13 @@ export default async function ListingPage({
               label={t.results.map}
               points={[{ id: listing.id, lat: listing.lat, lng: listing.lng, label: listing.title, href: `/${locale}/listings/${listing.id}` }]}
             />
+          )}
+          {listing.deal === "sale" && <LoanCalculator key={currency} price={shown} symbol={currency === "GEL" ? "₾" : "$"} t={t} />}
+          {similar.length > 0 && (
+            <section className="similar">
+              <h2>{t.listing.similar}</h2>
+              <ListingGrid listings={similar} locale={locale} t={t} cur={cur} signedIn={user !== null} favoriteIds={favoriteIds} />
+            </section>
           )}
           <GiveBand t={t} />
         </div>
