@@ -241,6 +241,8 @@ html:has(.viewer[open]) { overflow: hidden; }
   .side { position: static; }
 }
 .band .form-row { margin-top: 10px; align-items: end; }
+.band .lead-submit { min-width: 0; padding-inline: 10px; white-space: normal; }
+@media (max-width: 520px) { .band .form-row > .field:nth-child(3), .band .lead-submit { grid-column: 1 / -1; } }
 .band .lead-error { grid-column: 1 / -1; }
 .nav-link { display: inline-flex; align-items: center; min-height: 44px; padding: 0 4px; font-weight: 600; }
 .card-wrap { position: relative; display: grid; }
