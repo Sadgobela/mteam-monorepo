@@ -33,6 +33,7 @@ export function Header({ locale, t, signedIn }: { locale: Locale; t: Dict; signe
       <Link href={`/${locale}?deal=daily`}>{t.nav.daily}</Link>
       <Link href={`/${locale}?verified=1`} className="accent">MTeam Verified</Link>
       <Link href={`/${locale}/brokers`}>{t.nav.brokers}</Link>
+      <Link href={`/${locale}/prices`}>{t.nav.prices}</Link>
     </nav>
   );
 

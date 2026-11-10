@@ -45,7 +45,7 @@ function convertMoney(filters: ListingFilters, convert: (value: number) => numbe
   return converted;
 }
 
-const moreFields = { rooms: undefined, priceMin: undefined, priceMax: undefined, areaMin: undefined, areaMax: undefined, floorMin: undefined, floorMax: undefined, sqmMin: undefined, sqmMax: undefined, building: undefined, metro: undefined, owner: undefined, bedrooms: undefined, floorsMin: undefined, floorsMax: undefined, floorPos: undefined, ceilingMin: undefined, ceilingMax: undefined, condition: undefined, projectType: undefined, bathroom: undefined, storage: undefined, parking: undefined, heating: undefined, hotWater: undefined, material: undefined, windows: undefined, livingRoom: undefined, features: undefined };
+const moreFields = { rooms: undefined, priceMin: undefined, priceMax: undefined, areaMin: undefined, areaMax: undefined, floorMin: undefined, floorMax: undefined, sqmMin: undefined, sqmMax: undefined, building: undefined, metro: undefined, owner: undefined, belowMarket: undefined, bedrooms: undefined, floorsMin: undefined, floorsMax: undefined, floorPos: undefined, ceilingMin: undefined, ceilingMax: undefined, condition: undefined, projectType: undefined, bathroom: undefined, storage: undefined, parking: undefined, heating: undefined, hotWater: undefined, material: undefined, windows: undefined, livingRoom: undefined, features: undefined };
 
 export function SearchBar({ locale, t, filters, display, results = false }: { locale: Locale; t: Dict; filters: ListingFilters; display: ListingDisplay; results?: boolean }) {
   const router = useRouter();
@@ -311,6 +311,11 @@ export function SearchBar({ locale, t, filters, display, results = false }: { lo
           <label className="chip-row wide">
             <Checkbox checked={draft.owner ?? false} onChange={(event) => change({ owner: event.target.checked || undefined })}>
               {t.search.ownerOnly}
+            </Checkbox>
+          </label>
+          <label className="chip-row wide">
+            <Checkbox checked={draft.belowMarket ?? false} onChange={(event) => change({ belowMarket: event.target.checked || undefined })}>
+              {t.market.below}
             </Checkbox>
           </label>
         </div>

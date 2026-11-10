@@ -27,6 +27,7 @@ export function FilterChips({
     ["metro", filters.metro && `${t.search.metro}: ${placeLabel(filters.metro, locale)}`],
     ["building", filters.building?.map((status) => t.search.building[status]).join(", ")],
     ["owner", filters.owner ? t.search.ownerOnly : undefined],
+    ["belowMarket", filters.belowMarket ? t.market.below : undefined],
     ["sqmMin", money(filters.sqmMin, t.search.sqmMin)],
     ["sqmMax", money(filters.sqmMax, t.search.sqmMax)],
     ["bedrooms", number(filters.bedrooms, t.post.fields.bedrooms)],

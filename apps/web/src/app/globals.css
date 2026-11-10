@@ -216,6 +216,17 @@ html:has(.viewer[open]) { overflow: hidden; }
 .ph img { object-fit: cover; }
 .narrow h1 { font-size: 24px; }
 .heading { font-size: 22px; font-weight: 800; }
+.market { display: grid; gap: 6px; }
+.market-bar { display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; }
+.market-bar span { height: 8px; border-radius: 4px; background: var(--line); }
+.market-bar span[data-on] { background: var(--brand); }
+.stats-wrap { overflow-x: auto; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; }
+.stats { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+.stats th, .stats td { padding: 12px 16px; text-align: right; white-space: nowrap; border-bottom: 1px solid var(--line); }
+.stats th:first-child, .stats td:first-child { text-align: left; }
+.stats thead th { color: var(--muted); font-size: 13px; font-weight: 600; }
+.stats tbody tr:last-child th, .stats tbody tr:last-child td { border-bottom: 0; }
+.stats tbody th { font-weight: 600; }
 .subheading { font-size: 18px; font-weight: 800; }
 .tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 12px; }
 .tiles.people { grid-template-columns: repeat(auto-fill, minmax(min(340px, 100%), 1fr)); }
@@ -276,6 +287,7 @@ html:has(.viewer[open]) { overflow: hidden; }
 .tile.broker .av { flex: none; }
 .agent.profile { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
 .chips { display: flex; gap: 8px; flex-wrap: wrap; }
+.chips a[aria-current] { background: var(--action); color: var(--on-action); }
 .chips a { display: inline-flex; align-items: center; gap: 6px; min-height: 36px; padding: 0 12px; border-radius: 999px; background: var(--brand-soft); color: var(--brand-deep); font-size: 13px; font-weight: 700; }
 .map { height: 520px; border-radius: 14px; border: 1px solid var(--line); z-index: 0; }
 .ldesc .map { height: 280px; }
