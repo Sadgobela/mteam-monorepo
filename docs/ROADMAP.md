@@ -64,7 +64,7 @@ Worth knowing: MTeam already has a page on myhome.ge with 16,349 listings and 85
 | Valuation, photo service | Sent to a partner site | No |
 | Paid S-VIP placement | Top of results | No, by design so far |
 
-Steps 1 and 2 below are done. Project types are incomplete: only the six visible on their list, plus "other".
+Steps 1 to 7 below are built, and step 8 as far as it can go without partners. Project types are incomplete: only the six visible on their list, plus "other".
 
 Step 3: the import tool is ready (`docs/IMPORT.md`). It is waiting for the export and photos from the brokers, and its columns may need mapping once a real export is seen.
 
@@ -79,3 +79,10 @@ Step 3: the import tool is ready (`docs/IMPORT.md`). It is waiting for the expor
 7. **Accounts.** Saved searches, notifications, chat.
 8. **Sections that need partners.** Developer projects, mortgage with a bank, contract templates written by a lawyer, paid placement with a payment provider.
 9. **Go live.**
+
+## What is waiting, and on whom
+
+- **MTeam:** the brokers' export and photos (step 3), and the list of branches and who works where (step 4).
+- **A paid sending service:** SMS or email alerts for saved searches and new messages (step 7).
+- **Partners:** developer projects, loan requests with a bank, contract templates written by a lawyer, paid placement with a payment provider (step 8).
+- **Launch:** the list in `PROJECT_BRIEF.md`.
