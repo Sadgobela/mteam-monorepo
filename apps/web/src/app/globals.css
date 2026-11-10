@@ -107,7 +107,11 @@ h1, h2, h3 { margin: 0; text-wrap: balance; }
 .status-boxes { display: grid; gap: 8px; }
 .more-panel .chip-row { display: block; }
 .more-panel .wide, .pill-panel .wide { grid-column: 1 / -1; }
-.more-panel { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 12px; padding-block: 8px; }
+.choice-pills { display: flex; flex-wrap: wrap; gap: 6px; }
+.choice-pills button { min-width: 44px; min-height: 40px; padding: 0 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); color: var(--fg); font: inherit; font-weight: 600; cursor: pointer; transition: background-color 0.2s, border-color 0.2s, color 0.2s; }
+.choice-pills button[aria-checked="true"] { background: var(--action); border-color: var(--action); color: var(--on-action); }
+@media (hover: hover) { .choice-pills button:hover { border-color: var(--brand); } }
+.more-panel { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 12px; padding-block: 8px; padding-inline-end: 8px; }
 .more-panel .field .ant-segmented-block .ant-segmented-item { flex: 1 1 auto; }
 :root .more-panel .ant-segmented .ant-segmented-item-label { padding-inline: 2px; font-size: 13px; }
 .more-panel .wide { grid-column: 1 / -1; }
