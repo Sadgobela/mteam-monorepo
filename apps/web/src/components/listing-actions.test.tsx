@@ -39,6 +39,15 @@ describe("PhoneReveal", () => {
   });
 });
 
+describe("PhoneReveal offline", () => {
+  it("goes back to the button when the request fails", async () => {
+    vi.stubGlobal("fetch", vi.fn(async () => Promise.reject(new Error("offline"))));
+    render(<PhoneReveal listingId={7} masked="***" t={t} />);
+    fireEvent.click(screen.getByRole("button", { name: /Show number/ }));
+    await waitFor(() => expect(screen.getByRole("button", { name: /Show number/ })).not.toHaveClass("ant-btn-loading"));
+  });
+});
+
 describe("ShareButton", () => {
   const setNavigator = (value: object) => vi.stubGlobal("navigator", value);
 

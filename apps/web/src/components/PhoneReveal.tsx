@@ -14,9 +14,9 @@ export function PhoneReveal({ listingId, masked, t }: { listingId: number; maske
 
   async function reveal() {
     setLoading(true);
-    const response = await fetch(`/api/listings/${listingId}/phone`);
+    const response = await fetch(`/api/listings/${listingId}/phone`).catch(() => null);
     setLoading(false);
-    if (response.ok) setPhone(phoneSchema.parse(await response.json()).phone);
+    if (response?.ok) setPhone(phoneSchema.parse(await response.json()).phone);
   }
 
   if (phone === null) {

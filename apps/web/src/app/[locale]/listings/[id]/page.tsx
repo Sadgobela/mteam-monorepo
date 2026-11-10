@@ -61,9 +61,9 @@ export default async function ListingPage({
   const unit = priceUnit(listing.deal, t);
   const here = `/${locale}/listings/${listing.id}`;
   const user = await currentUser();
-  const [similar, sellerCount] = await Promise.all([listSimilarListings(listing), listing.agent ? 0 : countSellerListings(listing.sellerId)]);
   const favoriteIds = user ? await getFavoriteIds(user.id) : [];
   const hiddenIds = user ? await getHiddenIds(user.id) : [];
+  const [similar, sellerCount] = await Promise.all([listSimilarListings(listing, hiddenIds), listing.agent ? 0 : countSellerListings(listing.sellerId)]);
   const hidden = hiddenIds.includes(listing.id);
 
   return (
@@ -198,7 +198,7 @@ export default async function ListingPage({
               points={[{ id: listing.id, lat: listing.lat, lng: listing.lng, label: listing.title, href: `/${locale}/listings/${listing.id}` }]}
             />
           )}
-          {listing.deal === "sale" && <LoanCalculator price={shown} symbol={currency === "GEL" ? "₾" : "$"} t={t} />}
+          {listing.deal === "sale" && <LoanCalculator key={currency} price={shown} symbol={currency === "GEL" ? "₾" : "$"} t={t} />}
           {similar.length > 0 && (
             <section className="similar">
               <h2>{t.listing.similar}</h2>
