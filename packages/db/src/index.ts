@@ -23,6 +23,7 @@ export {
   verifyListing,
 } from "./admin";
 export { priceStats, type PriceStat } from "./market";
+export { deleteSavedSearch, isSearchSaved, listSavedSearches, openSavedSearch, saveSearch, type SavedSearchRow } from "./saved-searches";
 export { getBranch, getBroker, listBranches, listBrokers, type BranchCard, type Broker, type BrokerCard } from "./brokers";
 export { getFavoriteIds, listFavorites, setFavorite } from "./favorites";
 export { createLead } from "./leads";

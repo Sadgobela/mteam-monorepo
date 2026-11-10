@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { countListings } from "@mteam/db";
-import { getDictionary, locales, parseListingFilters, placeLabel, type Listing, type Locale } from "@mteam/shared";
+import { getDictionary, locales, parseListingFilters, placeLabel, type Listing, type ListingFilters, type Locale } from "@mteam/shared";
 import { cardTitle } from "@/components/ListingCard";
 import type { Query } from "@/lib/url";
 
@@ -19,11 +19,16 @@ export function searchPath(filters: { deal?: string; type?: string; city?: strin
   return known.length > 0 ? `?${new URLSearchParams(known)}` : "";
 }
 
-export async function searchMetadata(locale: Locale, query: Query): Promise<Metadata> {
+/** A search's deal, type and city, in the page language. */
+export function searchName(filters: ListingFilters, locale: Locale): string {
   const t = getDictionary(locale);
+  return [filters.deal && t.deal[filters.deal], filters.type && t.propertyType[filters.type], filters.city && placeLabel(filters.city, locale)].filter(Boolean).join(" · ");
+}
+
+export async function searchMetadata(locale: Locale, query: Query): Promise<Metadata> {
   const filters = parseListingFilters(query);
   const alternates = languageAlternates(searchPath(filters), locale);
-  const title = [filters.deal && t.deal[filters.deal], filters.type && t.propertyType[filters.type], filters.city && placeLabel(filters.city, locale)].filter(Boolean).join(" · ");
+  const title = searchName(filters, locale);
   const indexed = Object.keys(query).every((name) => (INDEXED_FILTERS as readonly string[]).includes(name));
   // An empty result page is a dead end for someone arriving from a search engine.
   const worthIndexing = indexed && (title === "" || (await countListings(filters)) > 0);

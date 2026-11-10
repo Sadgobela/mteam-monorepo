@@ -133,9 +133,10 @@ function textClause(q: string | undefined): Prisma.ListingWhereInput[] | undefin
   return [{ district: match }, { address: match }, { street: match }, { city: match }, { title: match }, ...byId];
 }
 
-function whereFor(filters: ListingFilters, located = false, hiddenIds: number[] = []): Prisma.ListingWhereInput {
+function whereFor(filters: ListingFilters, located = false, hiddenIds: number[] = [], since?: Date): Prisma.ListingWhereInput {
   return {
     status: "ACTIVE",
+    createdAt: since && { gt: since },
     id: hiddenIds.length > 0 ? { notIn: hiddenIds } : undefined,
     deal: filters.deal && dbDeals[filters.deal],
     type: filters.type && dbPropertyTypes[filters.type],
@@ -192,8 +193,8 @@ export async function searchListings(
 }
 
 /** How many published listings match the filters, across all pages. */
-export function countListings(filters: ListingFilters = {}, { located = false, hiddenIds = [] }: { located?: boolean; hiddenIds?: number[] } = {}): Promise<number> {
-  return db().listing.count({ where: whereFor(filters, located, hiddenIds) });
+export function countListings(filters: ListingFilters = {}, { located = false, hiddenIds = [], since }: { located?: boolean; hiddenIds?: number[]; since?: Date } = {}): Promise<number> {
+  return db().listing.count({ where: whereFor(filters, located, hiddenIds, since) });
 }
 
 const SIMILAR_LIMIT = 4;

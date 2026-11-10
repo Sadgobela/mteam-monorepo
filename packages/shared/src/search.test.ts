@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { priceInLari, convertPrice, parseListingDisplay, parseListingFilters, priceInUsd } from "./index";
+import { canonicalSearch, priceInLari, convertPrice, parseListingDisplay, parseListingFilters, priceInUsd } from "./index";
 
 describe("priceInLari", () => {
   it("reads round lari amounts back exactly", () => {
@@ -9,6 +9,22 @@ describe("priceInLari", () => {
 
   it("falls back to the exact conversion when rounding would change the dollars", () => {
     expect(priceInLari(1)).toBe(3);
+  });
+});
+
+describe("canonicalSearch", () => {
+  it("drops a name Postgres could not store", () => {
+    expect(parseListingFilters({ city: "თბილისი", street: "a\0b" })).toMatchObject({ city: "თბილისი", street: undefined });
+    expect(canonicalSearch({ city: "თბილისი", street: "a\0b" })).toBe(`city=${encodeURIComponent("თბილისი")}`);
+  });
+
+  it("keeps only real filters, in a fixed order", () => {
+    expect(canonicalSearch({ sort: "asc", rooms: "2", deal: "sale", page: "3", junk: "x" })).toBe("deal=sale&rooms=2");
+  });
+
+  it("is empty with no filters, or too many to keep", () => {
+    expect(canonicalSearch({ sort: "asc" })).toBe("");
+    expect(canonicalSearch({ city: "თბილისი", street: "ქ".repeat(1500) })).toBe("");
   });
 });
 

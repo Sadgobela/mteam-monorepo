@@ -67,6 +67,7 @@ model User {
   listings  Listing[]
   favorites Favorite[]
   hidden    HiddenListing[]
+  savedSearches SavedSearch[]
   sessions  Session[]
   createdAt DateTime  @default(now())
 }
@@ -207,6 +208,17 @@ model ListingReport {
   createdAt DateTime @default(now())
 
   @@unique([listingId, ipHash])
+}
+
+model SavedSearch {
+  id        String   @id @default(cuid())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    String
+  query     String   // the search's URL parameters, in canonicalSearch form
+  seenAt    DateTime @default(now())
+  createdAt DateTime @default(now())
+
+  @@unique([userId, query])
 }
 
 model Favorite {

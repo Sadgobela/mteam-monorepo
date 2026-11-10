@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { countListings, getFavoriteIds, getHiddenIds, PAGE_SIZE, searchListings } from "@mteam/db";
-import { getDictionary, parseListingDisplay, parseListingFilters } from "@mteam/shared";
+import { countListings, getFavoriteIds, getHiddenIds, isSearchSaved, PAGE_SIZE, searchListings } from "@mteam/db";
+import { canonicalSearch, getDictionary, parseListingDisplay, parseListingFilters } from "@mteam/shared";
 import { EmptyState } from "@/components/EmptyState";
 import { FilterChips } from "@/components/FilterChips";
 import { Header } from "@/components/Header";
@@ -10,6 +10,7 @@ import { ListingMap } from "@/components/ListingMap";
 import { GiveBand } from "@/components/LeadForm";
 import { ListingGrid } from "@/components/ListingGrid";
 import { Pager } from "@/components/Pager";
+import { SaveSearch } from "@/components/SaveSearch";
 import { SearchBar } from "@/components/SearchBar";
 import { Segmented } from "@/components/Segmented";
 import { resolveLocale } from "@/lib/locale";
@@ -52,6 +53,8 @@ export default async function HomePage({
     isResults ? countListings(filters, { located: isMap, hiddenIds }) : 0,
   ]);
   const favoriteIds = user ? await getFavoriteIds(user.id) : [];
+  const savedQuery = isResults ? canonicalSearch(query) : "";
+  const alreadySaved = user !== null && savedQuery !== "" && (await isSearchSaved(user.id, savedQuery));
   const href = (change: Record<string, string>) => resultsHref(locale, query, change);
 
   // An old link can point past the end once listings are removed.
@@ -107,6 +110,7 @@ export default async function HomePage({
 
         <div className="row">
           <h1 className="heading">{isResults ? t.search.results : t.home.heading}</h1>
+          {savedQuery && <SaveSearch locale={locale} t={t} query={savedQuery} signedIn={user !== null} saved={alreadySaved} />}
           <Segmented
             label={t.results.currency}
             options={[
