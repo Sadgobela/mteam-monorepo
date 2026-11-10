@@ -169,6 +169,16 @@ export function parseListingFilters(query: Record<string, string | string[] | un
   };
 }
 
+const MAX_SAVED_QUERY = 2000;
+
+/** A search as stable URL parameters: only filters that mean something, in a fixed order. Empty when there are none, or too many to keep. */
+export function canonicalSearch(query: Record<string, string | string[] | undefined>): string {
+  const filters = parseListingFilters(query);
+  const kept = Object.entries(filters).flatMap(([name, value]) => (value === undefined ? [] : [[name, String(query[name])]]));
+  const search = new URLSearchParams(kept.sort(([a], [b]) => a.localeCompare(b))).toString();
+  return search.length <= MAX_SAVED_QUERY ? search : "";
+}
+
 export const sortOrders = ["new", "asc", "desc"] as const;
 export type SortOrder = (typeof sortOrders)[number];
 export type DisplayCurrency = "usd" | "gel";
