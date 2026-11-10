@@ -67,7 +67,7 @@ export function ListingForm({ locale, t }: { locale: Locale; t: Dict }) {
 
   function move(event: MouseEvent<HTMLButtonElement>, by: number) {
     const form = event.currentTarget.form as HTMLFormElement;
-    const steps = form.querySelectorAll("fieldset.step");
+    const steps = form.querySelectorAll<HTMLFieldSetElement>("fieldset.step");
     const controls = Array.from(steps[step].elements) as HTMLInputElement[];
     setRejected(null);
     if (by > 0 && !controls.every((control) => control.reportValidity())) return;
