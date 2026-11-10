@@ -20,6 +20,10 @@ vi.mock("@mteam/db", async () => {
   const { fixtureListings: listings } = await import("@/test-fixtures");
   return {
     searchListings: vi.fn(async () => listings),
+    countSellerListings: vi.fn(async () => 0),
+    getFavoriteIds: vi.fn(async () => []),
+    getHiddenIds: vi.fn(async () => []),
+    listSimilarListings: vi.fn(async () => []),
     countListings: vi.fn(async () => 57),
     PAGE_SIZE: 24,
     getListing: vi.fn(async (id: string) => listings.find((l) => String(l.id) === id)),
@@ -70,7 +74,7 @@ describe("home page", () => {
 
   it("shows verified listings and the main entry points", async () => {
     await home();
-    expect(searchListings).toHaveBeenLastCalledWith({ verified: true }, { limit: 4 });
+    expect(searchListings).toHaveBeenLastCalledWith({ verified: true }, { limit: 4, hiddenIds: [] });
     expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("Verified by MTeam");
     expect(screen.getAllByRole("link", { name: /m²/ })).toHaveLength(fixtureListings.length);
     expect(screen.getByRole("link", { name: /Give it to MTeam/ })).toHaveAttribute("href", "#give");
@@ -86,8 +90,8 @@ describe("home page", () => {
 
   it("passes filters and display options to the query and reflects them", async () => {
     await home({ deal: "rent", rooms: "2", sort: "asc", page: "2", bogus: "x" });
-    expect(searchListings).toHaveBeenLastCalledWith(expect.objectContaining({ deal: "rent", rooms: 2 }), { sort: "asc", page: 2 });
-    expect(countListings).toHaveBeenLastCalledWith(expect.objectContaining({ deal: "rent", rooms: 2 }), { located: false });
+    expect(searchListings).toHaveBeenLastCalledWith(expect.objectContaining({ deal: "rent", rooms: 2 }), { sort: "asc", page: 2, hiddenIds: [] });
+    expect(countListings).toHaveBeenLastCalledWith(expect.objectContaining({ deal: "rent", rooms: 2 }), { located: false, hiddenIds: [] });
     expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("Search results");
     expect(screen.getByText("Listings found: 57")).toBeInTheDocument();
     expect(screen.getByRole("search")).toHaveTextContent("For rent");
@@ -131,8 +135,8 @@ describe("home page", () => {
     ]);
     circleMarker.mockClear();
     await home({ deal: "sale", view: "map", sort: "asc" });
-    expect(searchListings).toHaveBeenLastCalledWith(expect.anything(), { sort: "asc", limit: 200, located: true });
-    expect(countListings).toHaveBeenLastCalledWith(expect.anything(), { located: true });
+    expect(searchListings).toHaveBeenLastCalledWith(expect.anything(), { sort: "asc", limit: 200, located: true, hiddenIds: [] });
+    expect(countListings).toHaveBeenLastCalledWith(expect.anything(), { located: true, hiddenIds: [] });
     await waitFor(() => expect(circleMarker).toHaveBeenCalledOnce());
     expect(circleMarker.mock.calls[0]).toEqual([[41.7, 44.7], expect.anything()]);
     expect(screen.getByRole("region", { name: "Map" })).toBeInTheDocument();
@@ -212,8 +216,8 @@ describe("listing page", () => {
     render(await ListingPage({ params: p({ locale: "en", id: "20418" }), searchParams: p({}) }));
     expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("ვაკეში");
     expect(screen.getByText("Floor")).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Call" })).toHaveAttribute("href", "tel:+995555000000");
-    expect(screen.getByRole("link", { name: "WhatsApp" })).toHaveAttribute("href", "https://wa.me/995555000000");
+    expect(screen.getByRole("button", { name: /Show number/ })).toBeInTheDocument();
+    expect(document.body.innerHTML).not.toContain("tel:");
     expect(screen.getByText(/MTeam broker/)).toBeInTheDocument();
     expect(screen.getByText(/checked on site/)).toBeInTheDocument();
   });
@@ -223,7 +227,7 @@ describe("listing page", () => {
     expect(screen.queryByText("Condition")).toBeNull();
     expect(screen.getByText("Owner")).toBeInTheDocument();
     expect(screen.queryByText(/MTeam broker/)).toBeNull();
-    expect(screen.getByRole("link", { name: "WhatsApp" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Show number/ })).toBeInTheDocument();
     expect(screen.queryByText(/checked on site/)).toBeNull();
   });
 

@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { countListings, getFavoriteIds, PAGE_SIZE, searchListings } from "@mteam/db";
+import { countListings, getFavoriteIds, getHiddenIds, PAGE_SIZE, searchListings } from "@mteam/db";
 import { getDictionary, parseListingDisplay, parseListingFilters } from "@mteam/shared";
 import { EmptyState } from "@/components/EmptyState";
 import { FilterChips } from "@/components/FilterChips";
@@ -37,13 +37,14 @@ export default async function HomePage({
   // A submitted form always sends "deal", even when every filter is left empty.
   const isResults = typeof query.deal === "string" || Object.values(filters).some((value) => value !== undefined);
   const isMap = isResults && display.view === "map";
+  const user = await currentUser();
+  const hiddenIds = user ? await getHiddenIds(user.id) : [];
   const [listings, total] = await Promise.all([
     isResults
-      ? searchListings(filters, isMap ? { sort: display.sort, limit: MAP_LISTINGS, located: true } : { sort: display.sort, page: display.page })
-      : searchListings({ verified: true }, { limit: HOME_LISTINGS }),
-    isResults ? countListings(filters, { located: isMap }) : 0,
+      ? searchListings(filters, isMap ? { sort: display.sort, limit: MAP_LISTINGS, located: true, hiddenIds } : { sort: display.sort, page: display.page, hiddenIds })
+      : searchListings({ verified: true }, { limit: HOME_LISTINGS, hiddenIds }),
+    isResults ? countListings(filters, { located: isMap, hiddenIds }) : 0,
   ]);
-  const user = await currentUser();
   const favoriteIds = user ? await getFavoriteIds(user.id) : [];
   const href = (change: Record<string, string>) => resultsHref(locale, query, change);
 

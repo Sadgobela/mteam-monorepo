@@ -7,6 +7,8 @@ const db = vi.hoisted(() => ({
   archiveListing: vi.fn(),
   countListings: vi.fn(),
   getFavoriteIds: vi.fn(),
+  getHiddenIds: vi.fn(async () => []),
+  setHidden: vi.fn(),
   listFavorites: vi.fn(),
   listMyListings: vi.fn(),
   PAGE_SIZE: 24,
@@ -32,7 +34,7 @@ vi.mock("next/navigation", () => ({
 }));
 
 import { Header } from "@/components/Header";
-import { archiveListingAction, setFavoriteAction } from "@/lib/account-actions";
+import { archiveListingAction, setFavoriteAction, setHiddenAction } from "@/lib/account-actions";
 import HomePage from "./[locale]/page";
 import FavoritesPage from "./[locale]/favorites/page";
 import MyListingsPage from "./[locale]/my-listings/page";
@@ -156,6 +158,17 @@ describe("MyListingsPage", () => {
     db.listMyListings.mockResolvedValue([]);
     render(await MyListingsPage({ params }));
     expect(screen.getByText(t.my.empty)).toBeInTheDocument();
+  });
+});
+
+describe("setHiddenAction", () => {
+  it("hides and shows a listing for the signed-in user", async () => {
+    session.currentUser.mockResolvedValue({ id: "u1", role: "USER" });
+    db.parseListingId.mockReturnValue(7);
+    await setHiddenAction(form({ locale: "en", listingId: "7", want: "1" }));
+    expect(db.setHidden).toHaveBeenLastCalledWith("u1", 7, true);
+    await setHiddenAction(form({ locale: "en", listingId: "7", want: "0" }));
+    expect(db.setHidden).toHaveBeenLastCalledWith("u1", 7, false);
   });
 });
 
