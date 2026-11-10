@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { listFavorites } from "@mteam/db";
 import { getDictionary } from "@mteam/shared";
+import { EmptyState } from "@/components/EmptyState";
 import { Header } from "@/components/Header";
 import { ListingGrid } from "@/components/ListingGrid";
 import { resolveLocale } from "@/lib/locale";
@@ -20,7 +21,7 @@ export default async function FavoritesPage({ params }: { params: Promise<{ loca
       <main className="page">
         <h1 className="heading">{t.favorites.heading}</h1>
         {listings.length === 0 ? (
-          <p className="meta">{t.favorites.empty}</p>
+          <EmptyState text={t.favorites.empty} />
         ) : (
           <ListingGrid listings={listings} locale={locale} t={t} cur="usd" signedIn favoriteIds={listings.map((l) => l.id)} />
         )}

@@ -2,6 +2,7 @@ import Image from "next/image";
 import { notFound } from "next/navigation";
 import { listOpenLeads, listPendingListings, listUnverifiedListings } from "@mteam/db";
 import { formatDay, formatPrice, getDictionary, type Dict, type Listing } from "@mteam/shared";
+import { ConfirmSubmit } from "@/components/ConfirmSubmit";
 import { Header } from "@/components/Header";
 import { markLeadContactedAction, reviewListingAction, verifyListingAction } from "@/lib/admin-actions";
 import { resolveLocale } from "@/lib/locale";
@@ -56,7 +57,7 @@ export default async function AdminPage({ params }: { params: Promise<{ locale: 
                   <form action={reviewListingAction} className="queue-actions">
                     <input type="hidden" name="listingId" value={listing.id} />
                     <button type="submit" name="decision" value="ACTIVE" className="btn">{t.admin.approve}</button>
-                    <button type="submit" name="decision" value="REJECTED" className="btn ghost">{t.admin.reject}</button>
+                    <ConfirmSubmit label={t.admin.reject} question={t.admin.confirmReject} yes={t.confirm.yes} no={t.confirm.no} name="decision" value="REJECTED" />
                   </form>
                 </li>
               ))}

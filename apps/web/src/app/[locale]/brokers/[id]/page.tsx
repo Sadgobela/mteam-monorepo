@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { getBroker, getFavoriteIds } from "@mteam/db";
 import { getDictionary } from "@mteam/shared";
+import { EmptyState } from "@/components/EmptyState";
 import { Header } from "@/components/Header";
 import { ListingGrid } from "@/components/ListingGrid";
 import { resolveLocale } from "@/lib/locale";
@@ -38,7 +39,7 @@ export default async function BrokerPage({ params }: { params: Promise<{ locale:
           </div>
         </div>
         {broker.listings.length === 0 ? (
-          <p className="meta">{t.search.empty}</p>
+          <EmptyState text={t.search.empty} />
         ) : (
           <ListingGrid listings={broker.listings} locale={locale} t={t} cur="usd" signedIn={user !== null} favoriteIds={favoriteIds} />
         )}

@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { countListings, getFavoriteIds, PAGE_SIZE, searchListings } from "@mteam/db";
 import { getDictionary, parseListingDisplay, parseListingFilters } from "@mteam/shared";
+import { EmptyState } from "@/components/EmptyState";
 import { FilterChips } from "@/components/FilterChips";
 import { Header } from "@/components/Header";
 import { ListingMap } from "@/components/ListingMap";
@@ -109,7 +110,7 @@ export default async function HomePage({
         </div>
 
         {listings.length === 0 ? (
-          <p className="meta">{t.search.empty}</p>
+          <EmptyState text={t.search.empty} />
         ) : isMap ? (
           <ListingMap
             label={t.results.map}

@@ -2,6 +2,8 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { listMyListings } from "@mteam/db";
 import { formatPrice, getDictionary } from "@mteam/shared";
+import { ConfirmSubmit } from "@/components/ConfirmSubmit";
+import { EmptyState } from "@/components/EmptyState";
 import { Header } from "@/components/Header";
 import { archiveListingAction } from "@/lib/account-actions";
 import { resolveLocale } from "@/lib/locale";
@@ -25,7 +27,7 @@ export default async function MyListingsPage({ params }: { params: Promise<{ loc
           {user.role !== "USER" && <Link href={`/${locale}/admin`} className="btn ghost">{t.admin.heading}</Link>}
           <Link href={`/${locale}/listings/new`} className="btn">{t.nav.post}</Link>
         </div>
-        {mine.length === 0 && <p className="meta">{t.my.empty}</p>}
+        {mine.length === 0 && <EmptyState text={t.my.empty} />}
         <ul className="mine">
           {mine.map(({ listing, status }) => (
             <li key={listing.id}>
@@ -35,12 +37,12 @@ export default async function MyListingsPage({ params }: { params: Promise<{ loc
                   {formatPrice(listing.price, listing.currency)} · {listing.address}
                 </div>
               </div>
-              <span className="status">{t.my.status[status]}</span>
+              <span className="status" data-status={status}>{t.my.status[status]}</span>
               {(status === "ACTIVE" || status === "PENDING") && (
                 <form action={archiveListingAction}>
                   <input type="hidden" name="locale" value={locale} />
                   <input type="hidden" name="listingId" value={listing.id} />
-                  <button type="submit" className="btn ghost">{t.my.archive}</button>
+                  <ConfirmSubmit label={t.my.archive} question={t.my.confirmArchive} yes={t.confirm.yes} no={t.confirm.no} />
                 </form>
               )}
             </li>

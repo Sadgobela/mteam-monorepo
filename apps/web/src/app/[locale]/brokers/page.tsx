@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { listBrokers } from "@mteam/db";
 import { getDictionary } from "@mteam/shared";
+import { EmptyState } from "@/components/EmptyState";
 import { Header } from "@/components/Header";
 import { resolveLocale } from "@/lib/locale";
 import { hasSession } from "@/lib/session";
@@ -16,7 +17,7 @@ export default async function BrokersPage({ params }: { params: Promise<{ locale
       <Header locale={locale} t={t} signedIn={await hasSession()} />
       <main className="page">
         <h1 className="heading">{t.brokers.heading}</h1>
-        {brokers.length === 0 && <p className="meta">{t.brokers.empty}</p>}
+        {brokers.length === 0 && <EmptyState text={t.brokers.empty} />}
         <div className="tiles">
           {brokers.map((broker) => (
             <Link key={broker.id} href={`/${locale}/brokers/${broker.id}`} className="tile broker">
