@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const prisma = vi.hoisted(() => ({
-  listing: { findMany: vi.fn(), findFirst: vi.fn(), count: vi.fn(), create: vi.fn() },
+  listing: { findMany: vi.fn(), findFirst: vi.fn(), count: vi.fn(), create: vi.fn(), fields: { floors: "FLOORS" } },
 }));
 
 vi.mock("./client", () => ({ db: () => prisma }));
@@ -187,7 +187,7 @@ describe("searchListings", () => {
 
   it("applies no filter beyond published when none is given", async () => {
     const where = await whereFor({});
-    expect(JSON.parse(JSON.stringify(where))).toEqual({ status: "ACTIVE", priceUsd: {}, area: {}, floor: {}, pricePerSqmUsd: {} });
+    expect(JSON.parse(JSON.stringify(where))).toEqual({ status: "ACTIVE", priceUsd: {}, area: {}, floor: {}, floors: {}, ceiling: {}, pricePerSqmUsd: {} });
   });
 
   it.each([
@@ -246,6 +246,32 @@ describe("searchListings", () => {
     });
   });
 
+  it("filters by details and features", async () => {
+    expect(await whereFor({ heating: ["central", "gas"], features: ["lift", "sauna"], bedrooms: 2, floorsMax: 9, ceilingMin: 2.5 })).toMatchObject({
+      heating: { in: ["central", "gas"] },
+      features: { hasEvery: ["lift", "sauna"] },
+      bedrooms: 2,
+      floors: { lte: 9 },
+      ceiling: { gte: 2.5 },
+    });
+  });
+
+  it("treats the top bedroom count as a minimum", async () => {
+    expect((await whereFor({ bedrooms: 10 })).bedrooms).toEqual({ gte: 10 });
+  });
+
+  it.each([
+    ["last", { equals: "FLOORS" }],
+    ["notLast", { not: { equals: "FLOORS" } }],
+    ["notFirst", { gte: 2 }],
+  ] as const)("compares the floor with the building for %s", async (floorPos, expected) => {
+    expect(await whereFor({ floorPos })).toMatchObject({ floor: expected });
+  });
+
+  it("keeps a higher minimum floor when asked for not first", async () => {
+    expect((await whereFor({ floorPos: "notFirst", floorMin: 5 })).floor.gte).toBe(5);
+  });
+
   it("finds a listing by its number as well as by text", async () => {
     expect((await whereFor({ q: "20418" })).OR).toContainEqual({ id: 20418 });
   });
@@ -277,7 +303,7 @@ describe("searchListings", () => {
   });
 
   it("treats the top room option as that many or more", async () => {
-    expect((await whereFor({ rooms: 4 })).rooms).toEqual({ gte: 4 });
+    expect((await whereFor({ rooms: 10 })).rooms).toEqual({ gte: 10 });
   });
 
   it("treats LIKE wildcards in the text as plain characters", async () => {

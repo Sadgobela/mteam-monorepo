@@ -22,6 +22,21 @@ describe("parseListingFilters", () => {
     expect(parseListingFilters({ metro: "დელისი" }).metro).toBe("დელისი");
   });
 
+  it("reads details, features, and the new ranges", () => {
+    expect(parseListingFilters({ heating: "central|castle|central", features: "lift|castle", bedrooms: "10", floorPos: "notLast", floorsMin: "3", ceilingMin: "2.75" })).toMatchObject({
+      heating: ["central"],
+      features: ["lift"],
+      bedrooms: 10,
+      floorPos: "notLast",
+      floorsMin: 3,
+      ceilingMin: 2.75,
+    });
+  });
+
+  it("ignores unknown details, features and floor positions", () => {
+    expect(parseListingFilters({ heating: "castle", features: "castle", floorPos: "roof", bedrooms: "11", ceilingMin: "high" })).toEqual({});
+  });
+
   it("ignores an unknown metro station or building status", () => {
     expect(parseListingFilters({ metro: "Atlantis", building: "castle", owner: "yes" })).toMatchObject({ metro: undefined, building: undefined, owner: undefined });
   });
@@ -71,7 +86,7 @@ describe("parseListingFilters", () => {
     ["type", "projects"],
     ["city", "Atlantis"],
     ["rooms", "0"],
-    ["rooms", "5"],
+    ["rooms", "11"],
     ["rooms", "1.5"],
     ["priceMin", "abc"],
     ["priceMin", "-5"],

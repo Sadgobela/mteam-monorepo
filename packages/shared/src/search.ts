@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { isFeature, specKeys, type SpecName } from "./details";
 import { cityDistricts, isCity, isMetro, METRO_CITY } from "./places";
 
 export const dealTypes = ["sale", "rent", "daily", "pledge", "lease"] as const;
@@ -15,7 +16,10 @@ export const currencies = ["USD", "GEL"] as const;
 export type Currency = (typeof currencies)[number];
 
 /** Room counts offered in search. The last one means "this many or more". */
-export const roomOptions = [1, 2, 3, 4] as const;
+export const roomOptions = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10] as const;
+
+export const floorPositions = ["last", "notLast", "notFirst"] as const;
+export type FloorPosition = (typeof floorPositions)[number];
 
 /** In USD. Keeps a bound well inside the Int price column. */
 export const MAX_PRICE = 100_000_000;
@@ -44,6 +48,32 @@ const nameList = z
   .optional()
   .catch(undefined);
 
+const roomCount = z
+  .string()
+  .regex(/^([1-9]|10)$/)
+  .transform(Number)
+  .optional()
+  .catch(undefined);
+
+const decimal = z
+  .string()
+  .regex(/^\d{1,2}(\.\d{1,2})?$/)
+  .transform(Number)
+  .optional()
+  .catch(undefined);
+
+/** Any of a detail's fixed choices. */
+const specFilter = (name: SpecName) =>
+  z
+    .string()
+    .max(200)
+    .transform((value) => {
+      const known = [...new Set(value.split("|").filter((key) => specKeys(name).includes(key)))];
+      return known.length > 0 ? known : undefined;
+    })
+    .optional()
+    .catch(undefined);
+
 const filtersSchema = z.object({
   deal: z.enum(dealTypes).optional().catch(undefined),
   type: z.enum(propertyTypes).optional().catch(undefined),
@@ -71,10 +101,30 @@ const filtersSchema = z.object({
   sqmMax: price,
   priceMin: price,
   priceMax: price,
-  rooms: z
+  rooms: roomCount,
+  bedrooms: roomCount,
+  floorsMin: wholeNumber,
+  floorsMax: wholeNumber,
+  floorPos: z.enum(floorPositions).optional().catch(undefined),
+  ceilingMin: decimal,
+  ceilingMax: decimal,
+  condition: specFilter("condition"),
+  projectType: specFilter("projectType"),
+  bathroom: specFilter("bathroom"),
+  storage: specFilter("storage"),
+  parking: specFilter("parking"),
+  heating: specFilter("heating"),
+  hotWater: specFilter("hotWater"),
+  material: specFilter("material"),
+  windows: specFilter("windows"),
+  livingRoom: specFilter("livingRoom"),
+  features: z
     .string()
-    .regex(/^[1-4]$/)
-    .transform(Number)
+    .max(1000)
+    .transform((value) => {
+      const known = [...new Set(value.split("|").filter(isFeature))];
+      return known.length > 0 ? known : undefined;
+    })
     .optional()
     .catch(undefined),
   areaMin: wholeNumber,

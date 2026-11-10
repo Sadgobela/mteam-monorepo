@@ -106,8 +106,19 @@ export function toListing(row: ListingRow): Listing {
   };
 }
 
+/** The top count means "this many or more". */
 function roomsClause(rooms: number | undefined): Prisma.IntNullableFilter | number | undefined {
   return rooms === roomOptions[roomOptions.length - 1] ? { gte: rooms } : rooms;
+}
+
+function floorClause({ floorMin, floorMax, floorPos }: ListingFilters): Prisma.IntNullableFilter<"Listing"> {
+  const floors = db().listing.fields.floors;
+  return {
+    gte: floorPos === "notFirst" ? Math.max(2, floorMin ?? 2) : floorMin,
+    lte: floorMax,
+    equals: floorPos === "last" ? floors : undefined,
+    not: floorPos === "notLast" ? { equals: floors } : undefined,
+  };
 }
 
 function textClause(q: string | undefined): Prisma.ListingWhereInput[] | undefined {
@@ -134,7 +145,12 @@ function whereFor(filters: ListingFilters, located = false): Prisma.ListingWhere
     verified: filters.verified,
     priceUsd: { gte: filters.priceMin, lte: filters.priceMax },
     area: { gte: filters.areaMin, lte: filters.areaMax },
-    floor: { gte: filters.floorMin, lte: filters.floorMax },
+    floor: floorClause(filters),
+    floors: { gte: filters.floorsMin, lte: filters.floorsMax },
+    ceiling: { gte: filters.ceilingMin, lte: filters.ceilingMax },
+    bedrooms: roomsClause(filters.bedrooms),
+    features: filters.features && { hasEvery: filters.features },
+    ...Object.fromEntries(specNames.map((name) => [name, filters[name] && { in: filters[name] }])),
     lat: located ? { not: null } : undefined,
     lng: located ? { not: null } : undefined,
     OR: textClause(filters.q),
