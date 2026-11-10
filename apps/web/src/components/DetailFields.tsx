@@ -9,18 +9,19 @@ import { FormSelect } from "./FormSelect";
 export function DetailFields({ locale, t, showsRooms }: { locale: Locale; t: Dict; showsRooms: boolean }) {
   const f = t.post.fields;
   const [features, setFeatures] = useState<string[]>([]);
-  const number = (name: string, label: string, min: number, max: number, step = 1) => (
+  // No browser limits: a field in the closed section could not show its message and would silently block Next. The draft check reports it instead.
+  const number = (name: string, label: string) => (
     <label className="field">
       <small>{label}</small>
-      <input name={name} type="number" min={min} max={max} step={step} />
+      <input name={name} type="number" step="any" />
     </label>
   );
   return (
     <div className="detail-fields">
       <div className="form-row">
-        {showsRooms && number("bedrooms", f.bedrooms, 1, 50)}
-        {number("ceiling", f.ceiling, 1, 20, 0.01)}
-        {number("yearBuilt", f.yearBuilt, 1800, 2100)}
+        {showsRooms && number("bedrooms", f.bedrooms)}
+        {number("ceiling", f.ceiling)}
+        {number("yearBuilt", f.yearBuilt)}
       </div>
       <div className="form-row">
         {specNames.map((name) => (

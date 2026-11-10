@@ -120,6 +120,11 @@ describe("getListing", () => {
     expect(await getListing("20418")).toMatchObject({ building: "construction", metro: "დელისი", street: "ატენის ქ." });
   });
 
+  it("ignores a stored detail that is no longer a known choice", async () => {
+    prisma.listing.findFirst.mockResolvedValue({ ...fullRow, condition: "retired_value" });
+    expect((await getListing("20418"))?.specs).toEqual({});
+  });
+
   it("copes with a broker who has no name or branch", async () => {
     prisma.listing.findFirst.mockResolvedValue({
       ...fullRow,
