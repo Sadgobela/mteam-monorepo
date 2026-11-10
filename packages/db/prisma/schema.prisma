@@ -135,6 +135,7 @@ model Listing {
   lng         Float?
   price       Int
   pricePerSqmUsd Int
+  marketLevel Int?          // 1 (well below market) to 5, see market.ts; empty while there are too few comparable listings
   priceUsd    Int           // price at fixed rates, so mixed currencies can be filtered and sorted
   currency    Currency      @default(USD)
   area        Float         // m²
@@ -181,6 +182,8 @@ model ListingImage {
   listingId Int
   url       String
   position  Int     @default(0)
+
+  @@index([listingId])
 }
 
 model HiddenListing {

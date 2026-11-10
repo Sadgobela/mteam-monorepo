@@ -120,6 +120,13 @@ describe("getListing", () => {
     expect(await getListing("20418")).toMatchObject({ building: "construction", metro: "დელისი", street: "ატენის ქ." });
   });
 
+  it("carries the market level when there is one", async () => {
+    prisma.listing.findFirst.mockResolvedValue({ ...fullRow, marketLevel: 4 });
+    expect((await getListing("20418"))?.marketLevel).toBe(4);
+    prisma.listing.findFirst.mockResolvedValue({ ...fullRow, marketLevel: null });
+    expect((await getListing("20418"))?.marketLevel).toBeUndefined();
+  });
+
   it("ignores a stored detail that is no longer a known choice", async () => {
     prisma.listing.findFirst.mockResolvedValue({ ...fullRow, condition: "retired_value" });
     expect((await getListing("20418"))?.specs).toEqual({});
@@ -244,6 +251,12 @@ describe("searchListings", () => {
       agentId: null,
       pricePerSqmUsd: { gte: 500, lte: 900 },
     });
+  });
+
+  it("finds listings below the market", async () => {
+    expect(await whereFor({ belowMarket: true })).toMatchObject({ marketLevel: { lte: 2 } });
+    prisma.listing.findMany.mockClear();
+    expect((await whereFor({})).marketLevel).toBeUndefined();
   });
 
   it("filters by details and features", async () => {

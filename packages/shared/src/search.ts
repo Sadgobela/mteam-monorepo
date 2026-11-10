@@ -92,6 +92,11 @@ const filtersSchema = z.object({
     })
     .optional()
     .catch(undefined),
+  belowMarket: z
+    .literal("1")
+    .transform(() => true)
+    .optional()
+    .catch(undefined),
   owner: z
     .literal("1")
     .transform(() => true)

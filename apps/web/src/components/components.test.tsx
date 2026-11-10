@@ -537,6 +537,26 @@ describe("SearchBar", () => {
       expect(Object.fromEntries(pushed())).toMatchObject({ owner: "1", sqmMin: "700" });
     });
 
+    it("can look only below the market", async () => {
+      bar({});
+      openMore();
+      fireEvent.click(tickBox("Below market price"));
+      apply();
+      await waitFor(() => expect(push).toHaveBeenCalled());
+      expect(pushed().get("belowMarket")).toBe("1");
+    });
+
+    it("drops below market when it is unticked", async () => {
+      bar({ belowMarket: true });
+      openMore();
+      const below = tickBox("Below market price");
+      expect(below).toBeChecked();
+      fireEvent.click(below);
+      apply();
+      await waitFor(() => expect(push).toHaveBeenCalled());
+      expect(pushed().has("belowMarket")).toBe(false);
+    });
+
     it("drops owners only when it is unticked", async () => {
       bar({ owner: true });
       openMore();
@@ -957,8 +977,8 @@ describe("FilterChips details", () => {
   });
 
   it("names metro, building status, owners and price per m²", () => {
-    render(<FilterChips locale="en" t={t} query={{}} filters={{ metro: "დელისი", building: ["old", "new"], owner: true, sqmMin: 5, sqmMax: 9 }} />);
-    for (const name of ["Metro: Delisi", "Old building, New building", "Owners only", "Price per m² from, $ 5", "Price per m² to, $ 9"]) {
+    render(<FilterChips locale="en" t={t} query={{}} filters={{ metro: "დელისი", building: ["old", "new"], owner: true, belowMarket: true, sqmMin: 5, sqmMax: 9 }} />);
+    for (const name of ["Metro: Delisi", "Old building, New building", "Owners only", "Below market price", "Price per m² from, $ 5", "Price per m² to, $ 9"]) {
       expect(screen.getByRole("link", { name: `Remove filter: ${name}` })).toBeInTheDocument();
     }
   });

@@ -21,3 +21,7 @@ For bringing MTeam's own listings in from a spreadsheet. Only import listings MT
 - Fixed choices such as `condition` or `heating` use the keys in `packages/shared/src/details.ts`.
 - `features` and `photos` hold several values separated by `|`. `photos` are web addresses of images already uploaded, at most 10.
 - `agentPhone` is required: the listing's broker, who needs an account with the broker role and a name.
+
+## After an import
+
+Run `pnpm --filter @mteam/db db:market` to recalculate where each listing sits against the market. Districts need at least 5 comparable published listings to get a level.

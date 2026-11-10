@@ -105,6 +105,7 @@ describe("parseListingFilters", () => {
     ["priceMax", "100000001"],
     ["priceMax", "9999999999"],
     ["verified", "true"],
+    ["belowMarket", "yes"],
     ["areaMin", "abc"],
     ["areaMax", "12345678"],
     ["floorMin", "abc"],

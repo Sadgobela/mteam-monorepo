@@ -72,6 +72,19 @@ describe("listing page extras", () => {
     expect(screen.queryByRole("link", { name: /All listings/ })).toBeNull();
   });
 
+  it("places the price on the market scale only when it is known", async () => {
+    db.getListing.mockResolvedValue({ ...brokered, marketLevel: 2 });
+    const { container, unmount } = await open();
+    expect(screen.getByText("Below market")).toBeInTheDocument();
+    expect(container.querySelectorAll(".market-bar span")).toHaveLength(5);
+    expect(container.querySelectorAll(".market-bar span")[1]).toHaveAttribute("data-on");
+    expect(container.querySelectorAll(".market-bar span")[0]).not.toHaveAttribute("data-on");
+    unmount();
+    db.getListing.mockResolvedValue(brokered);
+    await open();
+    expect(screen.queryByText("Price compared with the market")).toBeNull();
+  });
+
   it("shows similar listings when there are any", async () => {
     db.getListing.mockResolvedValue(brokered);
     db.listSimilarListings.mockResolvedValue([rental]);

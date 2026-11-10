@@ -14,6 +14,7 @@ import { currentUser } from "@/lib/session";
 import { setHiddenAction } from "@/lib/account-actions";
 import { ListingGrid } from "@/components/ListingGrid";
 import { LoanCalculator } from "@/components/LoanCalculator";
+import { MarketScale } from "@/components/MarketScale";
 import { PhoneReveal } from "@/components/PhoneReveal";
 import { ReportListing } from "@/components/ReportListing";
 import { ShareButton } from "@/components/ShareButton";
@@ -151,6 +152,7 @@ export default async function ListingPage({
             )}
             <ReportListing listingId={listing.id} t={t} />
           </div>
+          {listing.marketLevel !== undefined && <MarketScale level={listing.marketLevel} t={t} />}
           {listing.verified && (
             <div className="note">
               <b>MTeam Verified</b>
