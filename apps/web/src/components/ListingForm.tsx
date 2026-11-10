@@ -22,6 +22,8 @@ import {
   type PropertyType,
 } from "@mteam/shared";
 import { z } from "zod";
+import { DetailFields } from "./DetailFields";
+import { Collapse } from "antd";
 import { FormSelect } from "./FormSelect";
 import { LocationPicker } from "./LocationPicker";
 
@@ -170,6 +172,7 @@ export function ListingForm({ locale, t }: { locale: Locale; t: Dict }) {
             <small>{f.description}</small>
             <textarea name="description" required rows={5} maxLength={5000} />
           </label>
+          {type !== "land" && <Collapse items={[{ key: "details", label: f.moreDetails, forceRender: true, children: <DetailFields locale={locale} t={t} showsRooms={showsRooms} /> }]} />}
         </fieldset>
         <fieldset {...stepProps(2)}>
           <Input label={f.photos} name="photos" type="file" required multiple accept="image/jpeg,image/png,image/webp" onChange={showPreviews} />
