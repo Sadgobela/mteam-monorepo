@@ -8,6 +8,7 @@ import { CardPhotos } from "./CardPhotos";
 import { Pager } from "./Pager";
 import { LanguageMenu } from "./LanguageMenu";
 import { ConfirmSubmit } from "./ConfirmSubmit";
+import { ListingDetails } from "./ListingDetails";
 import { EmptyState } from "./EmptyState";
 import { FilterChips } from "./FilterChips";
 import { FormSelect } from "./FormSelect";
@@ -225,6 +226,33 @@ describe("EmptyState", () => {
   it("says why the page is empty", () => {
     render(<EmptyState text="Nothing yet" />);
     expect(screen.getByText("Nothing yet")).toBeInTheDocument();
+  });
+});
+
+describe("ListingDetails", () => {
+  const listing = fixtureListings[0];
+
+  it("shows nothing when no details were given", () => {
+    const { container } = render(<ListingDetails listing={listing} locale="en" t={t} />);
+    expect(container).toBeEmptyDOMElement();
+  });
+
+  it("shows given details and groups features, leaving out the rest", () => {
+    render(<ListingDetails listing={{ ...listing, specs: { heating: "central" }, features: ["lift", "fridge"], bedrooms: 2, ceiling: 3, yearBuilt: 2019 }} locale="en" t={t} />);
+    expect(screen.getByText("Central heating")).toBeInTheDocument();
+    expect(screen.getByText("Lift")).toBeInTheDocument();
+    expect(screen.getByText("Refrigerator")).toBeInTheDocument();
+    expect(screen.getByText("Bedrooms").nextSibling).toHaveTextContent("2");
+    expect(screen.queryByText("Parking")).toBeNull();
+    expect(screen.queryByText("Utilities")).toBeNull();
+  });
+
+  it("works with numbers only or features only", () => {
+    const { rerender, container } = render(<ListingDetails listing={{ ...listing, yearBuilt: 2019 }} locale="en" t={t} />);
+    expect(container.querySelector(".spec-grid")).not.toBeNull();
+    rerender(<ListingDetails listing={{ ...listing, features: ["lift"] }} locale="en" t={t} />);
+    expect(container.querySelector(".spec-grid")).toBeNull();
+    expect(screen.getByText("Lift")).toBeInTheDocument();
   });
 });
 
@@ -880,6 +908,11 @@ describe("ListingCard", () => {
   it("names the broker when there is one", () => {
     render(<ListingCard listing={fixtureListings[0]} locale="en" t={t} />);
     expect(screen.getByText(fixtureListings[0].agent?.name as string)).toBeInTheDocument();
+  });
+
+  it("shows bedrooms when given", () => {
+    render(<ListingCard listing={{ ...fixtureListings[0], bedrooms: 2 }} locale="en" t={t} />);
+    expect(screen.getByText("2 bedrooms")).toBeInTheDocument();
   });
 
   it("says photo for a single one", () => {

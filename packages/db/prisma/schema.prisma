@@ -140,6 +140,19 @@ model Listing {
   floor       Int?
   floors      Int?
   condition   String?
+  projectType String?
+  bathroom    String?
+  storage     String?
+  parking     String?
+  heating     String?
+  hotWater    String?
+  material    String?
+  windows     String?
+  livingRoom  String?
+  bedrooms    Int?
+  ceiling     Float?
+  yearBuilt   Int?
+  features    String[]      @default([])
   verified    Boolean       @default(false) // checked on site by an MTeam broker
   verifiedAt  DateTime?
   verifiedBy  Agent?        @relation("VerifiedListings", fields: [verifiedById], references: [id])

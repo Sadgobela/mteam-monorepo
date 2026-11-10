@@ -58,6 +58,27 @@ describe("parseListingDraft", () => {
     expect(parseListingDraft({ ...tbilisi, building: "castle" })).toBeNull();
   });
 
+  it("keeps details, treats blanks as none, and drops unknown features", () => {
+    expect(parseListingDraft({ ...valid, condition: "white_frame", heating: "", bedrooms: "2", ceiling: "2.9", yearBuilt: "2015", features: "lift|castle|lift" })).toMatchObject({
+      condition: "white_frame",
+      heating: undefined,
+      bedrooms: 2,
+      ceiling: 2.9,
+      yearBuilt: 2015,
+      features: ["lift"],
+    });
+    expect(parseListingDraft({ ...valid, ceiling: "" })?.ceiling).toBeUndefined();
+  });
+
+  it.each([
+    ["unknown condition", { condition: "castle" }],
+    ["ceiling too low", { ceiling: "0.5" }],
+    ["ceiling not a number", { ceiling: "high" }],
+    ["year out of range", { yearBuilt: "1500" }],
+  ])("rejects %s", (_, change) => {
+    expect(parseListingDraft({ ...valid, ...change })).toBeNull();
+  });
+
   it("refuses a price per m² too large to store", () => {
     expect(parseListingDraft({ ...valid, price: "2000000000", area: "0.5" })).toBeNull();
     expect(parseListingDraft({ ...valid, price: "2000000000", area: "100" })).not.toBeNull();

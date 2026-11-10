@@ -1,5 +1,6 @@
 import type { BuildingStatus as DbBuildingStatus, DealType as DbDealType, Prisma, PropertyType as DbPropertyType } from "@prisma/client";
 import {
+  specNames,
   type BuildingStatus,
   roomOptions,
   type DealType,
@@ -78,7 +79,11 @@ export function toListing(row: ListingRow): Listing {
     lng: row.lng ?? undefined,
     floor: row.floor ?? undefined,
     floors: row.floors ?? undefined,
-    condition: row.condition ?? undefined,
+    specs: Object.fromEntries(specNames.flatMap((name) => (row[name] ? [[name, row[name]]] : []))),
+    features: row.features,
+    bedrooms: row.bedrooms ?? undefined,
+    ceiling: row.ceiling ?? undefined,
+    yearBuilt: row.yearBuilt ?? undefined,
     description: row.description,
     verified: row.verified,
     agent: agent

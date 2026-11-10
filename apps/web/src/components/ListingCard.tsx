@@ -72,6 +72,11 @@ export function ListingCard({
               {listing.rooms} {t.units.rooms}
             </span>
           )}
+          {listing.bedrooms && (
+            <span>
+              {listing.bedrooms} {t.units.bedrooms}
+            </span>
+          )}
           {listing.floor && (
             <span>
               {listing.floor}/{listing.floors} {t.units.floor}

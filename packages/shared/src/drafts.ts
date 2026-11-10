@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { isFeature, specKeys, type SpecName } from "./details";
 import { cityDistricts, isCity, isMetro, METRO_CITY } from "./places";
 import { buildingStatuses, currencies, dealTypes, MAX_PRICE, priceInUsd, propertyTypes } from "./search";
 
@@ -42,6 +43,9 @@ const coordinate = (limit: number) =>
     ])
     .optional();
 
+/** One of a detail's fixed choices, or blank. */
+const spec = (name: SpecName) => z.union([z.literal("").transform(() => undefined), z.enum(specKeys(name) as [string, ...string[]])]).optional();
+
 const draftSchema = z
   .object({
     deal: z.enum(dealTypes),
@@ -52,6 +56,33 @@ const draftSchema = z
     street: z.union([z.literal("").transform(() => undefined), text(120)]).optional(),
     metro: z.union([z.literal("").transform(() => undefined), z.string().refine(isMetro)]).optional(),
     building: z.union([z.literal("").transform(() => undefined), z.enum(buildingStatuses)]).optional(),
+    condition: spec("condition"),
+    projectType: spec("projectType"),
+    bathroom: spec("bathroom"),
+    storage: spec("storage"),
+    parking: spec("parking"),
+    heating: spec("heating"),
+    hotWater: spec("hotWater"),
+    material: spec("material"),
+    windows: spec("windows"),
+    livingRoom: spec("livingRoom"),
+    bedrooms: optionalWhole(1, 50),
+    yearBuilt: optionalWhole(1800, 2100),
+    ceiling: z
+      .union([
+        z.literal("").transform(() => undefined),
+        z
+          .string()
+          .regex(/^\d{1,2}(\.\d{1,2})?$/)
+          .transform(Number)
+          .refine((value) => value >= 1 && value <= 20),
+      ])
+      .optional(),
+    features: z
+      .string()
+      .max(2000)
+      .transform((value) => [...new Set(value.split("|").filter(isFeature))])
+      .optional(),
     title: text(120),
     description: text(5000),
     price: whole(1, 2_000_000_000),
