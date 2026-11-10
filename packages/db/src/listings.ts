@@ -232,6 +232,19 @@ export function countSellerListings(ownerId: string): Promise<number> {
   return db().listing.count({ where: sellerWhere(ownerId) });
 }
 
+const SITEMAP_LIMIT = 45_000;
+
+/** Every published listing, for the sitemap. One file holds 50,000 addresses at most. */
+export function sitemapListings(): Promise<{ id: number; updatedAt: Date }[]> {
+  return db().listing.findMany({ where: { status: "ACTIVE" }, select: { id: true, updatedAt: true }, orderBy: { id: "desc" }, take: SITEMAP_LIMIT });
+}
+
+/** The deal, type and city combinations that have something to show. */
+export async function sitemapSearches(): Promise<{ deal: DealType; type: PropertyType; city: string }[]> {
+  const rows = await db().listing.groupBy({ by: ["deal", "type", "city"], where: { status: "ACTIVE" } });
+  return rows.map((row) => ({ deal: deals[row.deal], type: propertyTypes[row.type], city: row.city }));
+}
+
 /** Reads an id from untrusted text. Returns null for anything that is not a possible listing id. */
 export function parseListingId(raw: string): number | null {
   const id = listingIdSchema.safeParse(raw);
