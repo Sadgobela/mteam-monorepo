@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { getDictionary } from "@mteam/shared";
 import { fixtureListings } from "@/test-fixtures";
 
@@ -173,14 +173,17 @@ describe("setHiddenAction", () => {
 });
 
 describe("Header account links", () => {
-  it("links to the account pages when signed in", () => {
+  it("gathers the account pages in one menu when signed in", async () => {
     render(<Header locale="en" t={t} signedIn />);
-    expect(screen.getByRole("link", { name: t.nav.favorites })).toHaveAttribute("href", "/en/favorites");
+    fireEvent.click(screen.getByRole("button", { name: new RegExp(t.nav.account) }));
+    expect(await screen.findByRole("link", { name: t.nav.favorites })).toHaveAttribute("href", "/en/favorites");
+    expect(screen.getByRole("link", { name: t.nav.saved })).toHaveAttribute("href", "/en/saved");
+    expect(screen.getByRole("link", { name: t.nav.messages })).toHaveAttribute("href", "/en/messages");
     expect(screen.getByRole("link", { name: t.nav.my })).toHaveAttribute("href", "/en/my-listings");
   });
 
   it("hides them from a visitor", () => {
     render(<Header locale="en" t={t} signedIn={false} />);
-    expect(screen.queryByRole("link", { name: t.nav.favorites })).toBeNull();
+    expect(screen.queryByRole("button", { name: new RegExp(t.nav.account) })).toBeNull();
   });
 });
