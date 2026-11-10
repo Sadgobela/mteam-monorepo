@@ -17,5 +17,5 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     alternates: { languages: Object.fromEntries(locales.map((locale) => [locale, address(locale, path)])) },
   });
   const [listings, searches] = await Promise.all([sitemapListings(), sitemapSearches()]);
-  return [entry(""), entry("/brokers"), entry("/prices"), ...searches.map((search) => entry(searchPath(search))), ...listings.map((listing) => entry(`/listings/${listing.id}`, listing.updatedAt))];
+  return [entry(""), entry("/brokers"), entry("/prices"), entry("/mortgage"), ...searches.map((search) => entry(searchPath(search))), ...listings.map((listing) => entry(`/listings/${listing.id}`, listing.updatedAt))];
 }
