@@ -12,19 +12,20 @@ const MIN_COMPARABLES = 5;
 export function refreshMarketLevels(): Promise<number> {
   return db().$executeRaw`
     WITH medians AS (
-      SELECT deal, type, city, COALESCE(district, '') AS district, percentile_cont(0.5) WITHIN GROUP (ORDER BY "pricePerSqmUsd") AS median
+      SELECT deal, type, city, COALESCE(district, '') AS district, percentile_cont(0.5) WITHIN GROUP (ORDER BY "priceUsd" / area) AS median
       FROM "Listing"
-      WHERE status = 'ACTIVE' AND "pricePerSqmUsd" > 0
+      WHERE status = 'ACTIVE' AND "priceUsd" > 0 AND area > 0
       GROUP BY 1, 2, 3, 4
       HAVING count(*) >= ${MIN_COMPARABLES}
     ), levels AS (
+      -- From the exact price per m²: the stored one is rounded to whole dollars, which is too coarse for rentals and daily stays.
       SELECT l.id,
         CASE
-          WHEN m.median IS NULL OR l."pricePerSqmUsd" <= 0 THEN NULL
-          WHEN l."pricePerSqmUsd" / m.median < 0.85 THEN 1
-          WHEN l."pricePerSqmUsd" / m.median < 0.95 THEN 2
-          WHEN l."pricePerSqmUsd" / m.median <= 1.05 THEN 3
-          WHEN l."pricePerSqmUsd" / m.median <= 1.15 THEN 4
+          WHEN m.median IS NULL OR l."priceUsd" <= 0 OR l.area <= 0 THEN NULL
+          WHEN l."priceUsd" / l.area / m.median < 0.85 THEN 1
+          WHEN l."priceUsd" / l.area / m.median < 0.95 THEN 2
+          WHEN l."priceUsd" / l.area / m.median <= 1.05 THEN 3
+          WHEN l."priceUsd" / l.area / m.median <= 1.15 THEN 4
           ELSE 5
         END AS level
       FROM "Listing" l
@@ -44,9 +45,9 @@ export type PriceStat = z.infer<typeof statsSchema>[number];
 export async function priceStats(city: string, deal: Extract<DealType, "sale" | "rent">): Promise<PriceStat[]> {
   return statsSchema.parse(
     await db().$queryRaw`
-      SELECT district, LEAST(rooms, 4) AS rooms, percentile_cont(0.5) WITHIN GROUP (ORDER BY "pricePerSqmUsd") AS median
+      SELECT COALESCE(district, city) AS district, LEAST(rooms, 4) AS rooms, percentile_cont(0.5) WITHIN GROUP (ORDER BY "priceUsd" / area) AS median
       FROM "Listing"
-      WHERE status = 'ACTIVE' AND type = 'APARTMENT' AND deal = CAST(${deal.toUpperCase()} AS "DealType") AND city = ${city} AND district IS NOT NULL AND rooms > 0
+      WHERE status = 'ACTIVE' AND type = 'APARTMENT' AND deal = CAST(${deal.toUpperCase()} AS "DealType") AND city = ${city} AND rooms > 0 AND "priceUsd" > 0 AND area > 0
       GROUP BY 1, 2
       HAVING count(*) >= ${MIN_COMPARABLES}
       ORDER BY 1, 2`,
