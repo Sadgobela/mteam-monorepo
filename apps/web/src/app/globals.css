@@ -216,6 +216,17 @@ html:has(.viewer[open]) { overflow: hidden; }
 .ph img { object-fit: cover; }
 .narrow h1 { font-size: 24px; }
 .heading { font-size: 22px; font-weight: 800; }
+.chat-form { display: grid; gap: 8px; justify-items: end; }
+.chat-form textarea { width: 100%; }
+.chat-start { display: grid; gap: 8px; }
+.chat-list { display: grid; gap: 10px; }
+.chat-preview { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.chat { max-width: 760px; }
+.chat-thread { display: grid; gap: 10px; list-style: none; margin: 0; padding: 0; }
+.chat-thread li { justify-self: start; max-width: 80%; padding: 10px 14px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); }
+.chat-thread li[data-mine] { justify-self: end; background: var(--brand-soft); }
+.chat-thread p { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; }
+.chat-thread time { display: block; margin-top: 4px; font-size: 12px; }
 .save-search { margin-left: auto; }
 .saved-list { display: grid; gap: 10px; list-style: none; margin: 0; padding: 0; }
 .saved-list li { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; padding: 14px 16px; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; }
