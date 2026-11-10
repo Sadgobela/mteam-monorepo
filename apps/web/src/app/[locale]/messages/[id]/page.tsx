@@ -47,7 +47,7 @@ export default async function ConversationPage({ params, searchParams }: { param
             {t.chat.failed}
           </p>
         )}
-        <ChatForm key={chat.messages.length} action={sendChatAction} t={t} placeholder={t.chat.message}>
+        <ChatForm key={chat.messages.filter((message) => message.mine).at(-1)?.id} action={sendChatAction} t={t} placeholder={t.chat.message}>
           <input type="hidden" name="locale" value={locale} />
           <input type="hidden" name="conversationId" value={chat.id} />
         </ChatForm>

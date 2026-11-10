@@ -47,6 +47,12 @@ describe("startConversation", () => {
     expect(prisma.message.create).not.toHaveBeenCalled();
   });
 
+  it("moves an existing chat to whoever answers now", async () => {
+    prisma.listing.findFirst.mockResolvedValue({ ownerId: "owner", agent: { userId: "broker", user: { role: "USER" } } });
+    await startConversation("u1", 7, "hi");
+    expect(prisma.conversation.upsert.mock.calls[0][0].update.sellerId).toBe("owner");
+  });
+
   it("stops too many messages, and too many new chats but not an existing one", async () => {
     prisma.listing.findFirst.mockResolvedValue(ownerListing);
     prisma.message.count.mockResolvedValueOnce(60);
@@ -69,18 +75,29 @@ describe("sendMessage", () => {
   });
 
   it("stops too many messages", async () => {
-    prisma.conversation.findFirst.mockResolvedValue({ buyerId: "u1" });
+    prisma.conversation.findFirst.mockResolvedValue({ buyerId: "u1", listing: ownerListing });
     prisma.message.count.mockResolvedValue(60);
     expect(await sendMessage("u1", "c1", "hi")).toBe(false);
   });
 
   it("sends, and counts as read for whoever wrote", async () => {
-    prisma.conversation.findFirst.mockResolvedValue({ buyerId: "u1" });
+    prisma.conversation.findFirst.mockResolvedValue({ buyerId: "u1", listing: ownerListing });
     expect(await sendMessage("u1", "c1", "hi")).toBe(true);
     expect(prisma.conversation.update.mock.calls[0][0].data).toHaveProperty("buyerReadAt");
-    prisma.conversation.findFirst.mockResolvedValue({ buyerId: "someone" });
+    prisma.conversation.findFirst.mockResolvedValue({ buyerId: "someone", listing: { ownerId: "u1", agent: null } });
     await sendMessage("u1", "c1", "hi");
     expect(prisma.conversation.update.mock.calls[1][0].data).toHaveProperty("sellerReadAt");
+  });
+
+  it("drops a broker who left, and hands the chat to the owner when the buyer writes", async () => {
+    const left = { ownerId: "owner", agent: { userId: "u1", user: { role: "USER" } } };
+    prisma.conversation.findFirst.mockResolvedValue({ buyerId: "buyer", listing: left });
+    expect(await sendMessage("u1", "c1", "hi")).toBe(false);
+    expect(prisma.message.create).not.toHaveBeenCalled();
+
+    prisma.conversation.findFirst.mockResolvedValue({ buyerId: "u1", listing: { ...left, agent: { userId: "broker", user: { role: "USER" } } } });
+    await sendMessage("u1", "c1", "hi");
+    expect(prisma.conversation.update.mock.calls[0][0].data.sellerId).toBe("owner");
   });
 });
 
@@ -138,6 +155,17 @@ describe("getConversation", () => {
     expect(await getConversation("u1", "c1")).toBeNull();
     expect(prisma.conversation.findFirst.mock.calls[0][0].where).toEqual({ id: "c1", ...participant });
     expect(prisma.conversation.updateMany).not.toHaveBeenCalled();
+  });
+
+  it("finds nothing for a malformed id without querying", async () => {
+    expect(await getConversation("u1", "bad id")).toBeNull();
+    expect(prisma.conversation.findFirst).not.toHaveBeenCalled();
+  });
+
+  it("marks read only up to the newest message shown", async () => {
+    prisma.conversation.findFirst.mockResolvedValue(structuredClone(thread));
+    await getConversation("u1", "c1");
+    expect(prisma.conversation.updateMany.mock.calls[0][0].data.buyerReadAt).toEqual(new Date("2026-11-02"));
   });
 
   it("gives messages oldest first and marks them read for the buyer", async () => {

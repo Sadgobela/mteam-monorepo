@@ -81,11 +81,24 @@ describe("listing page", () => {
     expect(screen.getByRole("link", { name: t.chat.signIn })).toHaveAttribute("href", "/en/login");
   });
 
-  it("offers nothing on someone's own listing", async () => {
+  it("offers nothing on someone's own listing, or to its broker", async () => {
     session.currentUser.mockResolvedValue({ id: "seller" });
-    await open();
+    const owner = await open();
     expect(screen.queryByRole("textbox", { name: t.chat.write })).toBeNull();
     expect(screen.queryByRole("link", { name: t.chat.signIn })).toBeNull();
+    owner.unmount();
+
+    db.getListing.mockResolvedValue({ ...listing, sellerId: "seller", agent: { id: "a1", name: "Nino", branch: "", phone: "+995" } });
+    session.currentUser.mockResolvedValue({ id: "broker", agent: { id: "a1" } });
+    await open();
+    expect(screen.queryByRole("textbox", { name: t.chat.write })).toBeNull();
+  });
+
+  it("offers the box on a listing with no broker to someone who is one elsewhere", async () => {
+    db.getListing.mockResolvedValue({ ...listing, sellerId: "seller", agent: undefined });
+    session.currentUser.mockResolvedValue({ id: "broker", agent: { id: "a2" } });
+    await open();
+    expect(screen.getByRole("textbox", { name: t.chat.write })).toBeInTheDocument();
   });
 });
 
@@ -170,6 +183,17 @@ describe("LiveRefresh", () => {
       vi.advanceTimersByTime(30_000);
     });
     expect(refresh).toHaveBeenCalledTimes(1);
+  });
+
+  it("leaves a tab nobody is looking at alone", () => {
+    vi.useFakeTimers();
+    const hidden = vi.spyOn(document, "hidden", "get").mockReturnValue(true);
+    render(<LiveRefresh />);
+    act(() => {
+      vi.advanceTimersByTime(15_000);
+    });
+    expect(refresh).not.toHaveBeenCalled();
+    hidden.mockRestore();
   });
 });
 

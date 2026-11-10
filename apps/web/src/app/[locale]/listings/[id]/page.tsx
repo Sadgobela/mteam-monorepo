@@ -77,6 +77,7 @@ export default async function ListingPage({
   const unit = priceUnit(listing.deal, t);
   const here = `/${locale}/listings/${listing.id}`;
   const user = await currentUser();
+  const ownListing = user !== null && (user.id === listing.sellerId || (listing.agent !== undefined && user.agent?.id === listing.agent.id));
   const favoriteIds = user ? await getFavoriteIds(user.id) : [];
   const hiddenIds = user ? await getHiddenIds(user.id) : [];
   const [similar, sellerCount] = await Promise.all([listSimilarListings(listing, hiddenIds), listing.agent ? 0 : countSellerListings(listing.sellerId)]);
@@ -153,7 +154,7 @@ export default async function ListingPage({
               <PhoneReveal listingId={listing.id} masked={maskPhone(listing.contactPhone)} t={t} />
             </div>
           </div>
-          {user?.id !== listing.sellerId && (
+          {!ownListing && (
             <div className="chat-start">
               {user ? (
                 <ChatForm action={startChatAction} t={t} placeholder={t.chat.write}>

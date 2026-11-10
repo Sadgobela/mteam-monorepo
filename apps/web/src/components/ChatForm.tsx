@@ -22,7 +22,10 @@ const REFRESH_MS = 15_000;
 export function LiveRefresh() {
   const router = useRouter();
   useEffect(() => {
-    const timer = setInterval(() => router.refresh(), REFRESH_MS);
+    // Reading a chat marks it read, so a tab nobody is looking at must not.
+    const timer = setInterval(() => {
+      if (!document.hidden) router.refresh();
+    }, REFRESH_MS);
     return () => clearInterval(timer);
   }, [router]);
   return null;
