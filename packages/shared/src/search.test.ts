@@ -1,5 +1,16 @@
 import { describe, expect, it } from "vitest";
-import { convertPrice, parseListingDisplay, parseListingFilters, priceInUsd } from "./index";
+import { priceInLari, convertPrice, parseListingDisplay, parseListingFilters, priceInUsd } from "./index";
+
+describe("priceInLari", () => {
+  it("reads round lari amounts back exactly", () => {
+    expect(priceInLari(priceInUsd(150000, "GEL"))).toBe(150000);
+    expect(priceInLari(priceInUsd(250000, "GEL"))).toBe(250000);
+  });
+
+  it("falls back to the exact conversion when rounding would change the dollars", () => {
+    expect(priceInLari(1)).toBe(3);
+  });
+});
 
 describe("parseListingFilters", () => {
   it("reads several districts inside a city", () => {

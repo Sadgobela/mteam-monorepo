@@ -624,6 +624,17 @@ describe("SearchBar", () => {
       expect(Object.fromEntries(pushed())).toMatchObject({ priceMin: "100", priceMax: "200" });
     });
 
+    it("keeps a lari price intact while it is typed digit by digit", async () => {
+      render(<SearchBar locale="en" t={t} filters={{}} display={{ ...display, cur: "gel" }} />);
+      openMore();
+      const field = dialog().getByLabelText("Price from, ₾");
+      for (const typed of ["1", "15", "150", "1500", "15000", "150000"]) fireEvent.change(field, { target: { value: typed } });
+      expect(field).toHaveValue("150000");
+      apply();
+      await waitFor(() => expect(push).toHaveBeenCalled());
+      expect(pushed().get("priceMin")).toBe("55556");
+    });
+
     it("hides metro stations in a city without a metro", () => {
       bar({ city: "ბათუმი" });
       openMore();

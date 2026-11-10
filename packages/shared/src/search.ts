@@ -193,6 +193,12 @@ export function priceInUsd(price: number, currency: Currency): number {
   return Math.round(price / unitsPerUsd[currency]);
 }
 
+/** A dollar filter in lari, on a round number when that still means the same dollars, so 150000 reads back as 150000. */
+export function priceInLari(usd: number): number {
+  const rounded = Math.round((usd * unitsPerUsd.GEL) / 10) * 10;
+  return priceInUsd(rounded, "GEL") === usd ? rounded : Math.round(usd * unitsPerUsd.GEL);
+}
+
 /** Converts a price into the currency the visitor chose to see. */
 export function convertPrice(price: number, currency: Currency, target: DisplayCurrency): number {
   const usd = price / unitsPerUsd[currency];

@@ -7,7 +7,7 @@ import type { ReactNode } from "react";
 import { Badge, Button, Checkbox, Input, InputNumber, Modal, Popover, Select } from "antd";
 import {
   buildingStatuses,
-  convertPrice,
+  priceInLari,
   featureLabel,
   floorPositions,
   groupKeys,
@@ -34,20 +34,33 @@ import { LocationModal } from "./LocationModal";
 
 type NumberField = "priceMin" | "priceMax" | "areaMin" | "areaMax" | "floorMin" | "floorMax" | "sqmMin" | "sqmMax" | "floorsMin" | "floorsMax" | "ceilingMin" | "ceilingMax";
 
-const moneyFields: NumberField[] = ["priceMin", "priceMax", "sqmMin", "sqmMax"];
+const moneyFields = ["priceMin", "priceMax", "sqmMin", "sqmMax"] as const;
+
+function convertMoney(filters: ListingFilters, convert: (value: number) => number): ListingFilters {
+  const converted = { ...filters };
+  for (const field of moneyFields) {
+    const value = filters[field];
+    if (value !== undefined) converted[field] = convert(value);
+  }
+  return converted;
+}
 
 const moreFields = { rooms: undefined, priceMin: undefined, priceMax: undefined, areaMin: undefined, areaMax: undefined, floorMin: undefined, floorMax: undefined, sqmMin: undefined, sqmMax: undefined, building: undefined, metro: undefined, owner: undefined, bedrooms: undefined, floorsMin: undefined, floorsMax: undefined, floorPos: undefined, ceilingMin: undefined, ceilingMax: undefined, condition: undefined, projectType: undefined, bathroom: undefined, storage: undefined, parking: undefined, heating: undefined, hotWater: undefined, material: undefined, windows: undefined, livingRoom: undefined, features: undefined };
 
 export function SearchBar({ locale, t, filters, display, results = false }: { locale: Locale; t: Dict; filters: ListingFilters; display: ListingDisplay; results?: boolean }) {
   const router = useRouter();
   const [searching, startSearch] = useTransition();
-  const [draft, setDraft] = useState(filters);
+  // The URL always holds dollars, so a search means the same whichever currency is on show. While editing, money is in the
+  // currency on screen: converting on every keystroke would rewrite the number as it is typed.
+  const inLari = display.cur === "gel";
+  const [draft, setDraft] = useState(() => (inLari ? convertMoney(filters, priceInLari) : filters));
   const [moreOpen, setMoreOpen] = useState(false);
   const [locationOpen, setLocationOpen] = useState(false);
   const [openPill, setOpenPill] = useState<string | null>(null);
   const change = (values: Partial<ListingFilters>) => setDraft({ ...draft, ...values });
 
-  function run(filtersToSearch: ListingFilters) {
+  function run(edited: ListingFilters) {
+    const filtersToSearch = inLari ? convertMoney(edited, (value) => priceInUsd(value, "GEL")) : edited;
     // "deal" is always sent, even empty: it is how the home page knows a search was made.
     const params = new URLSearchParams({ deal: filtersToSearch.deal ?? "", cur: display.cur, view: display.view, sort: display.sort });
     for (const [key, value] of Object.entries(filtersToSearch)) {
@@ -70,25 +83,20 @@ export function SearchBar({ locale, t, filters, display, results = false }: { lo
     run(next);
   }
 
-  const number = (name: NumberField, label: string, precision = 0) => {
-    // The URL always holds dollars, so a search means the same whichever currency is on show.
-    const inGel = display.cur === "gel" && moneyFields.includes(name);
-    const stored = draft[name];
-    return (
-      <label className="field">
-        <small>{inGel ? label.replace("$", "₾") : label}</small>
-        <InputNumber
-          value={inGel && stored !== undefined ? convertPrice(stored, "USD", "gel") : stored}
-          min={0}
-          precision={precision}
-          controls={false}
-          inputMode="decimal"
-          onChange={(value) => change({ [name]: value === null ? undefined : inGel ? priceInUsd(value, "GEL") : value })}
-          onPressEnter={search}
-        />
-      </label>
-    );
-  };
+  const number = (name: NumberField, label: string, precision = 0) => (
+    <label className="field">
+      <small>{inLari ? label.replace("$", "₾") : label}</small>
+      <InputNumber
+        value={draft[name]}
+        min={0}
+        precision={precision}
+        controls={false}
+        inputMode="decimal"
+        onChange={(value) => change({ [name]: value ?? undefined })}
+        onPressEnter={search}
+      />
+    </label>
+  );
 
   const placeCount = (draft.district?.length ?? 0) + (draft.street?.length ?? 0);
   const place = draft.city && placeLabel(draft.city, locale) + (placeCount > 0 ? ` +${placeCount}` : "");

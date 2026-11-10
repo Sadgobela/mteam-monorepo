@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { convertPrice, featureLabel, placeLabel, specLabel, specNames, specTitles, type Dict, type ListingFilters, type Locale, type SpecName } from "@mteam/shared";
+import { priceInLari, featureLabel, placeLabel, specLabel, specNames, specTitles, type Dict, type ListingFilters, type Locale, type SpecName } from "@mteam/shared";
 import { resultsHref, type Query } from "@/lib/url";
 
 /** The active filters as links that remove themselves, so a search can be widened one step at a time. */
@@ -17,7 +17,7 @@ export function FilterChips({
   const number = (value: number | undefined, label: string) => (value === undefined ? undefined : `${label} ${value}`);
   const list = (names: string[] | undefined) => names && placeLabel(names[0], locale) + (names.length > 1 ? ` +${names.length - 1}` : "");
   // Prices are stored in dollars; shown in the currency the visitor chose.
-  const money = (value: number | undefined, label: string) => (query.cur === "gel" ? number(value === undefined ? value : convertPrice(value, "USD", "gel"), label.replace("$", "₾")) : number(value, label));
+  const money = (value: number | undefined, label: string) => (query.cur === "gel" ? number(value === undefined ? value : priceInLari(value), label.replace("$", "₾")) : number(value, label));
   const chips: [string, string | undefined][] = [
     ["deal", filters.deal && t.deal[filters.deal]],
     ["type", filters.type && t.propertyType[filters.type]],
