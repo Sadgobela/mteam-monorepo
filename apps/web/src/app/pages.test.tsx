@@ -48,7 +48,7 @@ vi.mock("leaflet", () => ({
   },
 }));
 
-import LocaleLayout, { generateStaticParams, metadata } from "./[locale]/layout";
+import LocaleLayout, { generateStaticParams, generateMetadata } from "./[locale]/layout";
 import HomePage, { dynamic as homeRendering } from "./[locale]/page";
 import ListingPage, { dynamic as listingRendering } from "./[locale]/listings/[id]/page";
 
@@ -56,9 +56,9 @@ const p = <T,>(v: T) => Promise.resolve(v);
 const radio = (name: string) => screen.getByRole("radio", { name });
 
 describe("layout", () => {
-  it("builds one page per language", () => {
+  it("builds one page per language", async () => {
     expect(generateStaticParams()).toEqual([{ locale: "ka" }, { locale: "en" }, { locale: "ru" }]);
-    expect(metadata.title).toContain("MTeam");
+    expect((await generateMetadata({ params: Promise.resolve({ locale: "ka" }) })).description).toContain("MTeam");
   });
 
   it("sets the document language", async () => {

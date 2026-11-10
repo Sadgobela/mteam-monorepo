@@ -1,12 +1,12 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const prisma = vi.hoisted(() => ({
-  listing: { findMany: vi.fn(), findFirst: vi.fn(), count: vi.fn(), create: vi.fn(), fields: { floors: "FLOORS" } },
+  listing: { findMany: vi.fn(), findFirst: vi.fn(), count: vi.fn(), create: vi.fn(), groupBy: vi.fn(), fields: { floors: "FLOORS" } },
 }));
 
 vi.mock("./client", () => ({ db: () => prisma }));
 
-import { countSellerListings, listSellerListings, listSimilarListings, countListings, createListing, getListing, searchListings } from "./index";
+import { countSellerListings, listSellerListings, listSimilarListings, countListings, createListing, getListing, searchListings, sitemapListings, sitemapSearches } from "./index";
 
 const fullRow = {
   id: 20418,
@@ -171,6 +171,20 @@ describe("getListing", () => {
     prisma.listing.findFirst.mockResolvedValue(null);
     await getListing("2147483647");
     expect(prisma.listing.findFirst.mock.calls[0][0].where.id).toBe(2147483647);
+  });
+});
+
+describe("sitemap queries", () => {
+  it("lists only published listings, within what one sitemap file holds", async () => {
+    prisma.listing.findMany.mockResolvedValue([{ id: 7, updatedAt: new Date("2026-11-01") }]);
+    expect(await sitemapListings()).toHaveLength(1);
+    expect(prisma.listing.findMany.mock.calls[0][0]).toMatchObject({ where: { status: "ACTIVE" }, take: 45_000 });
+  });
+
+  it("gives each combination with something to show, in the site's own words", async () => {
+    prisma.listing.groupBy.mockResolvedValue([{ deal: "SALE", type: "COUNTRY_HOUSE", city: "Batumi" }]);
+    expect(await sitemapSearches()).toEqual([{ deal: "sale", type: "country", city: "Batumi" }]);
+    expect(prisma.listing.groupBy.mock.calls[0][0].where).toEqual({ status: "ACTIVE" });
   });
 });
 

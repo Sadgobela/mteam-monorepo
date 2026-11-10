@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { countListings, getFavoriteIds, getHiddenIds, PAGE_SIZE, searchListings } from "@mteam/db";
@@ -12,6 +13,7 @@ import { Pager } from "@/components/Pager";
 import { SearchBar } from "@/components/SearchBar";
 import { Segmented } from "@/components/Segmented";
 import { resolveLocale } from "@/lib/locale";
+import { searchMetadata } from "@/lib/seo";
 import { currentUser } from "@/lib/session";
 import { resultsHref, type Query } from "@/lib/url";
 
@@ -20,6 +22,10 @@ const MAP_LISTINGS = 200;
 
 /** Reads live data, so it renders per request and the build needs no database. */
 export const dynamic = "force-dynamic";
+
+export async function generateMetadata({ params, searchParams }: { params: Promise<{ locale: string }>; searchParams: Promise<Query> }): Promise<Metadata> {
+  return searchMetadata(resolveLocale((await params).locale), await searchParams);
+}
 
 export default async function HomePage({
   params,

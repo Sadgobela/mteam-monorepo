@@ -3,7 +3,7 @@ import { CardPhotos } from "./CardPhotos";
 import { priceUnit, convertPrice, formatDay, formatPrice, placeName, type DisplayCurrency, type Dict, type Listing, type Locale } from "@mteam/shared";
 
 /** Built from the listing's facts, so a card reads in the page language whatever language the owner wrote in. */
-function cardTitle(listing: Listing, locale: Locale, t: Dict): string {
+export function cardTitle(listing: Listing, locale: Locale, t: Dict): string {
   const template = listing.rooms > 0 ? t.card.title : t.card.titleNoRooms;
   const title = template
     .replace("{deal}", t.deal[listing.deal])
