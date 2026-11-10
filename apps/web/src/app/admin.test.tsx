@@ -94,7 +94,13 @@ describe("verifyListingAction", () => {
 });
 
 describe("resolveReportAction", () => {
-  it("marks a report done for staff only", async () => {
+  it("is not open to brokers", async () => {
+    session.currentUser.mockResolvedValue({ id: "b1", role: "AGENT" });
+    await expect(resolveReportAction(form({ reportId: "r1" }))).rejects.toThrow("NEXT_NOT_FOUND");
+    expect(db.resolveReport).not.toHaveBeenCalled();
+  });
+
+  it("marks a report done for admins only", async () => {
     session.currentUser.mockResolvedValue(admin);
     await resolveReportAction(form({ reportId: "r1" }));
     expect(db.resolveReport).toHaveBeenCalledWith("r1");

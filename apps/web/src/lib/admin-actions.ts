@@ -14,7 +14,8 @@ async function staffUser() {
 const refresh = () => revalidatePath("/", "layout");
 
 export async function resolveReportAction(form: FormData): Promise<void> {
-  await staffUser();
+  const user = await staffUser();
+  if (user.role !== "ADMIN") notFound();
   await resolveReport(String(form.get("reportId")));
   refresh();
 }

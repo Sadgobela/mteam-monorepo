@@ -44,7 +44,7 @@ export default async function AdminPage({ params }: { params: Promise<{ locale: 
     isAdmin ? listPendingListings() : [],
     listUnverifiedListings(),
     listOpenLeads(),
-    listOpenReports(),
+    isAdmin ? listOpenReports() : [],
   ]);
 
   return (
@@ -88,6 +88,7 @@ export default async function AdminPage({ params }: { params: Promise<{ locale: 
           </ul>
         </section>
 
+        {isAdmin && (
         <section className="queue">
           <h2>{t.admin.reports}</h2>
           {reports.length === 0 && <p className="meta">{t.admin.nothing}</p>}
@@ -107,6 +108,7 @@ export default async function AdminPage({ params }: { params: Promise<{ locale: 
             ))}
           </ul>
         </section>
+        )}
 
         <section className="queue">
           <h2>{t.admin.leads}</h2>
