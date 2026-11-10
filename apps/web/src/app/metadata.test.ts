@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { fixtureListings } from "@/test-fixtures";
 
-const db = vi.hoisted(() => ({ countListings: vi.fn(), getListing: vi.fn(), sitemapListings: vi.fn(), sitemapSearches: vi.fn() }));
+const db = vi.hoisted(() => ({ countListings: vi.fn(), getListing: vi.fn(), priceStats: vi.fn(), sitemapListings: vi.fn(), sitemapSearches: vi.fn() }));
 
 vi.mock("@mteam/db", () => db);
 vi.mock("@/lib/session", () => ({}));
@@ -97,12 +97,21 @@ describe("page metadata", () => {
 
   it("titles the brokers and prices pages", async () => {
     expect(await brokersMetadata({ params: locale("en") })).toMatchObject({ title: "MTeam brokers", alternates: { canonical: "/en/brokers" } });
-    expect(await pricesMetadata({ params: locale("ru"), searchParams: query({}) })).toMatchObject({ title: "Цены по районам · Тбилиси", alternates: { canonical: "/ru/prices" } });
+    db.priceStats.mockResolvedValue([{ district: "ვაკე", rooms: 2, median: 1550 }]);
+    const prices = await pricesMetadata({ params: locale("ru"), searchParams: query({}) });
+    expect(prices).toMatchObject({ title: "Цены по районам · Тбилиси · Продажа", alternates: { canonical: "/ru/prices" } });
+    expect(prices.robots).toBeUndefined();
+  });
+
+  it("keeps a prices page with no figures out of the index", async () => {
+    db.priceStats.mockResolvedValue([]);
+    expect((await pricesMetadata({ params: locale("en"), searchParams: query({ city: "ბათუმი" }) })).robots).toEqual({ index: false, follow: true });
   });
 
   it("gives each city's prices their own address, and the default figures one address", async () => {
+    db.priceStats.mockResolvedValue([]);
     const batumi = await pricesMetadata({ params: locale("en"), searchParams: query({ city: "ბათუმი", deal: "rent" }) });
-    expect(batumi.title).toBe("Prices by district · Batumi");
+    expect(batumi.title).toBe("Prices by district · Batumi · For rent");
     expect(batumi.alternates?.canonical).toBe(`/en/prices?${new URLSearchParams({ deal: "rent", city: "ბათუმი" })}`);
     expect((await pricesMetadata({ params: locale("en"), searchParams: query({ city: "თბილისი", deal: "sale" }) })).alternates?.canonical).toBe("/en/prices");
   });
