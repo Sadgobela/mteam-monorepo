@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { draftFields, draftProblems, parseLead, parseListingDraft, parsePhone, parseReport } from "./index";
+import { draftFields, draftProblems, parseLead, parseMessage, parseListingDraft, parsePhone, parseReport } from "./index";
 
 describe("parsePhone", () => {
   it.each(["555123456", "555 12 34 56", "+995555123456", "+995 (555) 12-34-56", "00995555123456", "995555123456"])(
@@ -46,6 +46,16 @@ describe("parseReport", () => {
   it("refuses an unknown reason or an overlong note", () => {
     expect(parseReport({ reason: "castle" })).toBeNull();
     expect(parseReport({ reason: "other", note: "x".repeat(501) })).toBeNull();
+  });
+});
+
+describe("parseMessage", () => {
+  it("trims a message and refuses an empty, oversized or unstorable one", () => {
+    expect(parseMessage("  hello ")).toBe("hello");
+    expect(parseMessage("   ")).toBeNull();
+    expect(parseMessage("x".repeat(2001))).toBeNull();
+    expect(parseMessage("a\0b")).toBeNull();
+    expect(parseMessage(null)).toBeNull();
   });
 });
 

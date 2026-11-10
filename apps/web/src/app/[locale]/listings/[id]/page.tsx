@@ -12,10 +12,12 @@ import { GiveBand } from "@/components/LeadForm";
 import { ListingMap } from "@/components/ListingMap";
 import { Segmented } from "@/components/Segmented";
 import { resolveLocale } from "@/lib/locale";
+import { startChatAction } from "@/lib/chat-actions";
 import { listingMetadata } from "@/lib/seo";
 import { currentUser } from "@/lib/session";
 import { setHiddenAction } from "@/lib/account-actions";
 import { ListingGrid } from "@/components/ListingGrid";
+import { ChatForm } from "@/components/ChatForm";
 import { LoanCalculator } from "@/components/LoanCalculator";
 import { MarketScale } from "@/components/MarketScale";
 import { PhoneReveal } from "@/components/PhoneReveal";
@@ -68,12 +70,14 @@ export default async function ListingPage({
   const listing = await loadListing(id);
   if (!listing) notFound();
   const t = getDictionary(locale);
-  const { cur } = parseListingDisplay(await searchParams);
+  const query = await searchParams;
+  const { cur } = parseListingDisplay(query);
   const shown = convertPrice(listing.price, listing.currency, cur);
   const currency = cur === "gel" ? "GEL" : "USD";
   const unit = priceUnit(listing.deal, t);
   const here = `/${locale}/listings/${listing.id}`;
   const user = await currentUser();
+  const ownListing = user !== null && (user.id === listing.sellerId || (listing.agent !== undefined && user.agent?.id === listing.agent.id));
   const favoriteIds = user ? await getFavoriteIds(user.id) : [];
   const hiddenIds = user ? await getHiddenIds(user.id) : [];
   const [similar, sellerCount] = await Promise.all([listSimilarListings(listing, hiddenIds), listing.agent ? 0 : countSellerListings(listing.sellerId)]);
@@ -150,6 +154,19 @@ export default async function ListingPage({
               <PhoneReveal listingId={listing.id} masked={maskPhone(listing.contactPhone)} t={t} />
             </div>
           </div>
+          {!ownListing && (
+            <div className="chat-start">
+              {user ? (
+                <ChatForm action={startChatAction} t={t} placeholder={t.chat.write}>
+                  <input type="hidden" name="locale" value={locale} />
+                  <input type="hidden" name="listingId" value={listing.id} />
+                </ChatForm>
+              ) : (
+                <Link href={`/${locale}/login`} className="btn ghost">{t.chat.signIn}</Link>
+              )}
+              {query.chat === "failed" && <p className="note" role="alert">{t.chat.failed}</p>}
+            </div>
+          )}
           <div className="listing-actions">
             <ShareButton title={listing.title} t={t} />
             {user ? (

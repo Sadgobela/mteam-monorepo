@@ -68,6 +68,9 @@ model User {
   favorites Favorite[]
   hidden    HiddenListing[]
   savedSearches SavedSearch[]
+  buying    Conversation[] @relation("Buyer")
+  selling   Conversation[] @relation("Seller")
+  messages  Message[]
   sessions  Session[]
   createdAt DateTime  @default(now())
 }
@@ -168,6 +171,7 @@ model Listing {
   images      ListingImage[]
   favorites   Favorite[]
   hiddenBy    HiddenListing[]
+  conversations Conversation[]
   reports     ListingReport[]
   views       Int           @default(0)
   createdAt   DateTime      @default(now())
@@ -208,6 +212,38 @@ model ListingReport {
   createdAt DateTime @default(now())
 
   @@unique([listingId, ipHash])
+}
+
+model Conversation {
+  id           String    @id @default(cuid())
+  listing      Listing   @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  listingId    Int
+  buyer        User      @relation("Buyer", fields: [buyerId], references: [id], onDelete: Cascade)
+  buyerId      String
+  seller       User      @relation("Seller", fields: [sellerId], references: [id], onDelete: Cascade)
+  sellerId     String
+  buyerReadAt  DateTime?
+  sellerReadAt DateTime?
+  messages     Message[]
+  lastMessageAt DateTime @default(now())
+  createdAt    DateTime  @default(now())
+
+  @@unique([listingId, buyerId])
+  @@index([buyerId])
+  @@index([sellerId])
+}
+
+model Message {
+  id             String       @id @default(cuid())
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  conversationId String
+  sender         User         @relation(fields: [senderId], references: [id], onDelete: Cascade)
+  senderId       String
+  body           String
+  createdAt      DateTime     @default(now())
+
+  @@index([conversationId, createdAt])
+  @@index([senderId, createdAt])
 }
 
 model SavedSearch {

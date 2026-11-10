@@ -126,6 +126,16 @@ export function draftProblems(fields: Record<string, unknown>): string[] {
   return named.length > 0 ? [...new Set(named)] : ["combination"];
 }
 
+export const MAX_MESSAGE = 2000;
+
+const messageSchema = text(MAX_MESSAGE).transform((value) => value.trim()).refine((value) => value.length > 0);
+
+/** A chat message, or null if there is nothing to send. */
+export function parseMessage(input: unknown): string | null {
+  const result = messageSchema.safeParse(input);
+  return result.success ? result.data : null;
+}
+
 export const reportReasons = ["sold", "wrongPrice", "wrongPhotos", "fake", "other"] as const;
 
 const reportSchema = z.object({
