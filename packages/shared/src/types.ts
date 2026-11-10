@@ -37,6 +37,8 @@ export interface Listing {
   description: string;
   /** Checked on site by an MTeam broker. */
   verified: boolean;
+  /** 1 (well below the market) to 5 (well above). Missing while there are too few comparable listings. */
+  marketLevel?: number;
   agent?: Agent;
   /** Who checked the listing on site, and when. */
   verification?: { by: string; at: string };

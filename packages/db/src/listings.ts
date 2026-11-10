@@ -17,6 +17,8 @@ import { db } from "./client";
 
 export const PAGE_SIZE = 24;
 const POSTGRES_INT_MAX = 2147483647;
+/** Market levels 1 and 2. */
+const BELOW_MARKET = 2;
 
 const deals: Record<DbDealType, DealType> = { SALE: "sale", RENT: "rent", DAILY: "daily", PLEDGE: "pledge", LEASE: "lease" };
 const propertyTypes: Record<DbPropertyType, PropertyType> = {
@@ -87,6 +89,7 @@ export function toListing(row: ListingRow): Listing {
     yearBuilt: row.yearBuilt ?? undefined,
     description: row.description,
     verified: row.verified,
+    marketLevel: row.marketLevel ?? undefined,
     agent: agent
       ? {
           id: agent.id,
@@ -145,6 +148,7 @@ function whereFor(filters: ListingFilters, located = false, hiddenIds: number[] 
     pricePerSqmUsd: { gte: filters.sqmMin, lte: filters.sqmMax },
     rooms: roomsClause(filters.rooms),
     verified: filters.verified,
+    marketLevel: filters.belowMarket ? { lte: BELOW_MARKET } : undefined,
     priceUsd: { gte: filters.priceMin, lte: filters.priceMax },
     area: { gte: filters.areaMin, lte: filters.areaMax },
     floor: floorClause(filters),

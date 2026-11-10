@@ -12,7 +12,8 @@
     "db:deploy": "prisma migrate deploy",
     "db:seed": "prisma db seed",
     "db:promote": "node --env-file-if-exists=.env prisma/promote.ts",
-    "db:import": "tsx --env-file-if-exists=.env prisma/import.ts"
+    "db:import": "tsx --env-file-if-exists=.env prisma/import.ts",
+    "db:market": "tsx --env-file-if-exists=.env prisma/market.ts"
   },
   "devDependencies": {
     "@types/node": "^20.19.43",
