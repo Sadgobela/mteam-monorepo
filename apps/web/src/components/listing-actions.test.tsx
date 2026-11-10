@@ -46,7 +46,7 @@ describe("PhoneReveal offline", () => {
     render(<PhoneReveal listingId={7} masked="***" t={t} />);
     fireEvent.click(screen.getByRole("button", { name: /Show number/ }));
     expect(await screen.findByRole("alert")).toHaveTextContent(t.listing.phoneFailed);
-    expect(screen.getByRole("button", { name: /Show number/ })).not.toHaveClass("ant-btn-loading");
+    await waitFor(() => expect(screen.getByRole("button", { name: /Show number/ })).not.toHaveClass("ant-btn-loading"));
   });
 });
 
