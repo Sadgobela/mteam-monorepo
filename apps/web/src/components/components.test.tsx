@@ -4,6 +4,7 @@ import { getDictionary, type Listing } from "@mteam/shared";
 import { fixtureListings } from "@/test-fixtures";
 import { Select } from "antd";
 import { AntProvider } from "./AntProvider";
+import { ChoicePills } from "./ChoicePills";
 import { CardPhotos } from "./CardPhotos";
 import { Pager } from "./Pager";
 import { LanguageMenu } from "./LanguageMenu";
@@ -403,7 +404,7 @@ describe("SearchBar", () => {
     expect(screen.getByLabelText("Verified only")).toBeChecked();
     expect(document.querySelector(".ant-badge-count")).toHaveAttribute("title", "5");
     openMore();
-    expect(screen.getByRole("radio", { name: "4+" })).toBeChecked();
+    expect(within(document.querySelector('.ant-modal [aria-label="Rooms"]') as HTMLElement).getByText("4")).toBeChecked();
     expect(screen.getByLabelText("Price from, $")).toHaveValue("1000");
     expect(screen.getByLabelText("Price to, $")).toHaveValue("2000");
     expect(screen.getByLabelText("Area from, m²")).toHaveValue("40");
@@ -516,17 +517,22 @@ describe("SearchBar", () => {
   });
 
   describe("extra filters", () => {
-    const dialog = () => within(screen.getByRole("dialog"));
+    // ByText and selectors, because ByRole works out accessibility for every node and this panel has hundreds.
+    const panelElement = () => document.querySelector(".ant-modal") as HTMLElement;
+    const dialog = () => within(panelElement());
+    const tickBox = (name: string) => dialog().getByText(name).closest("label")?.querySelector("input") as HTMLInputElement;
+    const apply = () => fireEvent.click(dialog().getByText("Search"));
+    const combo = (name: string) => panelElement().querySelector(`input[aria-label="${name}"]`) as HTMLInputElement;
 
     it("applies price per m² and owners only, and can untick owners", async () => {
       bar({ owner: true });
       openMore();
-      const owners = dialog().getByRole("checkbox", { name: "Owners only" });
+      const owners = tickBox("Owners only");
       expect(owners).toBeChecked();
       fireEvent.click(owners);
       fireEvent.click(owners);
       fireEvent.change(dialog().getByLabelText("Price per m² from, $"), { target: { value: "700" } });
-      fireEvent.click(dialog().getByRole("button", { name: /Search/ }));
+      apply();
       await waitFor(() => expect(push).toHaveBeenCalled());
       expect(Object.fromEntries(pushed())).toMatchObject({ owner: "1", sqmMin: "700" });
     });
@@ -534,8 +540,8 @@ describe("SearchBar", () => {
     it("drops owners only when it is unticked", async () => {
       bar({ owner: true });
       openMore();
-      fireEvent.click(dialog().getByRole("checkbox", { name: "Owners only" }));
-      fireEvent.click(dialog().getByRole("button", { name: /Search/ }));
+      fireEvent.click(tickBox("Owners only"));
+      apply();
       await waitFor(() => expect(push).toHaveBeenCalled());
       expect(pushed().has("owner")).toBe(false);
     });
@@ -543,17 +549,96 @@ describe("SearchBar", () => {
     it("offers metro stations in Tbilisi or with no city, and chooses one", async () => {
       bar({ city: "თბილისი" });
       openMore();
-      fireEvent.mouseDown(dialog().getByRole("combobox", { name: "Metro" }));
+      fireEvent.mouseDown(combo("Metro"));
       fireEvent.click(document.querySelector('.ant-select-item-option[title="Akhmetelis Teatri"]') as HTMLElement);
-      fireEvent.click(dialog().getByRole("button", { name: /Search/ }));
+      apply();
       await waitFor(() => expect(push).toHaveBeenCalled());
       expect(pushed().get("metro")).toBe("ახმეტელის თეატრი");
+    });
+
+    it("sets bedrooms and the floor position, and clears them with a second press", async () => {
+      bar();
+      openMore();
+      const choose = (group: string, name: string) => fireEvent.click(within(panelElement().querySelector(`[aria-label="${group}"]`) as HTMLElement).getByText(name));
+      choose("Bedrooms", "3");
+      choose("Floor position", "Last");
+      choose("Floor position", "Not first");
+      choose("Bedrooms", "3");
+      apply();
+      await waitFor(() => expect(push).toHaveBeenCalled());
+      expect(pushed().get("floorPos")).toBe("notFirst");
+      expect(pushed().has("bedrooms")).toBe(false);
+    });
+
+    it("chooses several values for a detail, and drops the filter when none are left", async () => {
+      bar();
+      openMore();
+      const heating = combo("Heating");
+      fireEvent.mouseDown(heating);
+      fireEvent.click(document.querySelector('.ant-select-item-option[title="Central heating"]') as Element);
+      apply();
+      await waitFor(() => expect(push).toHaveBeenCalled());
+      expect(pushed().get("heating")).toBe("central");
+    });
+
+    it("drops a detail filter when its last value is removed", async () => {
+      bar({ heating: ["central"] });
+      openMore();
+      fireEvent.mouseDown(combo("Heating"));
+      fireEvent.click(document.querySelector('.ant-select-item-option[title="Central heating"]') as Element);
+      apply();
+      await waitFor(() => expect(push).toHaveBeenCalled());
+      expect(pushed().has("heating")).toBe(false);
+    });
+
+    it("ticks features, keeping the others when one is removed", async () => {
+      bar({ features: ["lift", "sauna"] });
+      openMore();
+      const box = tickBox;
+      expect(box("Lift")).toBeChecked();
+      fireEvent.click(box("Lift"));
+      fireEvent.click(box("Bar"));
+      apply();
+      await waitFor(() => expect(push).toHaveBeenCalled());
+      expect(pushed().get("features")).toBe("sauna|bar");
+    });
+
+    it("adds the first feature, and drops the filter with the last one", async () => {
+      const { unmount } = bar();
+      openMore();
+      fireEvent.click(tickBox("Bar"));
+      fireEvent.click(tickBox("Bar"));
+      apply();
+      await waitFor(() => expect(push).toHaveBeenCalled());
+      expect(pushed().has("features")).toBe(false);
+      unmount();
+    });
+
+    it("shows money in lari when lari is on, but searches in dollars", async () => {
+      render(<SearchBar locale="en" t={t} filters={{ priceMin: 100 }} display={{ ...display, cur: "gel" }} />);
+      openMore();
+      expect(dialog().getByLabelText("Price from, ₾")).toHaveValue("270");
+      fireEvent.change(dialog().getByLabelText("Price to, ₾"), { target: { value: "540" } });
+      apply();
+      await waitFor(() => expect(push).toHaveBeenCalled());
+      expect(Object.fromEntries(pushed())).toMatchObject({ priceMin: "100", priceMax: "200" });
+    });
+
+    it("keeps a lari price intact while it is typed digit by digit", async () => {
+      render(<SearchBar locale="en" t={t} filters={{}} display={{ ...display, cur: "gel" }} />);
+      openMore();
+      const field = dialog().getByLabelText("Price from, ₾");
+      for (const typed of ["1", "15", "150", "1500", "15000", "150000"]) fireEvent.change(field, { target: { value: typed } });
+      expect(field).toHaveValue("150000");
+      apply();
+      await waitFor(() => expect(push).toHaveBeenCalled());
+      expect(pushed().get("priceMin")).toBe("55556");
     });
 
     it("hides metro stations in a city without a metro", () => {
       bar({ city: "ბათუმი" });
       openMore();
-      expect(dialog().queryByRole("combobox", { name: "Metro" })).toBeNull();
+      expect(combo("Metro")).toBeNull();
     });
   });
 
@@ -795,7 +880,7 @@ describe("SearchBar", () => {
   it("applies the extra filters from the panel and closes it", async () => {
     bar();
     openMore();
-    fireEvent.click(screen.getByRole("radio", { name: "4+" }));
+    fireEvent.click(within(document.querySelector('.ant-modal [aria-label="Rooms"]') as HTMLElement).getByText("4"));
     fireEvent.change(screen.getByLabelText("Price from, $"), { target: { value: "500" } });
     fireEvent.change(screen.getByLabelText("Floor to"), { target: { value: "9" } });
     fireEvent.keyDown(screen.getByLabelText("Floor to"), { key: "Enter", keyCode: 13 });
@@ -807,10 +892,10 @@ describe("SearchBar", () => {
   it("turns panel choices back off one at a time", async () => {
     bar({ rooms: 2, priceMin: 100 });
     openMore();
-    const panel = within(screen.getByRole("dialog"));
-    fireEvent.click(within(panel.getByRole("radiogroup", { name: "Rooms" })).getByRole("radio", { name: "Any" }));
+    const panel = within(document.querySelector(".ant-modal") as HTMLElement);
+    fireEvent.click(within(document.querySelector('.ant-modal [aria-label="Rooms"]') as HTMLElement).getByText("2"));
     fireEvent.change(panel.getByLabelText("Price from, $"), { target: { value: "" } });
-    fireEvent.click(panel.getByRole("button", { name: /Search/ }));
+    fireEvent.click(panel.getByText("Search"));
     await waitFor(() => expect(push).toHaveBeenCalled());
     for (const key of ["rooms", "priceMin"]) expect(pushed().has(key)).toBe(false);
   });
@@ -818,7 +903,7 @@ describe("SearchBar", () => {
   it("clears only the panel's filters and can be dismissed without searching", async () => {
     bar({ deal: "sale", city: "ბათუმი", priceMax: 100 });
     openMore();
-    fireEvent.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Clear" }));
+    fireEvent.click(within(document.querySelector(".ant-modal") as HTMLElement).getByText("Clear"));
     expect(screen.getByLabelText("Price to, $")).toHaveValue("");
     fireEvent.click(document.querySelector(".ant-modal-close") as HTMLElement);
     expect(push).not.toHaveBeenCalled();
@@ -830,12 +915,47 @@ describe("SearchBar", () => {
   it("writes room counts in full, with the top one as a minimum, in the page language", () => {
     render(<SearchBar locale="ru" t={getDictionary("ru")} filters={{}} display={display} />);
     fireEvent.click(screen.getByRole("button", { name: /Другие фильтры/ }));
-    expect(screen.getByRole("radio", { name: "4+" })).toBeInTheDocument();
-    expect(screen.getByRole("radio", { name: "3" })).toBeInTheDocument();
+    const rooms = within(document.querySelector(`.ant-modal [aria-label="${getDictionary("ru").search.rooms}"]`) as HTMLElement);
+    expect(rooms.getByText("10+")).toBeInTheDocument();
+    expect(rooms.getByText("3")).toBeInTheDocument();
+  });
+});
+
+describe("ChoicePills", () => {
+  const options = [
+    { value: 1, label: "One" },
+    { value: 2, label: "Two" },
+  ];
+
+  it("marks the choice, reports a new one, and clears on a second press", () => {
+    const onChange = vi.fn();
+    render(<ChoicePills label="Count" value={1} options={options} onChange={onChange} />);
+    expect(screen.getByRole("radio", { name: "One" })).toBeChecked();
+    fireEvent.click(screen.getByRole("radio", { name: "Two" }));
+    expect(onChange).toHaveBeenLastCalledWith(2);
+    fireEvent.click(screen.getByRole("radio", { name: "One" }));
+    expect(onChange).toHaveBeenLastCalledWith(undefined);
   });
 });
 
 describe("FilterChips details", () => {
+  it("names details, bedrooms, floor position and features", () => {
+    render(<FilterChips locale="en" t={t} query={{}} filters={{ heating: ["central"], bedrooms: 2, floorPos: "last", features: ["lift", "sauna"] }} />);
+    for (const name of ["Heating: Central heating", "Bedrooms 2", "Last", "Lift +1"]) {
+      expect(screen.getByRole("link", { name: `Remove filter: ${name}` })).toBeInTheDocument();
+    }
+  });
+
+  it("names a single feature on its own", () => {
+    render(<FilterChips locale="en" t={t} query={{}} filters={{ features: ["lift"] }} />);
+    expect(screen.getByRole("link", { name: "Remove filter: Lift" })).toBeInTheDocument();
+  });
+
+  it("shows prices in lari when lari is on", () => {
+    render(<FilterChips locale="en" t={t} query={{ cur: "gel" }} filters={{ priceMin: 100, priceMax: undefined }} />);
+    expect(screen.getByRole("link", { name: "Remove filter: Price from, ₾ 270" })).toBeInTheDocument();
+  });
+
   it("names metro, building status, owners and price per m²", () => {
     render(<FilterChips locale="en" t={t} query={{}} filters={{ metro: "დელისი", building: ["old", "new"], owner: true, sqmMin: 5, sqmMax: 9 }} />);
     for (const name of ["Metro: Delisi", "Old building, New building", "Owners only", "Price per m² from, $ 5", "Price per m² to, $ 9"]) {

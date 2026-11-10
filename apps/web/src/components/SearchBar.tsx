@@ -4,9 +4,20 @@ import { useState, useTransition, type SyntheticEvent } from "react";
 import { useRouter } from "next/navigation";
 import { FilterOutlined, SearchOutlined } from "@ant-design/icons";
 import type { ReactNode } from "react";
-import { Badge, Button, Checkbox, Input, InputNumber, Modal, Popover, Segmented, Select } from "antd";
+import { Badge, Button, Checkbox, Input, InputNumber, Modal, Popover, Select } from "antd";
 import {
   buildingStatuses,
+  priceInLari,
+  featureLabel,
+  floorPositions,
+  groupKeys,
+  groupNames,
+  groupTitles,
+  priceInUsd,
+  specKeys,
+  specLabel,
+  specNames,
+  specTitles,
   dealTypes,
   METRO_CITY,
   metroStations,
@@ -18,22 +29,38 @@ import {
   type ListingFilters,
   type Locale,
 } from "@mteam/shared";
+import { ChoicePills } from "./ChoicePills";
 import { LocationModal } from "./LocationModal";
 
-type NumberField = "priceMin" | "priceMax" | "areaMin" | "areaMax" | "floorMin" | "floorMax" | "sqmMin" | "sqmMax";
+type NumberField = "priceMin" | "priceMax" | "areaMin" | "areaMax" | "floorMin" | "floorMax" | "sqmMin" | "sqmMax" | "floorsMin" | "floorsMax" | "ceilingMin" | "ceilingMax";
 
-const moreFields = { rooms: undefined, priceMin: undefined, priceMax: undefined, areaMin: undefined, areaMax: undefined, floorMin: undefined, floorMax: undefined, sqmMin: undefined, sqmMax: undefined, building: undefined, metro: undefined, owner: undefined };
+const moneyFields = ["priceMin", "priceMax", "sqmMin", "sqmMax"] as const;
+
+function convertMoney(filters: ListingFilters, convert: (value: number) => number): ListingFilters {
+  const converted = { ...filters };
+  for (const field of moneyFields) {
+    const value = filters[field];
+    if (value !== undefined) converted[field] = convert(value);
+  }
+  return converted;
+}
+
+const moreFields = { rooms: undefined, priceMin: undefined, priceMax: undefined, areaMin: undefined, areaMax: undefined, floorMin: undefined, floorMax: undefined, sqmMin: undefined, sqmMax: undefined, building: undefined, metro: undefined, owner: undefined, bedrooms: undefined, floorsMin: undefined, floorsMax: undefined, floorPos: undefined, ceilingMin: undefined, ceilingMax: undefined, condition: undefined, projectType: undefined, bathroom: undefined, storage: undefined, parking: undefined, heating: undefined, hotWater: undefined, material: undefined, windows: undefined, livingRoom: undefined, features: undefined };
 
 export function SearchBar({ locale, t, filters, display, results = false }: { locale: Locale; t: Dict; filters: ListingFilters; display: ListingDisplay; results?: boolean }) {
   const router = useRouter();
   const [searching, startSearch] = useTransition();
-  const [draft, setDraft] = useState(filters);
+  // The URL always holds dollars, so a search means the same whichever currency is on show. While editing, money is in the
+  // currency on screen: converting on every keystroke would rewrite the number as it is typed.
+  const inLari = display.cur === "gel";
+  const [draft, setDraft] = useState(() => (inLari ? convertMoney(filters, priceInLari) : filters));
   const [moreOpen, setMoreOpen] = useState(false);
   const [locationOpen, setLocationOpen] = useState(false);
   const [openPill, setOpenPill] = useState<string | null>(null);
   const change = (values: Partial<ListingFilters>) => setDraft({ ...draft, ...values });
 
-  function run(filtersToSearch: ListingFilters) {
+  function run(edited: ListingFilters) {
+    const filtersToSearch = inLari ? convertMoney(edited, (value) => priceInUsd(value, "GEL")) : edited;
     // "deal" is always sent, even empty: it is how the home page knows a search was made.
     const params = new URLSearchParams({ deal: filtersToSearch.deal ?? "", cur: display.cur, view: display.view, sort: display.sort });
     for (const [key, value] of Object.entries(filtersToSearch)) {
@@ -56,15 +83,15 @@ export function SearchBar({ locale, t, filters, display, results = false }: { lo
     run(next);
   }
 
-  const number = (name: NumberField, label: string) => (
+  const number = (name: NumberField, label: string, precision = 0) => (
     <label className="field">
-      <small>{label}</small>
+      <small>{inLari ? label.replace("$", "₾") : label}</small>
       <InputNumber
         value={draft[name]}
         min={0}
-        precision={0}
+        precision={precision}
         controls={false}
-        inputMode="numeric"
+        inputMode="decimal"
         onChange={(value) => change({ [name]: value ?? undefined })}
         onPressEnter={search}
       />
@@ -76,15 +103,13 @@ export function SearchBar({ locale, t, filters, display, results = false }: { lo
   const lastRoom = roomOptions[roomOptions.length - 1];
   const extraFilters = Object.keys(moreFields).filter((key) => draft[key as keyof typeof moreFields] !== undefined).length;
 
-  const roomsSwitch = (
-    <Segmented<number>
-      block
-      aria-label={t.search.rooms}
-      value={draft.rooms ?? 0}
-      options={[{ value: 0, label: t.search.any }, ...roomOptions.map((r) => ({ value: r, label: r === lastRoom ? `${r}+` : String(r) }))]}
-      onChange={(rooms) => change({ rooms: rooms || undefined })}
-    />
-  );
+  const roomChoices = roomOptions.map((r) => ({ value: r as number, label: r === lastRoom ? `${r}+` : String(r) }));
+  const roomsSwitch = <ChoicePills label={t.search.rooms} value={draft.rooms} options={roomChoices} onChange={(rooms) => change({ rooms })} />;
+  const toggleFeature = (key: string, on: boolean) => {
+    const current = draft.features ?? [];
+    const features = on ? [...current, key] : current.filter((item) => item !== key);
+    change({ features: features.length > 0 ? features : undefined });
+  };
   const statusBoxes = (
     <div className="field wide status-boxes">
       {buildingStatuses.map((status) => (
@@ -201,6 +226,8 @@ export function SearchBar({ locale, t, filters, display, results = false }: { lo
 
       <Modal
         open={moreOpen}
+        width={640}
+        styles={{ body: { maxHeight: "68vh", overflowY: "auto", overflowX: "hidden" } }}
         title={t.search.more}
         onCancel={() => setMoreOpen(false)}
         footer={[
@@ -225,6 +252,18 @@ export function SearchBar({ locale, t, filters, display, results = false }: { lo
           {number("floorMax", t.search.floorMax)}
           {number("sqmMin", t.search.sqmMin)}
           {number("sqmMax", t.search.sqmMax)}
+          {number("floorsMin", t.search.floorsMin)}
+          {number("floorsMax", t.search.floorsMax)}
+          {number("ceilingMin", t.search.ceilingMin, 2)}
+          {number("ceilingMax", t.search.ceilingMax, 2)}
+          <div className="field wide">
+            <small>{t.post.fields.bedrooms}</small>
+            <ChoicePills label={t.post.fields.bedrooms} value={draft.bedrooms} options={roomChoices} onChange={(bedrooms) => change({ bedrooms })} />
+          </div>
+          <div className="field wide">
+            <small>{t.search.floorPosition}</small>
+            <ChoicePills label={t.search.floorPosition} value={draft.floorPos} options={floorPositions.map((position) => ({ value: position, label: t.search.floorPos[position] }))} onChange={(floorPos) => change({ floorPos })} />
+          </div>
           <div className="field wide">
             <small>{t.search.status}</small>
             {statusBoxes}
@@ -236,6 +275,7 @@ export function SearchBar({ locale, t, filters, display, results = false }: { lo
                 aria-label={t.search.metro}
                 allowClear
                 showSearch
+                suffix={null}
                 placeholder={t.search.any}
                 value={draft.metro}
                 options={metroStations.map((name) => ({ value: name, label: placeLabel(name, locale) }))}
@@ -243,6 +283,31 @@ export function SearchBar({ locale, t, filters, display, results = false }: { lo
               />
             </label>
           )}
+          {specNames.map((name) => (
+            <label key={name} className="field">
+              <small>{specTitles[name][locale]}</small>
+              <Select<string[]>
+                aria-label={specTitles[name][locale]}
+                mode="multiple"
+                allowClear
+                suffix={null}
+                placeholder={t.search.any}
+                value={draft[name]}
+                options={specKeys(name).map((key) => ({ value: key, label: specLabel(name, key, locale) }))}
+                onChange={(chosen) => change({ [name]: chosen.length > 0 ? chosen : undefined })}
+              />
+            </label>
+          ))}
+          {groupNames.map((group) => (
+            <fieldset key={group} className="feature-group wide">
+              <legend>{groupTitles[group][locale]}</legend>
+              {groupKeys(group).map((key) => (
+                <Checkbox key={key} checked={draft.features?.includes(key) ?? false} onChange={(event) => toggleFeature(key, event.target.checked)}>
+                  {featureLabel(key, locale)}
+                </Checkbox>
+              ))}
+            </fieldset>
+          ))}
           <label className="chip-row wide">
             <Checkbox checked={draft.owner ?? false} onChange={(event) => change({ owner: event.target.checked || undefined })}>
               {t.search.ownerOnly}

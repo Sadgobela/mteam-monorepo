@@ -64,6 +64,8 @@ Worth knowing: MTeam already has a page on myhome.ge with 16,349 listings and 85
 | Valuation, photo service | Sent to a partner site | No |
 | Paid S-VIP placement | Top of results | No, by design so far |
 
+Step 1 below is done. Project types are incomplete: only the six visible on their list, plus "other".
+
 ## Suggested order
 
 1. **Listing details and full filters.** Needs nothing from outside, and everything later builds on it.
