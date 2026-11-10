@@ -1,5 +1,6 @@
 import { parseListingFilters, type ListingFilters } from "@mteam/shared";
 import { db } from "./client";
+import { getHiddenIds } from "./hidden";
 import { countListings } from "./listings";
 
 const SAVED_LIMIT = 30;
@@ -30,12 +31,12 @@ export async function deleteSavedSearch(userId: string, id: string): Promise<voi
 
 /** A user's searches, each with how many listings appeared since it was last opened. */
 export async function listSavedSearches(userId: string): Promise<SavedSearchRow[]> {
-  const rows = await db().savedSearch.findMany({ where: { userId }, orderBy: { createdAt: "desc" }, take: SAVED_LIMIT });
+  const [rows, hiddenIds] = await Promise.all([db().savedSearch.findMany({ where: { userId }, orderBy: { createdAt: "desc" }, take: SAVED_LIMIT }), getHiddenIds(userId)]);
   return Promise.all(
     rows.map(async ({ id, query, seenAt }) => {
       const filters = parseListingFilters(Object.fromEntries(new URLSearchParams(query)));
       // ponytail: counts by creation date, so a listing approved after the search was last opened is missed. Add a published date if moderation gets slow.
-      return { id, query, filters, newCount: await countListings(filters, { since: seenAt }) };
+      return { id, query, filters, newCount: await countListings(filters, { since: seenAt, hiddenIds }) };
     }),
   );
 }

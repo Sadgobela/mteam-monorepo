@@ -44,6 +44,7 @@ const nameList = z
   .string()
   .min(1)
   .max(4000)
+  .refine((value) => !value.includes("\0"))
   .transform((value) => value.split("|"))
   .optional()
   .catch(undefined);

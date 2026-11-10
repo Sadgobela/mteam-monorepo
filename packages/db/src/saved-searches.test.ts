@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const prisma = vi.hoisted(() => ({
   savedSearch: { count: vi.fn(), createMany: vi.fn(), deleteMany: vi.fn(), findFirst: vi.fn(), findMany: vi.fn(), updateMany: vi.fn() },
   listing: { count: vi.fn(), fields: { floors: "FLOORS" } },
+  hiddenListing: { findMany: vi.fn() },
 }));
 
 vi.mock("./client", () => ({ db: () => prisma }));
@@ -46,8 +47,9 @@ describe("listSavedSearches", () => {
     const seenAt = new Date("2026-11-01");
     prisma.savedSearch.findMany.mockResolvedValue([{ id: "s1", query: "deal=sale", seenAt }]);
     prisma.listing.count.mockResolvedValue(4);
+    prisma.hiddenListing.findMany.mockResolvedValue([{ listingId: 9 }]);
     expect(await listSavedSearches("u1")).toEqual([{ id: "s1", query: "deal=sale", filters: expect.objectContaining({ deal: "sale" }), newCount: 4 }]);
-    expect(prisma.listing.count.mock.calls[0][0].where).toMatchObject({ status: "ACTIVE", deal: "SALE", createdAt: { gt: seenAt } });
+    expect(prisma.listing.count.mock.calls[0][0].where).toMatchObject({ status: "ACTIVE", deal: "SALE", createdAt: { gt: seenAt }, id: { notIn: [9] } });
   });
 });
 

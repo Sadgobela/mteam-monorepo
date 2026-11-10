@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { archiveListing, deleteSavedSearch, openSavedSearch, parseListingId, saveSearch, setFavorite, setHidden } from "@mteam/db";
 import { canonicalSearch } from "@mteam/shared";
+import { z } from "zod";
 import { resolveLocale } from "./locale";
 import { currentUser } from "./session";
 
@@ -34,7 +35,8 @@ async function signedIn(form: FormData) {
   return { locale, user };
 }
 
-const savedSearchId = (form: FormData) => /^[\w-]{1,40}$/.exec(String(form.get("id")))?.[0] ?? "";
+const savedSearchIdSchema = z.string().regex(/^[\w-]{1,40}$/).catch("");
+const savedSearchId = (form: FormData) => savedSearchIdSchema.parse(form.get("id"));
 
 export async function saveSearchAction(form: FormData): Promise<void> {
   const { locale, user } = await signedIn(form);
