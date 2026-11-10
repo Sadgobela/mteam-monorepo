@@ -128,10 +128,11 @@ describe("sitemap", () => {
       "https://example.test/ka",
       "https://example.test/ka/brokers",
       "https://example.test/ka/prices",
+      "https://example.test/ka/mortgage",
       "https://example.test/ka?deal=sale&amp;type=apartment&amp;city=Batumi",
       "https://example.test/ka/listings/7",
     ]);
-    expect(entries[4]).toMatchObject({ lastModified: updatedAt, alternates: { languages: { en: "https://example.test/en/listings/7" } } });
+    expect(entries[5]).toMatchObject({ lastModified: updatedAt, alternates: { languages: { en: "https://example.test/en/listings/7" } } });
     expect(entries.flatMap((entry) => Object.values(entry.alternates?.languages ?? {})).join(" ")).not.toMatch(/&(?!amp;)/);
   });
 });
