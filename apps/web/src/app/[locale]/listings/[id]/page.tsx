@@ -18,6 +18,7 @@ const factIcons = {
   area: "M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5",
   rooms: "M6 21V4h12v17M3 21h18M14 12h.01",
   floor: "M3 20h5v-5h5v-5h5V5h3",
+  metro: "M4 20V5l8 9 8-9v15",
   condition: "M4 4h13v5H4zM17 6.5h3V12h-8v3M10 15h4v6h-4z",
 };
 
@@ -151,7 +152,7 @@ export default async function ListingPage({
               </Fact>
             )}
             {listing.metro && (
-              <Fact icon="floor" label={t.search.metro}>
+              <Fact icon="metro" label={t.search.metro}>
                 {placeLabel(listing.metro, locale)}
               </Fact>
             )}
