@@ -11,19 +11,24 @@ const phoneSchema = z.object({ phone: z.string() });
 export function PhoneReveal({ listingId, masked, t }: { listingId: number; masked: string; t: Dict }) {
   const [phone, setPhone] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [failed, setFailed] = useState(false);
 
   async function reveal() {
     setLoading(true);
     const response = await fetch(`/api/listings/${listingId}/phone`).catch(() => null);
     setLoading(false);
+    setFailed(!response?.ok);
     if (response?.ok) setPhone(phoneSchema.parse(await response.json()).phone);
   }
 
   if (phone === null) {
     return (
-      <Button type="primary" block loading={loading} onClick={reveal}>
-        {masked} · {t.listing.showPhone}
-      </Button>
+      <>
+        <Button type="primary" block loading={loading} onClick={reveal}>
+          {masked} · {t.listing.showPhone}
+        </Button>
+        {failed && <p className="note" role="alert">{t.listing.phoneFailed}</p>}
+      </>
     );
   }
   return (

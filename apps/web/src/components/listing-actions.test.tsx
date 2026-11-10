@@ -34,7 +34,8 @@ describe("PhoneReveal", () => {
     render(<PhoneReveal listingId={7} masked="***" t={t} />);
     fireEvent.click(screen.getByRole("button", { name: /Show number/ }));
     await waitFor(() => expect(fetch).toHaveBeenCalled());
-    expect(await screen.findByRole("button", { name: /Show number/ })).toBeInTheDocument();
+    expect(await screen.findByRole("alert")).toHaveTextContent(t.listing.phoneFailed);
+    expect(screen.getByRole("button", { name: /Show number/ })).toBeInTheDocument();
     expect(screen.queryByRole("link")).toBeNull();
   });
 });
@@ -44,7 +45,8 @@ describe("PhoneReveal offline", () => {
     vi.stubGlobal("fetch", vi.fn(async () => Promise.reject(new Error("offline"))));
     render(<PhoneReveal listingId={7} masked="***" t={t} />);
     fireEvent.click(screen.getByRole("button", { name: /Show number/ }));
-    await waitFor(() => expect(screen.getByRole("button", { name: /Show number/ })).not.toHaveClass("ant-btn-loading"));
+    expect(await screen.findByRole("alert")).toHaveTextContent(t.listing.phoneFailed);
+    expect(screen.getByRole("button", { name: /Show number/ })).not.toHaveClass("ant-btn-loading");
   });
 });
 
