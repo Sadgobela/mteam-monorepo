@@ -8,6 +8,7 @@ import { sendChatAction } from "@/lib/chat-actions";
 import { resolveLocale } from "@/lib/locale";
 import { currentUser } from "@/lib/session";
 import type { Query } from "@/lib/url";
+import { loginPath } from "@/lib/login-path";
 
 export const dynamic = "force-dynamic";
 
@@ -15,7 +16,7 @@ export default async function ConversationPage({ params, searchParams }: { param
   const { locale: raw, id } = await params;
   const locale = resolveLocale(raw);
   const user = await currentUser();
-  if (!user) redirect(`/${locale}/login`);
+  if (!user) redirect(loginPath(locale, `/${locale}/messages/${id}`));
   const chat = await getConversation(user.id, id);
   if (!chat) notFound();
   const t = getDictionary(locale);

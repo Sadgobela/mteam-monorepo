@@ -1,7 +1,7 @@
-import Link from "next/link";
 import type { DisplayCurrency, Dict, Listing, Locale } from "@mteam/shared";
 import { setFavoriteAction } from "@/lib/account-actions";
 import { ListingCard } from "./ListingCard";
+import { LoginLink } from "./LoginLink";
 
 function Heart({ filled }: { filled: boolean }) {
   return (
@@ -45,9 +45,9 @@ export function ListingGrid({
                 </button>
               </form>
             ) : (
-              <Link href={`/${locale}/login`} className="fav" aria-label={t.favorites.add}>
+              <LoginLink locale={locale} className="fav" label={t.favorites.add}>
                 <Heart filled={false} />
-              </Link>
+              </LoginLink>
             )}
           </div>
         );

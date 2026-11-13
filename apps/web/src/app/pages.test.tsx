@@ -7,6 +7,8 @@ import { fixtureListings } from "@/test-fixtures";
 const push = vi.hoisted(() => vi.fn());
 
 vi.mock("next/navigation", () => ({
+  usePathname: () => null,
+  useSearchParams: () => null,
   useRouter: () => ({ push }),
   notFound: () => {
     throw new Error("NEXT_NOT_FOUND");

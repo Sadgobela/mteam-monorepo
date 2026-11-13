@@ -24,6 +24,7 @@ import { PhoneReveal } from "@/components/PhoneReveal";
 import { ReportListing } from "@/components/ReportListing";
 import { ShareButton } from "@/components/ShareButton";
 import type { Query } from "@/lib/url";
+import { LoginLink } from "@/components/LoginLink";
 
 export const dynamic = "force-dynamic";
 
@@ -162,7 +163,7 @@ export default async function ListingPage({
                   <input type="hidden" name="listingId" value={listing.id} />
                 </ChatForm>
               ) : (
-                <Link href={`/${locale}/login`} className="btn ghost">{t.chat.signIn}</Link>
+                <LoginLink locale={locale} className="btn ghost">{t.chat.signIn}</LoginLink>
               )}
               {query.chat === "failed" && <p className="note" role="alert">{t.chat.failed}</p>}
             </div>
@@ -177,7 +178,7 @@ export default async function ListingPage({
                 <button type="submit" className="btn ghost">{hidden ? t.listing.unhide : t.listing.hide}</button>
               </form>
             ) : (
-              <Link href={`/${locale}/login`} className="btn ghost">{t.listing.hide}</Link>
+              <LoginLink locale={locale} className="btn ghost">{t.listing.hide}</LoginLink>
             )}
             <ReportListing listingId={listing.id} t={t} />
           </div>

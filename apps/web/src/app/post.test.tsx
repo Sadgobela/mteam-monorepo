@@ -17,6 +17,8 @@ vi.mock("@mteam/db", () => db);
 vi.mock("@/lib/session", () => session);
 vi.mock("@/lib/auth-actions", () => ({ logoutAction: vi.fn() }));
 vi.mock("next/navigation", () => ({
+  usePathname: () => null,
+  useSearchParams: () => null,
   useRouter: () => router,
   redirect: (url: string) => {
     throw new Error(`REDIRECT ${url}`);
@@ -97,7 +99,7 @@ describe("ListingForm", () => {
     it("sends someone whose session ended to sign in", async () => {
       reply(401, { error: "signedOut" });
       send();
-      await waitFor(() => expect(router.push).toHaveBeenCalledWith("/ka/login"));
+      await waitFor(() => expect(router.push).toHaveBeenCalledWith("/ka/login?next=%2Fka%2Flistings%2Fnew"));
     });
 
     it("says so when the connection fails, and allows another try", async () => {
@@ -302,7 +304,7 @@ describe("NewListingPage", () => {
 
   it("requires a valid session", async () => {
     session.currentUser.mockResolvedValue(null);
-    await expect(NewListingPage({ params, searchParams: Promise.resolve({}) })).rejects.toThrow("REDIRECT /en/login");
+    await expect(NewListingPage({ params, searchParams: Promise.resolve({}) })).rejects.toThrow("REDIRECT /en/login?next=%2Fen%2Flistings%2Fnew");
   });
 
   it("shows the form", async () => {

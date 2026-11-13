@@ -7,13 +7,14 @@ import { deleteSavedSearchAction, openSavedSearchAction } from "@/lib/account-ac
 import { resolveLocale } from "@/lib/locale";
 import { searchName } from "@/lib/seo";
 import { currentUser } from "@/lib/session";
+import { loginPath } from "@/lib/login-path";
 
 export const dynamic = "force-dynamic";
 
 export default async function SavedSearchesPage({ params }: { params: Promise<{ locale: string }> }) {
   const locale = resolveLocale((await params).locale);
   const user = await currentUser();
-  if (!user) redirect(`/${locale}/login`);
+  if (!user) redirect(loginPath(locale, `/${locale}/saved`));
   const t = getDictionary(locale);
   const searches = await listSavedSearches(user.id);
   const hidden = (id: string) => (

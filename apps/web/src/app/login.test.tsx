@@ -4,11 +4,14 @@ import userEvent from "@testing-library/user-event";
 import { getDictionary } from "@mteam/shared";
 
 const db = vi.hoisted(() => ({ requestLoginCode: vi.fn(), verifyLoginCode: vi.fn() }));
+const nav = vi.hoisted(() => ({ query: "deal=sale" }));
 const session = vi.hoisted(() => ({ startSession: vi.fn(), endSession: vi.fn(), currentUser: vi.fn(), hasSession: vi.fn(), clientIp: vi.fn() }));
 
 vi.mock("@mteam/db", () => db);
 vi.mock("@/lib/session", () => session);
 vi.mock("next/navigation", () => ({
+  usePathname: () => "/en",
+  useSearchParams: () => new URLSearchParams(nav.query),
   redirect: (url: string) => {
     throw new Error(`REDIRECT ${url}`);
   },
@@ -20,6 +23,7 @@ vi.mock("next/navigation", () => ({
 import { Header } from "@/components/Header";
 import { LoginForm } from "@/components/LoginForm";
 import { loginAction, logoutAction } from "@/lib/auth-actions";
+import { loginPath } from "@/lib/login-path";
 import LoginPage from "./[locale]/login/page";
 
 const t = getDictionary("en");
@@ -121,9 +125,20 @@ describe("LoginPage", () => {
 describe("Header account links", () => {
   it("offers sign-in to a visitor", () => {
     render(<Header locale="en" t={t} signedIn={false} />);
-    expect(screen.getByRole("link", { name: t.nav.login })).toHaveAttribute("href", "/en/login");
+    expect(screen.getByRole("link", { name: t.nav.login })).toHaveAttribute("href", "/en/login?next=%2Fen%3Fdeal%3Dsale");
     expect(screen.getByRole("link", { name: t.nav.post })).toHaveAttribute("href", "/en/listings/new");
     expect(screen.queryByRole("button", { name: t.nav.logout })).toBeNull();
+  });
+
+  it("comes back to a page without a query as it was", () => {
+    nav.query = "";
+    render(<Header locale="en" t={t} signedIn={false} />);
+    expect(screen.getByRole("link", { name: t.nav.login })).toHaveAttribute("href", "/en/login?next=%2Fen");
+    nav.query = "deal=sale";
+  });
+
+  it("puts the whole return address in one parameter", () => {
+    expect(loginPath("ka", "/ka/saved?a=1&b=2")).toBe("/ka/login?next=%2Fka%2Fsaved%3Fa%3D1%26b%3D2");
   });
 
   it("offers sign-out when signed in", () => {

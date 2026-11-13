@@ -21,7 +21,7 @@ import { Segmented } from "./Segmented";
 vi.mock("@/lib/auth-actions", () => ({ logoutAction: vi.fn() }));
 
 const push = vi.hoisted(() => vi.fn());
-vi.mock("next/navigation", () => ({ useRouter: () => ({ push }) }));
+vi.mock("next/navigation", () => ({ useRouter: () => ({ push }), usePathname: () => null, useSearchParams: () => null }));
 beforeEach(() => push.mockClear());
 
 const t = getDictionary("en");

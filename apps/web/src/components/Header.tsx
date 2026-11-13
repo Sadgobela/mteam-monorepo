@@ -6,6 +6,7 @@ import { LanguageMenu } from "./LanguageMenu";
 import { Logo } from "./Logo";
 import { PhoneMenu } from "./PhoneMenu";
 import { ThemeToggle } from "./ThemeToggle";
+import { LoginLink } from "./LoginLink";
 
 export function Header({ locale, t, signedIn }: { locale: Locale; t: Dict; signedIn: boolean }) {
   const language = <LanguageMenu locale={locale} label={t.nav.language} />;
@@ -21,7 +22,7 @@ export function Header({ locale, t, signedIn }: { locale: Locale; t: Dict; signe
       <button type="submit" className="btn ghost">{t.nav.logout}</button>
     </form>
   ) : (
-    <Link href={`/${locale}/login`} className="btn ghost">{t.nav.login}</Link>
+    <LoginLink locale={locale} className="btn ghost">{t.nav.login}</LoginLink>
   );
   const sections = (
     <nav className="links" aria-label="main">

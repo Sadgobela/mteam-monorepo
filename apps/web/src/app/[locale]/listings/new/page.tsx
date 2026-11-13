@@ -5,6 +5,7 @@ import { Header } from "@/components/Header";
 import { ListingForm } from "@/components/ListingForm";
 import { resolveLocale } from "@/lib/locale";
 import { currentUser } from "@/lib/session";
+import { loginPath } from "@/lib/login-path";
 
 export const dynamic = "force-dynamic";
 
@@ -16,7 +17,7 @@ export default async function NewListingPage({
   searchParams: Promise<{ sent?: string }>;
 }) {
   const locale = resolveLocale((await params).locale);
-  if (!(await currentUser())) redirect(`/${locale}/login`);
+  if (!(await currentUser())) redirect(loginPath(locale, `/${locale}/listings/new`));
   const t = getDictionary(locale);
   const { sent } = await searchParams;
   return (

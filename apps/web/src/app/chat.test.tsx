@@ -25,6 +25,8 @@ vi.mock("@/lib/account-actions", () => ({ setFavoriteAction: vi.fn(), setHiddenA
 vi.mock("@/lib/report-actions", () => ({ reportListingAction: vi.fn() }));
 vi.mock("@/lib/lead-actions", () => ({ leadAction: vi.fn() }));
 vi.mock("next/navigation", () => ({
+  usePathname: () => null,
+  useSearchParams: () => null,
   useRouter: () => ({ push: vi.fn(), refresh }),
   notFound: () => {
     throw new Error("NEXT_NOT_FOUND");
@@ -78,7 +80,7 @@ describe("listing page", () => {
   it("sends a visitor to sign in", async () => {
     session.currentUser.mockResolvedValue(null);
     await open();
-    expect(screen.getByRole("link", { name: t.chat.signIn })).toHaveAttribute("href", "/en/login");
+    expect(screen.getByRole("link", { name: t.chat.signIn })).toHaveAttribute("href", "/en/login?next=%2Fen");
   });
 
   it("offers nothing on someone's own listing, or to its broker", async () => {

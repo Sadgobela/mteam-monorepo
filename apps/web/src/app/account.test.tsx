@@ -24,6 +24,8 @@ vi.mock("@/lib/session", () => session);
 vi.mock("@/lib/auth-actions", () => ({ logoutAction: vi.fn() }));
 vi.mock("next/cache", () => ({ revalidatePath }));
 vi.mock("next/navigation", () => ({
+  usePathname: () => null,
+  useSearchParams: () => null,
   useRouter: () => ({ push: vi.fn() }),
   redirect: (url: string) => {
     throw new Error(`REDIRECT ${url}`);
@@ -101,7 +103,7 @@ describe("favourite hearts on the home page", () => {
     session.currentUser.mockResolvedValue(null);
     render(await HomePage({ params, searchParams: Promise.resolve({}) }));
     expect(db.getFavoriteIds).not.toHaveBeenCalled();
-    expect(screen.getAllByRole("link", { name: t.favorites.add })[0]).toHaveAttribute("href", "/en/login");
+    expect(screen.getAllByRole("link", { name: t.favorites.add })[0]).toHaveAttribute("href", "/en/login?next=%2Fen");
   });
 });
 

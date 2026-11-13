@@ -12,6 +12,8 @@ vi.mock("@/lib/auth-actions", () => ({ logoutAction: vi.fn() }));
 vi.mock("next/cache", () => cacheApi);
 vi.mock("@/lib/lead-actions", () => ({ leadAction: vi.fn() }));
 vi.mock("next/navigation", () => ({
+  usePathname: () => null,
+  useSearchParams: () => null,
   useRouter: () => ({ push: vi.fn() }),
   redirect: (to: string) => {
     throw new Error(`REDIRECT ${to}`);
@@ -43,7 +45,7 @@ describe("SaveSearch", () => {
     expect(screen.getByRole("button", { name: t.saved.save })).toBeInTheDocument();
     expect(container.querySelector('input[name="query"]')).toHaveValue("deal=sale");
     rerender(<SaveSearch locale="en" t={t} query="deal=sale" signedIn={false} saved={false} />);
-    expect(screen.getByRole("link", { name: t.saved.save })).toHaveAttribute("href", "/en/login");
+    expect(screen.getByRole("link", { name: t.saved.save })).toHaveAttribute("href", "/en/login?next=%2Fen");
     rerender(<SaveSearch locale="en" t={t} query="deal=sale" signedIn saved />);
     expect(screen.getByText(t.saved.done)).toBeInTheDocument();
   });

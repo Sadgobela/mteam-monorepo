@@ -11,6 +11,8 @@ vi.mock("@/lib/session", () => session);
 vi.mock("@/lib/auth-actions", () => ({ logoutAction: vi.fn() }));
 vi.mock("@/lib/account-actions", () => ({ setFavoriteAction: vi.fn() }));
 vi.mock("next/navigation", () => ({
+  usePathname: () => null,
+  useSearchParams: () => null,
   notFound: () => {
     throw new Error("NEXT_NOT_FOUND");
   },
