@@ -19,6 +19,8 @@ vi.mock("@/lib/account-actions", () => ({ setHiddenAction: vi.fn(), setFavoriteA
 vi.mock("@/lib/report-actions", () => ({ reportListingAction: vi.fn() }));
 vi.mock("@/lib/lead-actions", () => ({ leadAction: vi.fn() }));
 vi.mock("next/navigation", () => ({
+  usePathname: () => null,
+  useSearchParams: () => null,
   useRouter: () => ({ push: vi.fn() }),
   notFound: () => {
     throw new Error("NEXT_NOT_FOUND");
@@ -45,7 +47,7 @@ describe("listing page extras", () => {
   it("sends a visitor to sign in to hide a listing", async () => {
     db.getListing.mockResolvedValue(brokered);
     await open();
-    expect(screen.getByRole("link", { name: "Hide from results" })).toHaveAttribute("href", "/en/login");
+    expect(screen.getByRole("link", { name: "Hide from results" })).toHaveAttribute("href", "/en/login?next=%2Fen");
     expect(db.countSellerListings).not.toHaveBeenCalled();
   });
 

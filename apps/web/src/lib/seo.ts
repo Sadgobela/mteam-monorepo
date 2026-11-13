@@ -33,8 +33,8 @@ export async function searchMetadata(locale: Locale, query: Query): Promise<Meta
   // An empty result page is a dead end for someone arriving from a search engine.
   const worthIndexing = indexed && (title === "" || (await countListings(filters)) > 0);
   const robots = worthIndexing ? undefined : { index: false, follow: true };
-  // Written out because a layout's title template does not reach a page in its own segment.
-  return title ? { title: `${title} | MTeam`, alternates, robots } : { alternates, robots };
+  // The layout's title template adds the site name, now that the modal slot puts this page below the layout.
+  return title ? { title, alternates, robots } : { alternates, robots };
 }
 
 export function listingMetadata(listing: Listing, locale: Locale): Metadata {

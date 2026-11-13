@@ -26,6 +26,7 @@ import { DetailFields } from "./DetailFields";
 import { Collapse } from "antd";
 import { FormSelect } from "./FormSelect";
 import { LocationPicker } from "./LocationPicker";
+import { loginPath } from "@/lib/login-path";
 
 type StreetsModule = typeof import("@mteam/shared/streets");
 
@@ -97,9 +98,13 @@ export function ListingForm({ locale, t }: { locale: Locale; t: Dict }) {
     setPending(true);
     try {
       const response = await fetch("/api/listings", { method: "POST", body: data });
-      // These two leave the form busy on purpose: the page is changing, and a second press would post the listing twice.
+      // This leaves the form busy on purpose: the page is changing, and a second press would post the listing twice.
       if (response.ok) return router.push(`/${locale}/listings/new?sent=1`);
-      if (response.status === 401) return router.push(`/${locale}/login`);
+      // Nothing was posted, and sign-in opens over this form, which must work again once it is closed.
+      if (response.status === 401) {
+        setPending(false);
+        return router.push(loginPath(locale, `/${locale}/listings/new`));
+      }
       setRejected(postErrorSchema.parse(await response.json()).error);
     } catch {
       setRejected("save");

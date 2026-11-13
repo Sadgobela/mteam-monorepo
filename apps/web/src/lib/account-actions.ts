@@ -6,12 +6,12 @@ import { archiveListing, deleteSavedSearch, openSavedSearch, parseListingId, sav
 import { canonicalSearch } from "@mteam/shared";
 import { z } from "zod";
 import { resolveLocale } from "./locale";
-import { currentUser } from "./session";
+import { currentUser, signInHere } from "./session";
 
 async function run(form: FormData, action: (userId: string, listingId: number) => Promise<void>): Promise<void> {
   const locale = resolveLocale(String(form.get("locale")));
   const user = await currentUser();
-  if (!user) redirect(`/${locale}/login`);
+  if (!user) redirect(await signInHere(locale));
   const listingId = parseListingId(String(form.get("listingId")));
   if (listingId !== null) await action(user.id, listingId);
   revalidatePath("/", "layout");
@@ -31,7 +31,7 @@ export async function setHiddenAction(form: FormData): Promise<void> {
 async function signedIn(form: FormData) {
   const locale = resolveLocale(String(form.get("locale")));
   const user = await currentUser();
-  if (!user) redirect(`/${locale}/login`);
+  if (!user) redirect(await signInHere(locale));
   return { locale, user };
 }
 

@@ -1,14 +1,14 @@
-import Link from "next/link";
 import type { Dict, Locale } from "@mteam/shared";
 import { saveSearchAction } from "@/lib/account-actions";
+import { LoginLink } from "./LoginLink";
 
 export function SaveSearch({ locale, t, query, signedIn, saved }: { locale: Locale; t: Dict; query: string; signedIn: boolean; saved: boolean }) {
   if (saved) return <span className="meta save-search">{t.saved.done}</span>;
   if (!signedIn) {
     return (
-      <Link href={`/${locale}/login`} className="btn ghost save-search">
+      <LoginLink locale={locale} className="btn ghost save-search">
         {t.saved.save}
-      </Link>
+      </LoginLink>
     );
   }
   return (

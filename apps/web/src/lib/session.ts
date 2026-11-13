@@ -1,5 +1,7 @@
 import { cookies, headers } from "next/headers";
 import { deleteSession, getSessionUser } from "@mteam/db";
+import type { Locale } from "@mteam/shared";
+import { loginPath, safeNext } from "./login-path";
 
 const COOKIE = "mteam_session";
 const MAX_AGE_SECONDS = 30 * 24 * 60 * 60;
@@ -19,6 +21,12 @@ export async function hasSession(): Promise<boolean> {
 export async function clientIp(): Promise<string> {
   const forwarded = (await headers()).get("x-forwarded-for") ?? "";
   return forwarded.slice(forwarded.lastIndexOf(",") + 1).trim() || "unknown";
+}
+
+/** Sign-in, coming back to the page this request came from, or home when that is missing or not ours. */
+export async function signInHere(locale: Locale): Promise<string> {
+  const from = URL.parse((await headers()).get("referer") ?? "");
+  return loginPath(locale, safeNext(from && from.pathname + from.search, locale));
 }
 
 export async function startSession(token: string): Promise<void> {

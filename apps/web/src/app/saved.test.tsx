@@ -3,7 +3,7 @@ import { render, screen } from "@testing-library/react";
 import { getDictionary } from "@mteam/shared";
 
 const db = vi.hoisted(() => ({ PAGE_SIZE: 24, countListings: vi.fn(), deleteSavedSearch: vi.fn(), getFavoriteIds: vi.fn(), getHiddenIds: vi.fn(), isSearchSaved: vi.fn(), listSavedSearches: vi.fn(), openSavedSearch: vi.fn(), parseListingId: vi.fn(), saveSearch: vi.fn(), searchListings: vi.fn() }));
-const session = vi.hoisted(() => ({ currentUser: vi.fn() }));
+const session = vi.hoisted(() => ({ currentUser: vi.fn(), signInHere: async (locale: string) => `/${locale}/login?next=%2F${locale}%2Fhere` }));
 const cacheApi = vi.hoisted(() => ({ revalidatePath: vi.fn() }));
 
 vi.mock("@mteam/db", () => db);
@@ -12,6 +12,8 @@ vi.mock("@/lib/auth-actions", () => ({ logoutAction: vi.fn() }));
 vi.mock("next/cache", () => cacheApi);
 vi.mock("@/lib/lead-actions", () => ({ leadAction: vi.fn() }));
 vi.mock("next/navigation", () => ({
+  usePathname: () => null,
+  useSearchParams: () => null,
   useRouter: () => ({ push: vi.fn() }),
   redirect: (to: string) => {
     throw new Error(`REDIRECT ${to}`);
@@ -43,7 +45,7 @@ describe("SaveSearch", () => {
     expect(screen.getByRole("button", { name: t.saved.save })).toBeInTheDocument();
     expect(container.querySelector('input[name="query"]')).toHaveValue("deal=sale");
     rerender(<SaveSearch locale="en" t={t} query="deal=sale" signedIn={false} saved={false} />);
-    expect(screen.getByRole("link", { name: t.saved.save })).toHaveAttribute("href", "/en/login");
+    expect(screen.getByRole("link", { name: t.saved.save })).toHaveAttribute("href", "/en/login?next=%2Fen");
     rerender(<SaveSearch locale="en" t={t} query="deal=sale" signedIn saved />);
     expect(screen.getByText(t.saved.done)).toBeInTheDocument();
   });
@@ -112,7 +114,7 @@ describe("SavedSearchesPage", () => {
 describe("saved search actions", () => {
   it("need a signed-in user", async () => {
     session.currentUser.mockResolvedValue(null);
-    await expect(saveSearchAction(form({ query: "deal=sale" }))).rejects.toThrow("REDIRECT /en/login");
+    await expect(saveSearchAction(form({ query: "deal=sale" }))).rejects.toThrow("REDIRECT /en/login?next=%2Fen%2Fhere");
     expect(db.saveSearch).not.toHaveBeenCalled();
   });
 

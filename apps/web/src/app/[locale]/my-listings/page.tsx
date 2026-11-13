@@ -8,13 +8,14 @@ import { Header } from "@/components/Header";
 import { archiveListingAction } from "@/lib/account-actions";
 import { resolveLocale } from "@/lib/locale";
 import { currentUser } from "@/lib/session";
+import { loginPath } from "@/lib/login-path";
 
 export const dynamic = "force-dynamic";
 
 export default async function MyListingsPage({ params }: { params: Promise<{ locale: string }> }) {
   const locale = resolveLocale((await params).locale);
   const user = await currentUser();
-  if (!user) redirect(`/${locale}/login`);
+  if (!user) redirect(loginPath(locale, `/${locale}/my-listings`));
   const t = getDictionary(locale);
   const mine = await listMyListings(user.id);
   return (

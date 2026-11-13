@@ -6,7 +6,8 @@ import { siteUrl } from "@/lib/site-url";
 import { themeInitScript } from "@/lib/theme";
 import "../globals.css";
 
-export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }): Promise<Metadata> {
+// Next checks this argument against the layout's props, which include the modal slot.
+export async function generateMetadata({ params }: { params: Promise<{ locale: string }>; modal: React.ReactNode }): Promise<Metadata> {
   const { meta } = getDictionary(resolveLocale((await params).locale));
   return { metadataBase: new URL(siteUrl()), title: { default: meta.title, template: "%s | MTeam" }, description: meta.description };
 }
@@ -17,9 +18,11 @@ export function generateStaticParams() {
 
 export default async function LocaleLayout({
   children,
+  modal,
   params,
 }: {
   children: React.ReactNode;
+  modal: React.ReactNode;
   params: Promise<{ locale: string }>;
 }) {
   const locale = resolveLocale((await params).locale);
@@ -29,7 +32,10 @@ export default async function LocaleLayout({
         <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
       </head>
       <body>
-        <AntProvider locale={locale}>{children}</AntProvider>
+        <AntProvider locale={locale}>
+          {children}
+          {modal}
+        </AntProvider>
       </body>
     </html>
   );

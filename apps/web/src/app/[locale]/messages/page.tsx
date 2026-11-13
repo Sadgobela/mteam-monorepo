@@ -6,13 +6,14 @@ import { EmptyState } from "@/components/EmptyState";
 import { Header } from "@/components/Header";
 import { resolveLocale } from "@/lib/locale";
 import { currentUser } from "@/lib/session";
+import { loginPath } from "@/lib/login-path";
 
 export const dynamic = "force-dynamic";
 
 export default async function MessagesPage({ params }: { params: Promise<{ locale: string }> }) {
   const locale = resolveLocale((await params).locale);
   const user = await currentUser();
-  if (!user) redirect(`/${locale}/login`);
+  if (!user) redirect(loginPath(locale, `/${locale}/messages`));
   const t = getDictionary(locale);
   const conversations = await listConversations(user.id);
   return (

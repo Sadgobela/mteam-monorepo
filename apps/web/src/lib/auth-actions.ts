@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { requestLoginCode, verifyLoginCode } from "@mteam/db";
 import { parsePhone } from "@mteam/shared";
 import { resolveLocale } from "./locale";
+import { safeNext } from "./login-path";
 import { clientIp, endSession, startSession } from "./session";
 
 export type LoginError = "invalidPhone" | "tooSoon" | "wrongCode";
@@ -12,6 +13,8 @@ export interface LoginState {
   /** Set once a code has been requested: the form then asks for the code. */
   phone?: string;
   error?: LoginError;
+  /** Set once signed in: the page to open next, always one of ours. */
+  done?: string;
 }
 
 export async function loginAction(_previous: LoginState, form: FormData): Promise<LoginState> {
@@ -29,7 +32,9 @@ export async function loginAction(_previous: LoginState, form: FormData): Promis
   if (!token) return { phone, error: "wrongCode" };
 
   await startSession(token);
-  redirect(`/${resolveLocale(String(form.get("locale")))}/listings/new`);
+  // A full page load afterwards, not a redirect: a redirect from the modal leaves Next holding the sign-in route
+  // in its modal slot, and it would show again after signing out.
+  return { done: safeNext(form.get("next"), resolveLocale(String(form.get("locale")))) };
 }
 
 export async function logoutAction(form: FormData): Promise<void> {

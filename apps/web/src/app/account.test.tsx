@@ -16,7 +16,7 @@ const db = vi.hoisted(() => ({
   searchListings: vi.fn(),
   setFavorite: vi.fn(),
 }));
-const session = vi.hoisted(() => ({ currentUser: vi.fn(), hasSession: vi.fn() }));
+const session = vi.hoisted(() => ({ currentUser: vi.fn(), hasSession: vi.fn(), signInHere: async (locale: string) => `/${locale}/login?next=%2F${locale}%2Fhere` }));
 const revalidatePath = vi.hoisted(() => vi.fn());
 
 vi.mock("@mteam/db", () => db);
@@ -24,6 +24,8 @@ vi.mock("@/lib/session", () => session);
 vi.mock("@/lib/auth-actions", () => ({ logoutAction: vi.fn() }));
 vi.mock("next/cache", () => ({ revalidatePath }));
 vi.mock("next/navigation", () => ({
+  usePathname: () => null,
+  useSearchParams: () => null,
   useRouter: () => ({ push: vi.fn() }),
   redirect: (url: string) => {
     throw new Error(`REDIRECT ${url}`);
@@ -75,7 +77,7 @@ describe("account actions", () => {
 
   it("sends a visitor to login without acting", async () => {
     session.currentUser.mockResolvedValue(null);
-    await expect(setFavoriteAction(form(body))).rejects.toThrow("REDIRECT /en/login");
+    await expect(setFavoriteAction(form(body))).rejects.toThrow("REDIRECT /en/login?next=%2Fen%2Fhere");
     expect(db.setFavorite).not.toHaveBeenCalled();
   });
 
@@ -101,7 +103,7 @@ describe("favourite hearts on the home page", () => {
     session.currentUser.mockResolvedValue(null);
     render(await HomePage({ params, searchParams: Promise.resolve({}) }));
     expect(db.getFavoriteIds).not.toHaveBeenCalled();
-    expect(screen.getAllByRole("link", { name: t.favorites.add })[0]).toHaveAttribute("href", "/en/login");
+    expect(screen.getAllByRole("link", { name: t.favorites.add })[0]).toHaveAttribute("href", "/en/login?next=%2Fen");
   });
 });
 

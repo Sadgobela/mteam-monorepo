@@ -6,13 +6,14 @@ import { Header } from "@/components/Header";
 import { ListingGrid } from "@/components/ListingGrid";
 import { resolveLocale } from "@/lib/locale";
 import { currentUser } from "@/lib/session";
+import { loginPath } from "@/lib/login-path";
 
 export const dynamic = "force-dynamic";
 
 export default async function FavoritesPage({ params }: { params: Promise<{ locale: string }> }) {
   const locale = resolveLocale((await params).locale);
   const user = await currentUser();
-  if (!user) redirect(`/${locale}/login`);
+  if (!user) redirect(loginPath(locale, `/${locale}/favorites`));
   const t = getDictionary(locale);
   const listings = await listFavorites(user.id);
   return (

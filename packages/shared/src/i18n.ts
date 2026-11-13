@@ -29,6 +29,7 @@ const ka = {
   login: {
     title: "შესვლა",
     lead: "შეიყვანე მობილურის ნომერი და SMS-ით მიიღებ კოდს.",
+    perks: ["შეინახე განცხადებები და ძიებები", "მისწერე გამყიდველებს და ბროკერებს", "განათავსე შენი განცხადება"],
     phone: "მობილურის ნომერი",
     send: "კოდის გაგზავნა",
     code: "SMS კოდი",
@@ -87,6 +88,7 @@ const en: Dict = {
   login: {
     title: "Sign in",
     lead: "Enter your mobile number and we will text you a code.",
+    perks: ["Save listings and searches", "Message sellers and brokers", "Post your own listing"],
     phone: "Mobile number",
     send: "Send code",
     code: "SMS code",
@@ -143,6 +145,7 @@ const ru: Dict = {
   login: {
     title: "Вход",
     lead: "Введите номер мобильного, и мы пришлём код по SMS.",
+    perks: ["Сохраняйте объявления и поиски", "Пишите продавцам и брокерам", "Размещайте свои объявления"],
     phone: "Номер мобильного",
     send: "Отправить код",
     code: "Код из SMS",
