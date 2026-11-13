@@ -30,4 +30,5 @@ export { getFavoriteIds, listFavorites, setFavorite } from "./favorites";
 export { createLead } from "./leads";
 export { getHiddenIds, setHidden } from "./hidden";
 export { listOpenReports, reportListing, resolveReport } from "./reports";
-export { claimPhoneLookup, deleteSession, getSessionUser, requestLoginCode, verifyLoginCode } from "./auth";
+export { addPhone, claimPhoneLookup, deleteSession, getSessionUser, requestLoginCode, signInWithIdentity, verifyLoginCode, type AddPhoneResult } from "./auth";
+export type { IdentityProvider } from "@prisma/client";

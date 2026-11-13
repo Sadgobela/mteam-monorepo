@@ -59,7 +59,7 @@ enum LeadStatus {
 
 model User {
   id        String    @id @default(cuid())
-  phone     String    @unique // login by SMS code
+  phone     String?   @unique // login by SMS code; empty after Google, Facebook or Apple until one is added
   name      String?
   email     String?
   role      Role      @default(USER)
@@ -72,7 +72,26 @@ model User {
   selling   Conversation[] @relation("Seller")
   messages  Message[]
   sessions  Session[]
+  identities Identity[]
   createdAt DateTime  @default(now())
+}
+
+enum IdentityProvider {
+  GOOGLE
+  FACEBOOK
+  APPLE
+}
+
+// An account at Google, Facebook or Apple that signs in as this user. The subject is that provider's stable user id.
+model Identity {
+  provider  IdentityProvider
+  subject   String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    String
+  createdAt DateTime @default(now())
+
+  @@id([provider, subject])
+  @@index([userId])
 }
 
 // One pending SMS code per phone. Only a hash of the code is stored.

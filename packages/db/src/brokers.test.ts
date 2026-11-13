@@ -7,12 +7,12 @@ vi.mock("./client", () => ({ db: () => prisma }));
 import { getBranch, getBroker, listBranches, listBrokers } from "./index";
 
 const named = { id: "a1", user: { name: "Nino", phone: "+995" }, branch: { name: "Vake" } };
-const unnamed = { id: "a2", user: { name: null, phone: "+996" }, branch: null };
+const unnamed = { id: "a2", user: { name: null, phone: null }, branch: null };
 const listing = { id: 7, deal: "SALE", type: "APARTMENT", agent: null, images: [], owner: { phone: "+995" }, updatedAt: new Date("2026-11-06T10:00:00Z") };
 
 beforeEach(() => vi.resetAllMocks());
 
-const publicBroker = { user: { name: { not: null }, role: "AGENT" } };
+const publicBroker = { user: { name: { not: null }, phone: { not: null }, role: "AGENT" } };
 
 describe("listBranches", () => {
   it("adds up each branch's public brokers and their live listings", async () => {
@@ -47,10 +47,10 @@ describe("listBrokers", () => {
     prisma.agent.findMany.mockResolvedValue([{ ...named, _count: { listings: 3 } }, { ...unnamed, _count: { listings: 0 } }]);
     expect(await listBrokers()).toEqual([
       { id: "a1", name: "Nino", branch: "Vake", phone: "+995", listingCount: 3 },
-      { id: "a2", name: "", branch: "", phone: "+996", listingCount: 0 },
+      { id: "a2", name: "", branch: "", phone: "", listingCount: 0 },
     ]);
     const args = prisma.agent.findMany.mock.calls[0][0];
-    expect(args.where).toEqual({ user: { name: { not: null }, role: "AGENT" } });
+    expect(args.where).toEqual({ user: { name: { not: null }, phone: { not: null }, role: "AGENT" } });
     expect(args.include._count.select.listings.where).toEqual({ status: "ACTIVE" });
   });
 });
@@ -62,13 +62,13 @@ describe("getBroker", () => {
     expect(broker).toMatchObject({ id: "a1", name: "Nino", branch: "Vake", phone: "+995" });
     expect(broker?.listings.map((l) => l.id)).toEqual([7]);
     const args = prisma.agent.findFirst.mock.calls[0][0];
-    expect(args.where).toEqual({ id: "a1", user: { name: { not: null }, role: "AGENT" } });
+    expect(args.where).toEqual({ id: "a1", user: { name: { not: null }, phone: { not: null }, role: "AGENT" } });
     expect(args.include.listings.where).toEqual({ status: "ACTIVE" });
   });
 
   it("copes with missing name and branch values", async () => {
     prisma.agent.findFirst.mockResolvedValue({ ...unnamed, listings: [] });
-    expect(await getBroker("a2")).toMatchObject({ name: "", branch: "" });
+    expect(await getBroker("a2")).toMatchObject({ name: "", branch: "", phone: "" });
   });
 
   it("is null for an unknown broker", async () => {

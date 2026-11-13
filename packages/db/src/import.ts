@@ -72,7 +72,7 @@ export async function importListings(client: PrismaClient, csv: string, { ownerP
   const owner = await client.user.findUnique({ where: { phone: parsePhone(ownerPhone) ?? "" }, select: { id: true, role: true } });
   // A private person's number could otherwise end up public on thousands of listings after a typo.
   if (!owner || owner.role === "USER") throw new Error("No staff account has that phone number");
-  const agents = new Map((await client.agent.findMany({ where: { user: { role: "AGENT", name: { not: null } } }, select: { id: true, user: { select: { phone: true } } } })).map((agent) => [agent.user.phone, agent.id]));
+  const agents = new Map((await client.agent.findMany({ where: { user: { role: "AGENT", name: { not: null }, phone: { not: null } } }, select: { id: true, user: { select: { phone: true } } } })).flatMap((agent) => (agent.user.phone ? [[agent.user.phone, agent.id] as const] : [])));
   const imported = new Set((await client.listing.findMany({ where: { sourceRef: { not: null } }, select: { sourceRef: true } })).map((listing) => listing.sourceRef));
 
   const inFile = new Set<string>();

@@ -1,6 +1,7 @@
 import { createHash, createHmac, randomBytes, randomInt } from "node:crypto";
 import { isIPv6 } from "node:net";
 import { z } from "zod";
+import { Prisma, type IdentityProvider } from "@prisma/client";
 import { db } from "./client";
 
 const CODE_TTL_MS = 5 * 60_000;
@@ -109,30 +110,71 @@ export async function requestLoginCode(phone: string, ip: string): Promise<boole
   return true;
 }
 
-/** Checks a code and returns a new session token, or null. A user is created on first login. */
-export async function verifyLoginCode(phone: string, code: string): Promise<string | null> {
-  if (!/^\d{6}$/.test(code)) return null;
+/** Uses up a code if it is right. Every check counts as a guess, so a phone locks after five wrong ones. */
+async function useCode(phone: string, code: string): Promise<boolean> {
+  if (!/^\d{6}$/.test(code)) return false;
   const codeHash = hashCode(phone, code);
   const client = db();
-  const now = new Date();
 
   // Counting the attempt first means parallel guesses cannot get past the limit.
   const { count: open } = await client.loginCode.updateMany({
-    where: { phone, attempts: { lt: MAX_ATTEMPTS }, expiresAt: { gt: now } },
+    where: { phone, attempts: { lt: MAX_ATTEMPTS }, expiresAt: { gt: new Date() } },
     data: { attempts: { increment: 1 } },
   });
-  if (open === 0) return null;
+  if (open === 0) return false;
 
   // Deleting on the hash makes a code single-use even if two requests race.
   const { count: matched } = await client.loginCode.deleteMany({ where: { phone, codeHash } });
-  if (matched === 0) return null;
+  return matched > 0;
+}
 
-  const user = await client.user.upsert({ where: { phone }, update: {}, create: { phone } });
+/** A new session for the user. Only a hash of the token is stored. */
+async function createSession(userId: string): Promise<string> {
   const token = randomBytes(32).toString("base64url");
-  await client.session.create({
-    data: { tokenHash: sha256(token), userId: user.id, expiresAt: new Date(now.getTime() + SESSION_TTL_MS) },
+  await db().session.create({
+    data: { tokenHash: sha256(token), userId, expiresAt: new Date(Date.now() + SESSION_TTL_MS) },
   });
   return token;
+}
+
+/** Checks a code and returns a new session token, or null. A user is created on first login. */
+export async function verifyLoginCode(phone: string, code: string): Promise<string | null> {
+  if (!(await useCode(phone, code))) return null;
+  const user = await db().user.upsert({ where: { phone }, update: {}, create: { phone } });
+  return createSession(user.id);
+}
+
+/**
+ * Signs in with an account at Google, Facebook or Apple and returns a session token. The first time makes a new user.
+ * Never matched to an existing user by email: Facebook does not promise the address was checked.
+ */
+export async function signInWithIdentity(provider: IdentityProvider, subject: string, name: string | null): Promise<string> {
+  const identity = await db().identity.upsert({
+    where: { provider_subject: { provider, subject } },
+    update: {},
+    create: { provider, subject, user: { create: { name } } },
+    select: { userId: true },
+  });
+  return createSession(identity.userId);
+}
+
+export type AddPhoneResult = "added" | "wrongCode" | "taken";
+
+/**
+ * Gives a user who signed in with Google, Facebook or Apple a checked phone, which posting needs.
+ * ponytail: a phone that already has its own account is refused; merging the two accounts waits until someone needs it.
+ */
+export async function addPhone(userId: string, phone: string, code: string): Promise<AddPhoneResult> {
+  if (!(await useCode(phone, code))) return "wrongCode";
+  try {
+    // Only a user without a phone: one that has one already keeps it.
+    const { count } = await db().user.updateMany({ where: { id: userId, phone: null }, data: { phone } });
+    return count > 0 ? "added" : "taken";
+  } catch (error) {
+    // Another account has this phone, also if it was taken between the check and the write.
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") return "taken";
+    throw error;
+  }
 }
 
 export async function getSessionUser(token: string) {

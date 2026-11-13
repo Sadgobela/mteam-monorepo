@@ -22,7 +22,7 @@ const created = () => client.listing.create.mock.calls[0][0].data;
 beforeEach(() => {
   vi.clearAllMocks();
   client.user.findUnique.mockResolvedValue({ id: "owner", role: "ADMIN" });
-  client.agent.findMany.mockResolvedValue([{ id: "agent", user: { phone: "+995555000002" } }]);
+  client.agent.findMany.mockResolvedValue([{ id: "agent", user: { phone: "+995555000002" } }, { id: "nophone", user: { phone: null } }]);
   client.listing.findMany.mockResolvedValue([]);
   client.listing.create.mockResolvedValue({ id: 1 });
 });
@@ -63,7 +63,7 @@ describe("importListings", () => {
 
   it("only looks up people shown as brokers on the site", async () => {
     await run(row());
-    expect(client.agent.findMany.mock.calls[0][0].where).toEqual({ user: { role: "AGENT", name: { not: null } } });
+    expect(client.agent.findMany.mock.calls[0][0].where).toEqual({ user: { role: "AGENT", name: { not: null }, phone: { not: null } } });
   });
 
   it("accepts a street on the list", async () => {
