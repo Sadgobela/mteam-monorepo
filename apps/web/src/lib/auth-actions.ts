@@ -42,6 +42,8 @@ export async function addPhoneAction(_previous: LoginState, form: FormData): Pro
   const locale = resolveLocale(String(form.get("locale")));
   const user = await currentUser();
   if (!user) redirect(await signInHere(locale));
+  // Added already, in another tab: nothing to do, and no SMS to send.
+  if (user.phone) return { done: `/${locale}/listings/new` };
   if (form.has("change")) return {};
 
   const phone = parsePhone(String(form.get("phone")));

@@ -111,6 +111,12 @@ describe("addPhoneAction", () => {
     expect(await addPhoneAction({}, form({ locale: "en", phone }))).toEqual({ phone, error: "tooSoon" });
   });
 
+  it("goes on to the posting form when the number was added already, sending no SMS", async () => {
+    session.currentUser.mockResolvedValue({ id: "u1", phone });
+    expect(await addPhoneAction({}, form({ locale: "en", phone }))).toEqual({ done: "/en/listings/new" });
+    expect(db.requestLoginCode).not.toHaveBeenCalled();
+  });
+
   it("adds the number and goes on to the posting form", async () => {
     db.addPhone.mockResolvedValue("added");
     expect(await addPhoneAction({ phone }, form({ locale: "ru", phone, code: "123456" }))).toEqual({ done: "/ru/listings/new" });
