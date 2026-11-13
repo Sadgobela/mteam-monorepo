@@ -14,7 +14,7 @@ const CODES_PER_ADDRESS = 20;
 const PHONE_LOOKUPS_PER_ADDRESS = 60;
 const ADDRESS_WINDOW_MS = 60 * 60_000;
 
-const smsEnvSchema = z.object({ SMS_PROVIDER: z.literal("console") });
+const smsEnvSchema = z.object({ SMS_PROVIDER: z.enum(["console", "log"]) });
 
 const EXAMPLE_SECRET = "replace-with-openssl-rand-hex-32";
 
@@ -31,10 +31,15 @@ const sha256 = (value: string) => createHash("sha256").update(value).digest("hex
 const keyedHash = (value: string) => createHmac("sha256", codeSecretSchema.parse(process.env).LOGIN_CODE_SECRET).update(value).digest("hex");
 const hashCode = (phone: string, code: string) => keyedHash(`${phone}:${code}`);
 
-// ponytail: console only, for local testing. A real provider goes here before launch.
+/**
+ * Both write the code to the server log instead of sending an SMS.
+ * - console: local testing only.
+ * - log: also on the live site, for a private preview behind Vercel's login wall, where only the team reads the log.
+ * ponytail: a real SMS provider goes here before the site opens to the public.
+ */
 function assertCodesCanBeSent(): void {
-  smsEnvSchema.parse(process.env);
-  if (process.env.NODE_ENV === "production") throw new Error("SMS_PROVIDER=console is not allowed in production");
+  const { SMS_PROVIDER } = smsEnvSchema.parse(process.env);
+  if (SMS_PROVIDER === "console" && process.env.NODE_ENV === "production") throw new Error("SMS_PROVIDER=console is not allowed in production");
 }
 
 /** A keyed hash of the visitor's network, so addresses are never stored. */
