@@ -101,7 +101,7 @@ describe("safeNext", () => {
   it("keeps our own pages and drops everything else", () => {
     expect(safeNext("/ka/listings/5?x=1", "en")).toBe("/ka/listings/5?x=1");
     expect(safeNext("/ru", "en")).toBe("/ru");
-    for (const bad of ["https://evil.example", "//evil.example", "/\\evil.example", "/en//evil.example", "/fr/x", "/enx", "/en x", undefined, 5]) {
+    for (const bad of ["https://evil.example", "//evil.example", "/\\evil.example", "/en//evil.example", "/fr/x", "/enx", "/en x", "/en\t/x", "/en/ქ", "/en@evil.example", undefined, 5]) {
       expect(safeNext(bad, "en")).toBe("/en");
     }
     expect(loginPath("ka", "/ka/saved?a=1&b=2")).toBe("/ka/login?next=%2Fka%2Fsaved%3Fa%3D1%26b%3D2");
@@ -157,6 +157,7 @@ describe("LoginPage", () => {
     expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent(t.login.title);
     for (const perk of t.login.perks) expect(screen.getByText(perk)).toBeInTheDocument();
     expect(container.querySelector('input[name="next"]')).toHaveValue("/en/saved");
+    expect(screen.queryByRole("link", { name: t.nav.login })).toBeNull();
   });
 
   it("sends a signed-in user on to where they were going", async () => {
@@ -170,11 +171,11 @@ describe("LoginOverlay", () => {
 
   it("opens over the page and closes back to it", async () => {
     session.currentUser.mockResolvedValue(null);
-    render(await LoginOverlay({ params, searchParams: Promise.resolve({}) }));
+    render(await LoginOverlay({ params, searchParams: Promise.resolve({ next: "/en/listings/7" }) }));
     const dialog = await screen.findByRole("dialog");
     expect(dialog).toHaveTextContent(t.login.title);
     expect(screen.getByRole("heading", { level: 2, name: t.login.title })).toBeInTheDocument();
-    expect(document.querySelector('input[name="next"]')).toHaveValue("/en");
+    expect(document.querySelector('input[name="next"]')).toHaveValue("/en/listings/7");
     await userEvent.click(screen.getByRole("button", { name: /close/i }));
     expect(router.back).toHaveBeenCalled();
   });

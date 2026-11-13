@@ -35,6 +35,7 @@ export function LoginForm({ locale, t, next }: { locale: Locale; t: Dict; next?:
               inputMode="numeric"
               autoComplete="one-time-code"
               autoFocus
+              disabled={pending}
               formatter={(text) => text.replace(/\D/g, "")}
               onInput={(cells) => setCode(cells.join(""))}
               // All six digits in: sign in without another click.

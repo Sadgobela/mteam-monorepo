@@ -8,7 +8,7 @@ import { PhoneMenu } from "./PhoneMenu";
 import { ThemeToggle } from "./ThemeToggle";
 import { LoginLink } from "./LoginLink";
 
-export function Header({ locale, t, signedIn }: { locale: Locale; t: Dict; signedIn: boolean }) {
+export function Header({ locale, t, signedIn, onLoginPage = false }: { locale: Locale; t: Dict; signedIn: boolean; onLoginPage?: boolean }) {
   const language = <LanguageMenu locale={locale} label={t.nav.language} />;
   const accountLinks = [
     { href: `/${locale}/favorites`, text: t.nav.favorites },
@@ -21,7 +21,8 @@ export function Header({ locale, t, signedIn }: { locale: Locale; t: Dict; signe
       <input type="hidden" name="locale" value={locale} />
       <button type="submit" className="btn ghost">{t.nav.logout}</button>
     </form>
-  ) : (
+  ) : onLoginPage ? null : (
+    // Not on the sign-in page itself, where it would open the same form over it.
     <LoginLink locale={locale} className="btn ghost">{t.nav.login}</LoginLink>
   );
   const sections = (

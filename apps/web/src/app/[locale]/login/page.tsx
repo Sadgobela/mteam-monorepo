@@ -16,7 +16,7 @@ export default async function LoginPage({ params, searchParams }: { params: Prom
   const t = getDictionary(locale);
   return (
     <>
-      <Header locale={locale} t={t} signedIn={false} />
+      <Header locale={locale} t={t} signedIn={false} onLoginPage />
       <main className="section login-page">
         <LoginPanel locale={locale} t={t} next={next} />
       </main>
