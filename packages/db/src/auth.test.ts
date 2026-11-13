@@ -150,8 +150,17 @@ describe("requestLoginCode", () => {
     expect(log).not.toHaveBeenCalled();
   });
 
+  it("writes codes to the log on the live site in log mode, for a private preview", async () => {
+    vi.stubEnv("NODE_ENV", "production");
+    vi.stubEnv("SMS_PROVIDER", "log");
+    outcome(0, 0, 1);
+    expect(await requestLoginCode(phone, "203.0.113.7")).toBe(true);
+    expect(sentCode()).toMatch(/^\d{6}$/);
+  });
+
   it.each([
-    ["without the console provider", "SMS_PROVIDER", undefined],
+    ["without a provider", "SMS_PROVIDER", undefined],
+    ["with a provider that does not exist", "SMS_PROVIDER", "carrier-pigeon"],
     ["in production", "NODE_ENV", "production"],
     ["without the secret", "LOGIN_CODE_SECRET", undefined],
     ["with a secret too short to protect anything", "LOGIN_CODE_SECRET", "short"],
