@@ -83,6 +83,7 @@ Step 3: the import tool is ready (`docs/IMPORT.md`). It is waiting for the expor
 ## What is waiting, and on whom
 
 - **MTeam:** the brokers' export and photos (step 3), and the list of branches and who works where (step 4).
+  The listings now on myhome.ge and ss.ge come in the same way, as an export from MTeam or from those sites on MTeam's request, not copied off their pages: both sites forbid it to bots, and their photos carry the sites' logos.
 - **A paid sending service:** SMS or email alerts for saved searches and new messages (step 7).
 - **Partners:** developer projects, loan requests with a bank, contract templates written by a lawyer, paid placement with a payment provider (step 8).
 - **Launch:** the list in `PROJECT_BRIEF.md`.
