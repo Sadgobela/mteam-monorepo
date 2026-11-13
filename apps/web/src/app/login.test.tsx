@@ -1,12 +1,12 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { getDictionary } from "@mteam/shared";
 
-const db = vi.hoisted(() => ({ requestLoginCode: vi.fn(), verifyLoginCode: vi.fn() }));
+const db = vi.hoisted(() => ({ requestLoginCode: vi.fn(), verifyLoginCode: vi.fn(), addPhone: vi.fn() }));
 const router = vi.hoisted(() => ({ back: vi.fn() }));
 const nav = vi.hoisted(() => ({ query: "deal=sale" }));
-const session = vi.hoisted(() => ({ startSession: vi.fn(), endSession: vi.fn(), currentUser: vi.fn(), hasSession: vi.fn(), clientIp: vi.fn() }));
+const session = vi.hoisted(() => ({ startSession: vi.fn(), endSession: vi.fn(), currentUser: vi.fn(), hasSession: vi.fn(), clientIp: vi.fn(), signInHere: vi.fn() }));
 
 vi.mock("@mteam/db", () => db);
 vi.mock("@/lib/session", () => session);
@@ -24,7 +24,8 @@ vi.mock("next/navigation", () => ({
 
 import { Header } from "@/components/Header";
 import { LoginForm } from "@/components/LoginForm";
-import { loginAction, logoutAction } from "@/lib/auth-actions";
+import { LoginPanel } from "@/components/LoginPanel";
+import { addPhoneAction, loginAction, logoutAction } from "@/lib/auth-actions";
 import { loginPath, safeNext } from "@/lib/login-path";
 import LoginOverlay from "./[locale]/@modal/(.)login/page";
 import NoModal from "./[locale]/@modal/default";
@@ -87,6 +88,72 @@ describe("loginAction", () => {
     db.verifyLoginCode.mockResolvedValue("tok");
     expect(await loginAction({ phone }, form({ phone, code: "123456", locale: "ru", next: "//evil.example" }))).toEqual({ done: "/ru" });
     expect(await loginAction({ phone }, form({ phone, code: "123456", locale: "en" }))).toEqual({ done: "/en" });
+  });
+});
+
+describe("addPhoneAction", () => {
+  const user = { id: "u1", phone: null };
+  beforeEach(() => session.currentUser.mockResolvedValue(user));
+
+  it("sends someone signed out to sign in", async () => {
+    session.currentUser.mockResolvedValue(null);
+    session.signInHere.mockResolvedValue("/en/login?next=%2Fen%2Flistings%2Fnew");
+    await expect(addPhoneAction({}, form({ locale: "en", phone }))).rejects.toThrow("REDIRECT /en/login?next=%2Fen%2Flistings%2Fnew");
+    expect(db.requestLoginCode).not.toHaveBeenCalled();
+  });
+
+  it("asks for a number, then sends a code to it", async () => {
+    expect(await addPhoneAction({ phone }, form({ locale: "en", change: "1" }))).toEqual({});
+    expect(await addPhoneAction({}, form({ locale: "en", phone: "12" }))).toEqual({ error: "invalidPhone" });
+    db.requestLoginCode.mockResolvedValue(true);
+    expect(await addPhoneAction({}, form({ locale: "en", phone: "555 12 34 56" }))).toEqual({ phone });
+    db.requestLoginCode.mockResolvedValue(false);
+    expect(await addPhoneAction({}, form({ locale: "en", phone }))).toEqual({ phone, error: "tooSoon" });
+  });
+
+  it("adds the number and goes on to the posting form", async () => {
+    db.addPhone.mockResolvedValue("added");
+    expect(await addPhoneAction({ phone }, form({ locale: "ru", phone, code: "123456" }))).toEqual({ done: "/ru/listings/new" });
+    expect(db.addPhone).toHaveBeenCalledWith("u1", phone, "123456");
+    expect(session.startSession).not.toHaveBeenCalled();
+  });
+
+  it("says when the code is wrong, or the number has its own account", async () => {
+    db.addPhone.mockResolvedValue("wrongCode");
+    expect(await addPhoneAction({ phone }, form({ locale: "en", phone, code: "000000" }))).toEqual({ phone, error: "wrongCode" });
+    db.addPhone.mockResolvedValue("taken");
+    expect(await addPhoneAction({ phone }, form({ locale: "en", phone, code: "123456" }))).toEqual({ error: "phoneTaken" });
+  });
+});
+
+describe("LoginPanel", () => {
+  afterEach(() => vi.unstubAllEnvs());
+
+  it("offers the providers that are set up, coming back to the page", () => {
+    vi.stubEnv("GOOGLE_CLIENT_ID", "g");
+    vi.stubEnv("GOOGLE_CLIENT_SECRET", "s");
+    vi.stubEnv("FACEBOOK_APP_ID", "f");
+    vi.stubEnv("FACEBOOK_APP_SECRET", "s");
+    render(<LoginPanel locale="en" t={t} next="/en/saved" />);
+    expect(screen.getByRole("link", { name: t.login.with.google })).toHaveAttribute("href", "/api/auth/google?locale=en&next=%2Fen%2Fsaved");
+    expect(screen.getByRole("link", { name: t.login.with.facebook })).toHaveAttribute("href", "/api/auth/facebook?locale=en&next=%2Fen%2Fsaved");
+    expect(screen.queryByRole("link", { name: t.login.with.apple })).toBeNull();
+    expect(screen.getByText(t.login.or)).toBeInTheDocument();
+  });
+
+  it("goes home afterwards when it has no page to come back to", () => {
+    vi.stubEnv("APPLE_CLIENT_ID", "a");
+    vi.stubEnv("APPLE_TEAM_ID", "t");
+    vi.stubEnv("APPLE_KEY_ID", "k");
+    vi.stubEnv("APPLE_PRIVATE_KEY", "p");
+    render(<LoginPanel locale="ka" t={t} />);
+    expect(screen.getByRole("link", { name: t.login.with.apple })).toHaveAttribute("href", "/api/auth/apple?locale=ka&next=%2Fka");
+  });
+
+  it("shows only the phone form without providers", () => {
+    render(<LoginPanel locale="en" t={t} />);
+    expect(screen.queryByText(t.login.or)).toBeNull();
+    expect(screen.getByLabelText(t.login.phone)).toBeInTheDocument();
   });
 });
 
@@ -158,6 +225,12 @@ describe("LoginPage", () => {
     for (const perk of t.login.perks) expect(screen.getByText(perk)).toBeInTheDocument();
     expect(container.querySelector('input[name="next"]')).toHaveValue("/en/saved");
     expect(screen.queryByRole("link", { name: t.nav.login })).toBeNull();
+  });
+
+  it("says when signing in with a provider failed", async () => {
+    session.currentUser.mockResolvedValue(null);
+    render(await LoginPage({ params, searchParams: Promise.resolve({ failed: "social" }) }));
+    expect(screen.getByRole("alert")).toHaveTextContent(t.login.errors.social);
   });
 
   it("sends a signed-in user on to where they were going", async () => {

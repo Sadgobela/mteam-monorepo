@@ -9,16 +9,20 @@
   --sans: "Noto Sans Georgian", system-ui, sans-serif;
   /* The sign-in picture panel: deep enough for white text in both themes. */
   --art-from: #7b52ab; --art-to: #4c2f72;
+  /* The sign-in providers' own colours, from their button guidelines. */
+  --facebook: #1877f2; --apple-bg: #000000; --apple-fg: #ffffff;
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
     --brand: #a57fd0; --brand-deep: #c8aee6; --brand-soft: #2a2136;
+    --apple-bg: #ffffff; --apple-fg: #000000;
     --bg: #141019; --surface: #1d1724; --fg: #f1ecf6; --muted: #a79db3; --line: #332a3e; --focus: #d9b65e; --action: #986dc6; --on-action: #ffffff; --logo: #ffffff;
     color-scheme: dark;
   }
 }
 :root[data-theme="dark"] {
   --brand: #a57fd0; --brand-deep: #c8aee6; --brand-soft: #2a2136;
+  --apple-bg: #ffffff; --apple-fg: #000000;
   --bg: #141019; --surface: #1d1724; --fg: #f1ecf6; --muted: #a79db3; --line: #332a3e; --focus: #d9b65e; --action: #986dc6; --on-action: #ffffff; --logo: #ffffff;
   color-scheme: dark;
 }
@@ -236,10 +240,18 @@ html:has(.viewer[open]) { overflow: hidden; }
 .phone-input:focus-within { border-color: var(--action); }
 .phone-input > span { padding: 0 10px 0 12px; color: var(--muted); font-weight: 600; border-inline-end: 1px solid var(--line); }
 .phone-input > input { flex: 1; min-width: 0; height: 100%; padding: 0 12px; border: 0; outline: 0; background: transparent; color: var(--fg); font: inherit; }
-.login .ant-otp { display: flex; gap: 8px; }
-.login .ant-otp-input-wrapper { flex: 1; }
-.login .ant-otp .ant-otp-input { width: 100%; height: 52px; padding: 0; font-size: 20px; font-weight: 700; text-align: center; }
-.login .ant-otp .ant-otp-input:focus { box-shadow: none; }
+.form .ant-otp { display: flex; gap: 8px; }
+.form .ant-otp-input-wrapper { flex: 1; }
+.form .ant-otp .ant-otp-input { width: 100%; height: 52px; padding: 0; font-size: 20px; font-weight: 700; text-align: center; }
+.form .ant-otp .ant-otp-input:focus { box-shadow: none; }
+.social { display: grid; gap: 10px; margin-top: 14px; }
+.social .btn { gap: 10px; }
+.social svg { width: 20px; height: 20px; flex: none; }
+.social-google { background: var(--surface); color: var(--fg); border: 1px solid var(--line); }
+.social-facebook { background: var(--facebook); color: #fff; }
+.social-apple { background: var(--apple-bg); color: var(--apple-fg); }
+.login-or { display: flex; align-items: center; gap: 12px; margin: 14px 0 0; color: var(--muted); font-size: 13px; }
+.login-or::before, .login-or::after { content: ""; flex: 1; border-top: 1px solid var(--line); }
 .link-button { justify-self: center; padding: 4px 8px; border: 0; background: none; color: var(--brand-deep); font: inherit; font-weight: 600; cursor: pointer; }
 .nowrap { white-space: nowrap; }
 @media (max-width: 720px) {

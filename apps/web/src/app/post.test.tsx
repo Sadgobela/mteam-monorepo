@@ -15,7 +15,7 @@ const router = vi.hoisted(() => ({ push: vi.fn() }));
 
 vi.mock("@mteam/db", () => db);
 vi.mock("@/lib/session", () => session);
-vi.mock("@/lib/auth-actions", () => ({ logoutAction: vi.fn() }));
+vi.mock("@/lib/auth-actions", () => ({ logoutAction: vi.fn(), addPhoneAction: vi.fn(), loginAction: vi.fn() }));
 vi.mock("next/navigation", () => ({
   usePathname: () => null,
   useSearchParams: () => null,
@@ -65,7 +65,7 @@ const server = vi.fn();
 const reply = (status: number, body: unknown = {}) => server.mockResolvedValue({ ok: status < 400, status, json: async () => body });
 beforeEach(() => {
   vi.resetAllMocks();
-  session.currentUser.mockResolvedValue({ id: "u1" });
+  session.currentUser.mockResolvedValue({ id: "u1", phone: "+995555123456" });
   vi.stubGlobal("fetch", server);
 });
 
@@ -321,6 +321,14 @@ describe("NewListingPage", () => {
   it("shows the form", async () => {
     render(await NewListingPage({ params, searchParams: Promise.resolve({}) }));
     expect(screen.getByRole("button", { name: t.post.next })).toBeInTheDocument();
+  });
+
+  it("asks someone without a phone to add one first", async () => {
+    session.currentUser.mockResolvedValue({ id: "u1", phone: null });
+    render(await NewListingPage({ params, searchParams: Promise.resolve({}) }));
+    expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent(t.post.phoneHeading);
+    expect(screen.getByLabelText(t.login.phone)).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: t.post.next })).toBeNull();
   });
 
   it("confirms a submitted listing", async () => {
