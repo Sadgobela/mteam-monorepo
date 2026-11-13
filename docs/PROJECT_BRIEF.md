@@ -42,3 +42,4 @@ Development runs entirely locally for now. These must be done before real users 
 - A real exchange rate: search, sorting and the ₾/$ switch use fixed rates.
 - Set `SITE_URL` to the real address, or the sitemap and page links will point at localhost.
 - Run `db:market` every night, so market levels follow new listings.
+- Sign in with Apple: needs the paid Apple Developer Program and the real HTTPS address, since Apple refuses localhost. Steps in `SOCIAL_LOGIN.md`. Google and Facebook need their production return address added too.
