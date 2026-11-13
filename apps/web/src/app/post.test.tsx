@@ -251,6 +251,17 @@ describe("ListingForm", () => {
       expect(screen.queryByRole("button", { name: t.post.next })).toBeNull();
     });
 
+    it("lets someone whose session ended post again after closing sign-in", async () => {
+      reply(401, { error: "signedOut" });
+      render(<ListingForm locale="en" t={t} />);
+      completeFirst();
+      completeSecond();
+      const button = screen.getByRole("button", { name: t.post.submit });
+      fireEvent.submit(button.closest("form") as HTMLFormElement);
+      await waitFor(() => expect(router.push).toHaveBeenCalledWith("/en/login?next=%2Fen%2Flistings%2Fnew"));
+      expect(button).toBeEnabled();
+    });
+
     it("hides the other steps but keeps their values in the form", () => {
       const { container } = render(<ListingForm locale="en" t={t} />);
       completeFirst();
