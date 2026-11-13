@@ -3,10 +3,13 @@
 import { useActionState, useEffect, useRef, useState } from "react";
 import { Input } from "antd";
 import type { Dict, Locale } from "@mteam/shared";
-import { loginAction } from "@/lib/auth-actions";
+import { loginAction, type LoginState } from "@/lib/auth-actions";
 
-export function LoginForm({ locale, t, next }: { locale: Locale; t: Dict; next?: string }) {
-  const [state, action, pending] = useActionState(loginAction, {});
+type Action = (previous: LoginState, form: FormData) => Promise<LoginState>;
+
+/** A phone number, then the code sent to it. Signs in by default; adding a phone to an account uses the same steps. */
+export function LoginForm({ locale, t, next, action: submit = loginAction, verifyLabel = t.login.verify }: { locale: Locale; t: Dict; next?: string; action?: Action; verifyLabel?: string }) {
+  const [state, action, pending] = useActionState(submit, {});
   const [code, setCode] = useState("");
   const form = useRef<HTMLFormElement>(null);
 
@@ -45,7 +48,7 @@ export function LoginForm({ locale, t, next }: { locale: Locale; t: Dict; next?:
               }}
             />
           </div>
-          <button className="btn" type="submit" disabled={pending || code.length < 6}>{t.login.verify}</button>
+          <button className="btn" type="submit" disabled={pending || code.length < 6}>{verifyLabel}</button>
           <button className="link-button" type="submit" name="change" value="1" formNoValidate>{t.login.change}</button>
         </>
       ) : (

@@ -140,6 +140,17 @@ describe("getListing", () => {
     expect((await getListing("20418"))?.agent).toEqual({ id: "a2", name: "", branch: "", phone: "+995" });
   });
 
+  it("copes with people without a phone", async () => {
+    prisma.listing.findFirst.mockResolvedValue({
+      ...fullRow,
+      agent: { id: "a2", user: { name: "Nino", phone: null, role: "AGENT" }, branch: null },
+      owner: { phone: null },
+    });
+    const listing = await getListing("20418");
+    expect(listing?.agent?.phone).toBe("");
+    expect(listing?.contactPhone).toBe("");
+  });
+
   it("does not publish the phone of someone who is no longer a broker", async () => {
     prisma.listing.findFirst.mockResolvedValue({
       ...fullRow,

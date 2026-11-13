@@ -25,7 +25,7 @@ export interface BranchCard {
 }
 
 /** Only people with the broker role and a name set. Their phone is public, so admins and former brokers must not appear. */
-const publicBroker = { user: { name: { not: null }, role: "AGENT" } } satisfies Prisma.AgentWhereInput;
+const publicBroker = { user: { name: { not: null }, phone: { not: null }, role: "AGENT" } } satisfies Prisma.AgentWhereInput;
 
 const liveListingCount = { listings: { where: { status: "ACTIVE" } } } satisfies Prisma.AgentCountOutputTypeSelect;
 
@@ -36,7 +36,7 @@ const cardInclude = {
 } satisfies Prisma.AgentInclude;
 
 function toCard(row: Prisma.AgentGetPayload<{ include: typeof cardInclude }>): BrokerCard {
-  return { id: row.id, name: row.user.name ?? "", branch: row.branch?.name ?? "", phone: row.user.phone, listingCount: row._count.listings };
+  return { id: row.id, name: row.user.name ?? "", branch: row.branch?.name ?? "", phone: row.user.phone ?? "", listingCount: row._count.listings };
 }
 
 export async function listBrokers(): Promise<BrokerCard[]> {
@@ -86,7 +86,7 @@ export async function getBroker(id: string): Promise<(Broker & { listings: Listi
     id: row.id,
     name: row.user.name ?? "",
     branch: row.branch?.name ?? "",
-    phone: row.user.phone,
+    phone: row.user.phone ?? "",
     listings: row.listings.map(toListing),
   };
 }

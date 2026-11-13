@@ -8,9 +8,10 @@ import { currentUser } from "@/lib/session";
 
 export const dynamic = "force-dynamic";
 
-export default async function LoginPage({ params, searchParams }: { params: Promise<{ locale: string }>; searchParams: Promise<{ next?: string }> }) {
+export default async function LoginPage({ params, searchParams }: { params: Promise<{ locale: string }>; searchParams: Promise<{ next?: string; failed?: string }> }) {
   const locale = resolveLocale((await params).locale);
-  const next = safeNext((await searchParams).next, locale);
+  const query = await searchParams;
+  const next = safeNext(query.next, locale);
   // A real check, not hasSession: an expired cookie would otherwise bounce between this page and the one it came from.
   if (await currentUser()) redirect(next);
   const t = getDictionary(locale);
@@ -18,7 +19,7 @@ export default async function LoginPage({ params, searchParams }: { params: Prom
     <>
       <Header locale={locale} t={t} signedIn={false} onLoginPage />
       <main className="section login-page">
-        <LoginPanel locale={locale} t={t} next={next} />
+        <LoginPanel locale={locale} t={t} next={next} failed={query.failed === "social"} />
       </main>
     </>
   );

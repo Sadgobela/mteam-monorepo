@@ -4,13 +4,15 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 const prisma = vi.hoisted(() => ({
   loginCode: { createMany: vi.fn(), updateMany: vi.fn(), deleteMany: vi.fn() },
   codeRequestLimit: { createMany: vi.fn(), updateMany: vi.fn() },
-  user: { upsert: vi.fn() },
+  user: { upsert: vi.fn(), updateMany: vi.fn() },
+  identity: { upsert: vi.fn() },
   session: { create: vi.fn(), findUnique: vi.fn(), deleteMany: vi.fn() },
 }));
 
 vi.mock("./client", () => ({ db: () => prisma }));
 
-import { claimPhoneLookup, deleteSession, getSessionUser, requestLoginCode, verifyLoginCode } from "./index";
+import { Prisma } from "@prisma/client";
+import { addPhone, claimPhoneLookup, deleteSession, getSessionUser, requestLoginCode, signInWithIdentity, verifyLoginCode } from "./index";
 
 const phone = "+995555123456";
 const sha256 = (value: string) => createHash("sha256").update(value).digest("hex");
@@ -237,6 +239,65 @@ describe("verifyLoginCode", () => {
       userId: "u1",
       expiresAt: new Date("2026-12-09T10:00:00Z"),
     });
+  });
+});
+
+describe("signInWithIdentity", () => {
+  it("signs in as the user linked to the account, making one the first time", async () => {
+    prisma.identity.upsert.mockResolvedValue({ userId: "u7" });
+    const token = await signInWithIdentity("GOOGLE", "g-123");
+    expect(prisma.identity.upsert.mock.calls[0][0]).toEqual({
+      where: { provider_subject: { provider: "GOOGLE", subject: "g-123" } },
+      update: {},
+      create: { provider: "GOOGLE", subject: "g-123", user: { create: {} } },
+      select: { userId: true },
+    });
+    expect(prisma.session.create.mock.calls[0][0].data).toEqual({
+      tokenHash: sha256(token),
+      userId: "u7",
+      expiresAt: new Date("2026-12-09T10:00:00Z"),
+    });
+  });
+});
+
+describe("addPhone", () => {
+  const right = () => {
+    prisma.loginCode.updateMany.mockResolvedValue({ count: 1 });
+    prisma.loginCode.deleteMany.mockResolvedValue({ count: 1 });
+  };
+  const unique = new Prisma.PrismaClientKnownRequestError("taken", { code: "P2002", clientVersion: "6" });
+
+  it("does not touch the user for a wrong code", async () => {
+    prisma.loginCode.updateMany.mockResolvedValue({ count: 1 });
+    prisma.loginCode.deleteMany.mockResolvedValue({ count: 0 });
+    expect(await addPhone("u7", phone, "123456")).toBe("wrongCode");
+    expect(prisma.user.updateMany).not.toHaveBeenCalled();
+  });
+
+  it("adds the checked phone to a user who has none", async () => {
+    right();
+    prisma.user.updateMany.mockResolvedValue({ count: 1 });
+    expect(await addPhone("u7", phone, "123456")).toBe("added");
+    expect(prisma.user.updateMany.mock.calls[0][0]).toEqual({ where: { id: "u7", phone: null }, data: { phone } });
+    expect(prisma.session.create).not.toHaveBeenCalled();
+  });
+
+  it("keeps a phone the user already has", async () => {
+    right();
+    prisma.user.updateMany.mockResolvedValue({ count: 0 });
+    expect(await addPhone("u7", phone, "123456")).toBe("taken");
+  });
+
+  it("refuses a phone that has its own account", async () => {
+    right();
+    prisma.user.updateMany.mockRejectedValue(unique);
+    expect(await addPhone("u7", phone, "123456")).toBe("taken");
+  });
+
+  it("passes other database errors on", async () => {
+    right();
+    prisma.user.updateMany.mockRejectedValue(new Error("down"));
+    await expect(addPhone("u7", phone, "123456")).rejects.toThrow("down");
   });
 });
 

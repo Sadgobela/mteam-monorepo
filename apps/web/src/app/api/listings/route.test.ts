@@ -44,7 +44,7 @@ const send = async (request: Request) => {
 
 beforeEach(() => {
   vi.resetAllMocks();
-  session.currentUser.mockResolvedValue({ id: "u1" });
+  session.currentUser.mockResolvedValue({ id: "u1", phone: "+995555123456" });
   photos.readPhotos.mockResolvedValue(["p1", "p2"]);
   photos.uploadPhoto.mockImplementation(async (p: string) => `https://cdn/${p}.jpg`);
 });
@@ -56,6 +56,15 @@ describe("POST /api/listings", () => {
       "https://cdn/p1.jpg",
       "https://cdn/p2.jpg",
     ]);
+  });
+
+  it("turns away someone without a phone, which the listing needs as its contact", async () => {
+    session.currentUser.mockResolvedValue({ id: "u1", phone: null });
+    const request = post(form(), "60000000");
+    const read = vi.spyOn(request, "formData");
+    expect(await send(request)).toEqual([403, { error: "noPhone" }]);
+    expect(read).not.toHaveBeenCalled();
+    expect(db.createListing).not.toHaveBeenCalled();
   });
 
   it("turns away a visitor without reading the body", async () => {

@@ -29,14 +29,12 @@ export async function signInHere(locale: Locale): Promise<string> {
   return loginPath(locale, safeNext(from && from.pathname + from.search, locale));
 }
 
+/** The session cookie's name, value and settings, for a store or a response. */
+export const sessionCookie = (token: string) =>
+  [COOKIE, token, { httpOnly: true, sameSite: "lax", secure: process.env.NODE_ENV === "production", path: "/", maxAge: MAX_AGE_SECONDS }] as const;
+
 export async function startSession(token: string): Promise<void> {
-  (await cookies()).set(COOKIE, token, {
-    httpOnly: true,
-    sameSite: "lax",
-    secure: process.env.NODE_ENV === "production",
-    path: "/",
-    maxAge: MAX_AGE_SECONDS,
-  });
+  (await cookies()).set(...sessionCookie(token));
 }
 
 export async function endSession(): Promise<void> {

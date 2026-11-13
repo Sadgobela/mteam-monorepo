@@ -95,13 +95,15 @@ export function toListing(row: ListingRow): Listing {
           id: agent.id,
           name: agent.user.name ?? "",
           branch: agent.branch?.name ?? "",
-          phone: agent.user.phone,
+          // Brokers are made from a phone number (promoteUser), so this is always set.
+          phone: agent.user.phone ?? "",
         }
       : undefined,
     verification: row.verifiedAt
       ? { by: row.verifiedBy?.user.name ?? "MTeam", at: row.verifiedAt.toISOString().slice(0, 10) }
       : undefined,
-    contactPhone: agent?.user.phone ?? row.owner.phone,
+    // Posting needs a phone, so an owner without one (signed in with Google, Facebook or Apple) has no listings.
+    contactPhone: agent?.user.phone ?? row.owner.phone ?? "",
     sellerId: row.ownerId,
     images: row.images.map((image) => image.url),
     // ponytail: placeholder gradient picked from the id, remove once every listing has photos.
