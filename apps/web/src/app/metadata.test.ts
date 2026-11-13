@@ -30,15 +30,15 @@ afterEach(() => vi.unstubAllEnvs());
 describe("page metadata", () => {
   it("gives the site its name in the page language", async () => {
     vi.stubEnv("SITE_URL", "https://example.test");
-    const metadata = await layoutMetadata({ params: locale("en") });
+    const metadata = await layoutMetadata({ params: locale("en"), modal: null });
     expect(metadata.title).toEqual({ default: "MTeam: real estate", template: "%s | MTeam" });
     expect(metadata.metadataBase?.href).toBe("https://example.test/");
   });
 
   it("uses the local address during development, also when the setting is blank", async () => {
-    expect((await layoutMetadata({ params: locale("en") })).metadataBase?.href).toBe("http://localhost:3111/");
+    expect((await layoutMetadata({ params: locale("en"), modal: null })).metadataBase?.href).toBe("http://localhost:3111/");
     vi.stubEnv("SITE_URL", "");
-    expect((await layoutMetadata({ params: locale("en") })).metadataBase?.href).toBe("http://localhost:3111/");
+    expect((await layoutMetadata({ params: locale("en"), modal: null })).metadataBase?.href).toBe("http://localhost:3111/");
   });
 
   it("stops the server starting on a missing or broken address", () => {
@@ -69,7 +69,7 @@ describe("page metadata", () => {
   it("names and indexes a search by deal, type and city", async () => {
     db.countListings.mockResolvedValue(3);
     const metadata = await homeMetadata({ params: locale("en"), searchParams: query({ deal: "sale", type: "apartment", city: "თბილისი" }) });
-    expect(metadata.title).toBe("For sale · Apartment · Tbilisi | MTeam");
+    expect(metadata.title).toBe("For sale · Apartment · Tbilisi");
     expect(metadata.robots).toBeUndefined();
     expect(metadata.alternates?.canonical).toBe(`/en?${new URLSearchParams({ deal: "sale", type: "apartment", city: "თბილისი" })}`);
     expect(metadata.alternates?.languages).toHaveProperty("ka", `/ka?${new URLSearchParams({ deal: "sale", type: "apartment", city: "თბილისი" })}`);

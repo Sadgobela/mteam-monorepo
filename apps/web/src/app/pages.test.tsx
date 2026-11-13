@@ -60,13 +60,14 @@ const radio = (name: string) => screen.getByRole("radio", { name });
 describe("layout", () => {
   it("builds one page per language", async () => {
     expect(generateStaticParams()).toEqual([{ locale: "ka" }, { locale: "en" }, { locale: "ru" }]);
-    expect((await generateMetadata({ params: Promise.resolve({ locale: "ka" }) })).description).toContain("MTeam");
+    expect((await generateMetadata({ params: Promise.resolve({ locale: "ka" }), modal: null })).description).toContain("MTeam");
   });
 
   it("sets the document language", async () => {
-    const html = renderToStaticMarkup(await LocaleLayout({ children: <p>hi</p>, params: p({ locale: "ru" }) }));
+    const html = renderToStaticMarkup(await LocaleLayout({ children: <p>hi</p>, modal: <p>over</p>, params: p({ locale: "ru" }) }));
     expect(html).toContain('<html lang="ru"');
     expect(html).toContain("mteam-theme");
+    expect(html).toContain("<p>over</p>");
   });
 });
 
