@@ -145,14 +145,15 @@ export async function verifyLoginCode(phone: string, code: string): Promise<stri
 }
 
 /**
- * Signs in with an account at Google, Facebook or Apple and returns a session token. The first time makes a new user.
+ * Signs in with an account at Google, Facebook or Apple and returns a session token. The first time makes a new user,
+ * without a name: what the provider calls someone is not shown to others here.
  * Never matched to an existing user by email: Facebook does not promise the address was checked.
  */
-export async function signInWithIdentity(provider: IdentityProvider, subject: string, name: string | null): Promise<string> {
+export async function signInWithIdentity(provider: IdentityProvider, subject: string): Promise<string> {
   const identity = await db().identity.upsert({
     where: { provider_subject: { provider, subject } },
     update: {},
-    create: { provider, subject, user: { create: { name } } },
+    create: { provider, subject, user: { create: {} } },
     select: { userId: true },
   });
   return createSession(identity.userId);
@@ -171,7 +172,7 @@ export async function addPhone(userId: string, phone: string, code: string): Pro
     const { count } = await db().user.updateMany({ where: { id: userId, phone: null }, data: { phone } });
     return count > 0 ? "added" : "taken";
   } catch (error) {
-    // Another account has this phone, also if it was taken between the check and the write.
+    // Another account has this phone: the unique constraint decides, also between two people adding it at once.
     if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") return "taken";
     throw error;
   }

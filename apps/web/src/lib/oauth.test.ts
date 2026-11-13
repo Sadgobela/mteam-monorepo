@@ -49,6 +49,12 @@ describe("configuredProviders", () => {
     expect(configuredProviders()).toEqual(["google", "facebook", "apple"]);
   });
 
+  it("treats empty values, as copied from .env.example, as not set", () => {
+    setKeys(Object.fromEntries(Object.keys(keys).map((name) => [name, ""])));
+    expect(configuredProviders()).toEqual([]);
+    expect(providerFlow("google")).toBeNull();
+  });
+
   it("knows no provider outside the list, or one without keys", () => {
     expect(providerFlow("google")).toBeNull();
     setKeys(keys);
@@ -58,25 +64,25 @@ describe("configuredProviders", () => {
 });
 
 describe("Google", () => {
-  const claims = { iss: "https://accounts.google.com", aud: "g-id", exp: now.getTime() / 1000 + 60, sub: "g-1", nonce: "no", name: "Nino" };
+  const claims = { iss: "https://accounts.google.com", aud: "g-id", exp: now.getTime() / 1000 + 60, sub: "g-1", nonce: "no" };
   beforeEach(() => setKeys(keys));
 
   it("asks for the account with PKCE, a nonce and the state", () => {
     const sent = query(String(providerFlow("google")?.authorizeUrl(pending)));
-    expect(sent).toMatchObject({ client_id: "g-id", redirect_uri: pending.redirectUri, response_type: "code", scope: "openid profile", state: "st", nonce: "no", code_challenge_method: "S256" });
+    expect(sent).toMatchObject({ client_id: "g-id", redirect_uri: pending.redirectUri, response_type: "code", scope: "openid", state: "st", nonce: "no", code_challenge_method: "S256" });
     expect(sent.code_challenge).toBe(createHash("sha256").update("ve").digest("base64url"));
   });
 
   it("trades the code for an ID token and reads who it is", async () => {
     fetcher.mockResolvedValue(answer({ id_token: idToken(claims) }));
-    expect(await providerFlow("google")?.person("c0de", pending)).toEqual({ subject: "g-1", name: "Nino" });
+    expect(await providerFlow("google")?.person("c0de", pending)).toEqual({ subject: "g-1" });
     expect(fetcher.mock.calls[0][0]).toBe("https://oauth2.googleapis.com/token");
     expect(posted(0)).toEqual({ code: "c0de", client_id: "g-id", client_secret: "g-secret", redirect_uri: pending.redirectUri, grant_type: "authorization_code", code_verifier: "ve" });
   });
 
-  it("accepts the short issuer and a token without a name", async () => {
-    fetcher.mockResolvedValue(answer({ id_token: idToken({ ...claims, iss: "accounts.google.com", name: undefined }) }));
-    expect(await providerFlow("google")?.person("c0de", pending)).toEqual({ subject: "g-1", name: null });
+  it("accepts the short issuer", async () => {
+    fetcher.mockResolvedValue(answer({ id_token: idToken({ ...claims, iss: "accounts.google.com" }) }));
+    expect(await providerFlow("google")?.person("c0de", pending)).toEqual({ subject: "g-1" });
   });
 
   it.each([
@@ -105,15 +111,17 @@ describe("Facebook", () => {
   });
 
   it("trades the code for a token and reads the profile with proof of our app", async () => {
-    fetcher.mockResolvedValueOnce(answer({ access_token: "tok" })).mockResolvedValueOnce(answer({ id: "fb-1", name: "Giorgi" }));
-    expect(await providerFlow("facebook")?.person("c0de", pending)).toEqual({ subject: "fb-1", name: "Giorgi" });
+    fetcher.mockResolvedValueOnce(answer({ access_token: "tok" })).mockResolvedValueOnce(answer({ id: "fb-1" }));
+    expect(await providerFlow("facebook")?.person("c0de", pending)).toEqual({ subject: "fb-1" });
     expect(query(fetcher.mock.calls[0][0])).toEqual({ client_id: "fb-id", client_secret: "fb-secret", redirect_uri: pending.redirectUri, code: "c0de" });
-    expect(query(fetcher.mock.calls[1][0])).toEqual({ fields: "id,name", access_token: "tok", appsecret_proof: createHmac("sha256", "fb-secret").update("tok").digest("hex") });
+    expect(query(fetcher.mock.calls[1][0])).toEqual({ fields: "id", access_token: "tok", appsecret_proof: createHmac("sha256", "fb-secret").update("tok").digest("hex") });
   });
 
-  it("copes with a profile without a name", async () => {
-    fetcher.mockResolvedValueOnce(answer({ access_token: "tok" })).mockResolvedValueOnce(answer({ id: "fb-1" }));
-    expect(await providerFlow("facebook")?.person("c0de", pending)).toEqual({ subject: "fb-1", name: null });
+  it("refuses a refused code or profile", async () => {
+    fetcher.mockResolvedValueOnce(answer({ error: "bad" }, 400));
+    await expect(providerFlow("facebook")?.person("c0de", pending)).rejects.toThrow("400");
+    fetcher.mockResolvedValueOnce(answer({ access_token: "tok" })).mockResolvedValueOnce(answer({ error: "bad" }, 401));
+    await expect(providerFlow("facebook")?.person("c0de", pending)).rejects.toThrow("401");
   });
 });
 
@@ -135,9 +143,16 @@ describe("Apple", () => {
 
   it("trades the code for an ID token", async () => {
     fetcher.mockResolvedValue(answer({ id_token: idToken(claims) }));
-    expect(await providerFlow("apple")?.person("c0de", pending)).toEqual({ subject: "a-1", name: null });
+    expect(await providerFlow("apple")?.person("c0de", pending)).toEqual({ subject: "a-1" });
     expect(fetcher.mock.calls[0][0]).toBe("https://appleid.apple.com/auth/token");
     expect(posted(0)).toMatchObject({ code: "c0de", client_id: "a-id", redirect_uri: pending.redirectUri, grant_type: "authorization_code" });
     expect(posted(0).client_secret.split(".")).toHaveLength(3);
+  });
+
+  it("refuses a token meant for Google or another sign-in", async () => {
+    fetcher.mockResolvedValue(answer({ id_token: idToken({ ...claims, iss: "https://accounts.google.com" }) }));
+    await expect(providerFlow("apple")?.person("c0de", pending)).rejects.toThrow("not for this sign-in");
+    fetcher.mockResolvedValue(answer({ id_token: idToken({ ...claims, nonce: "other" }) }));
+    await expect(providerFlow("apple")?.person("c0de", pending)).rejects.toThrow("not for this sign-in");
   });
 });

@@ -245,11 +245,11 @@ describe("verifyLoginCode", () => {
 describe("signInWithIdentity", () => {
   it("signs in as the user linked to the account, making one the first time", async () => {
     prisma.identity.upsert.mockResolvedValue({ userId: "u7" });
-    const token = await signInWithIdentity("GOOGLE", "g-123", "Nino");
+    const token = await signInWithIdentity("GOOGLE", "g-123");
     expect(prisma.identity.upsert.mock.calls[0][0]).toEqual({
       where: { provider_subject: { provider: "GOOGLE", subject: "g-123" } },
       update: {},
-      create: { provider: "GOOGLE", subject: "g-123", user: { create: { name: "Nino" } } },
+      create: { provider: "GOOGLE", subject: "g-123", user: { create: {} } },
       select: { userId: true },
     });
     expect(prisma.session.create.mock.calls[0][0].data).toEqual({

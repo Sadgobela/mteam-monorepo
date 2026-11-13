@@ -57,14 +57,31 @@ describe("starting", () => {
   });
 });
 
+describe("live", () => {
+  it("keeps the remembered sign-in in a __Host- cookie, which another subdomain or plain http cannot plant", async () => {
+    vi.stubEnv("NODE_ENV", "production");
+    const started = await startRoute(new NextRequest(`${origin}/api/auth/google`), params("google"));
+    expect(started.cookies.get("mteam_social")).toBeUndefined();
+    const cookie = started.cookies.get("__Host-mteam_social");
+    expect(cookie).toMatchObject({ secure: true, path: "/", httpOnly: true });
+
+    flow.person.mockResolvedValue({ subject: "g-1" });
+    db.signInWithIdentity.mockResolvedValue("tok");
+    const request = new NextRequest(`${origin}/api/auth/google/callback?code=c0de&state=st`, { headers: { cookie: `__Host-mteam_social=${encodeURIComponent(JSON.stringify(saved))}` } });
+    const finished = await callbackRoute(request, params("google"));
+    expect(finished.headers.get("location")).toBe(`${origin}/en/saved`);
+    expect(finished.cookies.get("__Host-mteam_social")).toMatchObject({ value: "", path: "/", maxAge: 0 });
+  });
+});
+
 describe("coming back", () => {
   it("signs in and opens the page sign-in started from", async () => {
-    flow.person.mockResolvedValue({ subject: "g-1", name: "Nino" });
+    flow.person.mockResolvedValue({ subject: "g-1" });
     db.signInWithIdentity.mockResolvedValue("tok");
     const response = await callbackRoute(back("code=c0de&state=st"), params("google"));
 
     expect(flow.person).toHaveBeenCalledWith("c0de", { ...saved, redirectUri: `${origin}/api/auth/google/callback` });
-    expect(db.signInWithIdentity).toHaveBeenCalledWith("GOOGLE", "g-1", "Nino");
+    expect(db.signInWithIdentity).toHaveBeenCalledWith("GOOGLE", "g-1");
     expect(response.headers.get("location")).toBe(`${origin}/en/saved`);
     expect(response.cookies.get("mteam_session")).toMatchObject({ value: "tok", httpOnly: true, path: "/" });
     expect(response.cookies.get("mteam_social")).toMatchObject({ value: "", maxAge: 0 });
@@ -73,6 +90,7 @@ describe("coming back", () => {
   it.each([
     ["another state", back("code=c0de&state=other")],
     ["a state of another length", back("code=c0de&state=s")],
+    ["a state that is not plain text", back("code=c0de&state=%C3%A9t")],
     ["no state", back("code=c0de")],
     ["no code", back("state=st&error=access_denied")],
     ["no remembered sign-in", back("code=c0de&state=st", null)],
@@ -82,19 +100,26 @@ describe("coming back", () => {
     const response = await callbackRoute(request, params("google"));
     expect(flow.person).not.toHaveBeenCalled();
     expect(response.cookies.get("mteam_session")).toBeUndefined();
-    expect(response.headers.get("location")).toMatch(/\/(en|ka)\/login\?failed=social$/);
+    expect(response.headers.get("location")).toMatch(/\/(en|ka)\/login\?next=%2F(en%2Fsaved|ka)&failed=social$/);
   });
 
   it("refuses a provider that is no longer set up", async () => {
     oauth.providerFlow.mockReturnValue(null);
     const response = await callbackRoute(back("code=c0de&state=st"), params("google"));
-    expect(response.headers.get("location")).toBe(`${origin}/en/login?failed=social`);
+    expect(response.headers.get("location")).toBe(`${origin}/en/login?next=%2Fen%2Fsaved&failed=social`);
+  });
+
+  it("checks the remembered page again, in case the cookie was changed", async () => {
+    flow.person.mockResolvedValue({ subject: "g-1" });
+    db.signInWithIdentity.mockResolvedValue("tok");
+    const response = await callbackRoute(back("code=c0de&state=st", { ...saved, next: "//evil.example" }), params("google"));
+    expect(response.headers.get("location")).toBe(`${origin}/en`);
   });
 
   it("says so when the provider refuses the code", async () => {
     flow.person.mockRejectedValue(new Error("400"));
     const response = await callbackRoute(back("code=c0de&state=st"), params("google"));
-    expect(response.headers.get("location")).toBe(`${origin}/en/login?failed=social`);
+    expect(response.headers.get("location")).toBe(`${origin}/en/login?next=%2Fen%2Fsaved&failed=social`);
     expect(response.cookies.get("mteam_session")).toBeUndefined();
     expect(errors).toHaveBeenCalled();
   });

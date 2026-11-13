@@ -1,17 +1,24 @@
-import { randomBytes, timingSafeEqual } from "node:crypto";
+import { createHash, randomBytes, timingSafeEqual } from "node:crypto";
 import { NextResponse, type NextRequest } from "next/server";
 import { signInWithIdentity } from "@mteam/db";
 import { defaultLocale, isLocale, type Locale } from "@mteam/shared";
 import { z } from "zod";
-import { safeNext } from "./login-path";
+import { loginPath, safeNext } from "./login-path";
 import { providerFlow } from "./oauth";
 import { sessionCookie } from "./session";
 import { siteUrl } from "./site-url";
 
-/** Holds this sign-in's checks between leaving for the provider and coming back. Only our routes under /api/auth read it. */
-const COOKIE = "mteam_social";
-const COOKIE_PATH = "/api/auth";
 const TEN_MINUTES = 10 * 60;
+
+/**
+ * Holds this sign-in's checks between leaving for the provider and coming back. Live, the __Host- name makes the browser
+ * refuse one planted from another subdomain or over plain http, which would let someone finish their own sign-in in a
+ * visitor's browser. That name needs Secure and the whole site as its path; locally there is no https.
+ */
+function pendingCookie() {
+  const live = process.env.NODE_ENV === "production";
+  return live ? { name: "__Host-mteam_social", path: "/", secure: true } : { name: "mteam_social", path: "/api/auth", secure: false };
+}
 
 const pendingSchema = z.object({
   provider: z.string(),
@@ -26,7 +33,9 @@ const pendingSchema = z.object({
 const localeOf = (value: unknown): Locale => (typeof value === "string" && isLocale(value) ? value : defaultLocale);
 const random = () => randomBytes(32).toString("base64url");
 const redirectUri = (provider: string) => `${siteUrl()}/api/auth/${provider}/callback`;
-const sameText = (a: string, b: string) => a.length === b.length && timingSafeEqual(Buffer.from(a), Buffer.from(b));
+// Compared as digests, which always have the same length, so no input can make the comparison throw.
+const digest = (value: string) => createHash("sha256").update(value).digest();
+const sameText = (a: string, b: string) => timingSafeEqual(digest(a), digest(b));
 
 /** Leaves for the provider's sign-in page, remembering where to come back to. */
 export async function startSocialLogin(request: NextRequest, provider: string): Promise<NextResponse> {
@@ -36,20 +45,15 @@ export async function startSocialLogin(request: NextRequest, provider: string): 
   const locale = localeOf(query.get("locale"));
   const pending = { provider, state: random(), nonce: random(), verifier: random(), next: safeNext(query.get("next"), locale), locale };
   const response = NextResponse.redirect(flow.authorizeUrl({ ...pending, redirectUri: redirectUri(provider) }));
-  response.cookies.set(COOKIE, JSON.stringify(pending), {
-    httpOnly: true,
-    // Lax still comes along on the provider's redirect back, which is a top-level GET.
-    sameSite: "lax",
-    secure: process.env.NODE_ENV === "production",
-    path: COOKIE_PATH,
-    maxAge: TEN_MINUTES,
-  });
+  const { name, path, secure } = pendingCookie();
+  // Lax still comes along on the provider's redirect back, which is a top-level GET.
+  response.cookies.set(name, JSON.stringify(pending), { httpOnly: true, sameSite: "lax", secure, path, maxAge: TEN_MINUTES });
   return response;
 }
 
 function readPending(request: NextRequest) {
   try {
-    return pendingSchema.parse(JSON.parse(String(request.cookies.get(COOKIE)?.value)));
+    return pendingSchema.parse(JSON.parse(String(request.cookies.get(pendingCookie().name)?.value)));
   } catch {
     return null;
   }
@@ -62,14 +66,15 @@ export async function finishSocialLogin(request: NextRequest, provider: string):
   const locale = localeOf(pending?.locale);
   const flow = providerFlow(provider);
   const code = query.get("code");
-  let next = `/${locale}/login?failed=social`;
+  // On failure, sign-in again, still coming back to the same page.
+  let next = `${loginPath(locale, safeNext(pending?.next, locale))}&failed=social`;
   let token: string | null = null;
 
   // The state must be the one this browser set off with, or someone else's sign-in could be finished here.
   if (pending && flow && code && pending.provider === provider && sameText(pending.state, String(query.get("state")))) {
     try {
       const person = await flow.person(code, { ...pending, redirectUri: redirectUri(provider) });
-      token = await signInWithIdentity(flow.id, person.subject, person.name);
+      token = await signInWithIdentity(flow.id, person.subject);
       next = safeNext(pending.next, locale);
     } catch (error) {
       console.error("Social sign-in failed", provider, error);
@@ -77,7 +82,8 @@ export async function finishSocialLogin(request: NextRequest, provider: string):
   }
 
   const response = NextResponse.redirect(new URL(next, siteUrl()));
-  response.cookies.set(COOKIE, "", { path: COOKIE_PATH, maxAge: 0 });
+  const { name, path } = pendingCookie();
+  response.cookies.set(name, "", { path, maxAge: 0 });
   if (token) response.cookies.set(...sessionCookie(token));
   return response;
 }
