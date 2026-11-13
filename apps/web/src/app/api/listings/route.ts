@@ -25,6 +25,8 @@ async function readForm(request: Request): Promise<FormData | null> {
 export async function POST(request: Request) {
   const user = await currentUser();
   if (!user) return fail("signedOut", 401);
+  // The phone is the listing's contact number. The posting page asks for one first, so this only stops a crafted request.
+  if (!user.phone) return fail("noPhone", 403);
 
   const length = Number(request.headers.get("content-length"));
   if (!(length > 0) || length > MAX_BODY_BYTES) return fail("photos", 413);
