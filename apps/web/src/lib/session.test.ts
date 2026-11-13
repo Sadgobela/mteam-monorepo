@@ -9,7 +9,7 @@ const requestHeaders = vi.hoisted(() => ({ get: vi.fn() }));
 vi.mock("next/headers", () => ({ cookies: async () => store, headers: async () => requestHeaders }));
 vi.mock("@mteam/db", () => db);
 
-import { clientIp, currentUser, endSession, hasSession, startSession } from "./session";
+import { clientIp, currentUser, endSession, hasSession, signInHere, startSession } from "./session";
 
 beforeEach(() => vi.resetAllMocks());
 afterEach(() => vi.unstubAllEnvs());
@@ -83,5 +83,17 @@ describe("endSession", () => {
     await endSession();
     expect(db.deleteSession).not.toHaveBeenCalled();
     expect(store.delete).toHaveBeenCalledWith("mteam_session");
+  });
+});
+
+describe("signInHere", () => {
+  it.each([
+    ["http://localhost:3111/ka/listings/7?photo=2", "/ka/login?next=%2Fka%2Flistings%2F7%3Fphoto%3D2"],
+    ["https://evil.example/", "/ka/login?next=%2Fka"],
+    [null, "/ka/login?next=%2Fka"],
+  ])("comes back from %j", async (referer, expected) => {
+    requestHeaders.get.mockReturnValue(referer);
+    expect(await signInHere("ka")).toBe(expected);
+    expect(requestHeaders.get).toHaveBeenCalledWith("referer");
   });
 });

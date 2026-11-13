@@ -16,7 +16,7 @@ const db = vi.hoisted(() => ({
   searchListings: vi.fn(),
   setFavorite: vi.fn(),
 }));
-const session = vi.hoisted(() => ({ currentUser: vi.fn(), hasSession: vi.fn() }));
+const session = vi.hoisted(() => ({ currentUser: vi.fn(), hasSession: vi.fn(), signInHere: async (locale: string) => `/${locale}/login?next=%2F${locale}%2Fhere` }));
 const revalidatePath = vi.hoisted(() => vi.fn());
 
 vi.mock("@mteam/db", () => db);
@@ -77,7 +77,7 @@ describe("account actions", () => {
 
   it("sends a visitor to login without acting", async () => {
     session.currentUser.mockResolvedValue(null);
-    await expect(setFavoriteAction(form(body))).rejects.toThrow("REDIRECT /en/login");
+    await expect(setFavoriteAction(form(body))).rejects.toThrow("REDIRECT /en/login?next=%2Fen%2Fhere");
     expect(db.setFavorite).not.toHaveBeenCalled();
   });
 

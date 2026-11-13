@@ -3,7 +3,7 @@ import { render, screen } from "@testing-library/react";
 import { getDictionary } from "@mteam/shared";
 
 const db = vi.hoisted(() => ({ PAGE_SIZE: 24, countListings: vi.fn(), deleteSavedSearch: vi.fn(), getFavoriteIds: vi.fn(), getHiddenIds: vi.fn(), isSearchSaved: vi.fn(), listSavedSearches: vi.fn(), openSavedSearch: vi.fn(), parseListingId: vi.fn(), saveSearch: vi.fn(), searchListings: vi.fn() }));
-const session = vi.hoisted(() => ({ currentUser: vi.fn() }));
+const session = vi.hoisted(() => ({ currentUser: vi.fn(), signInHere: async (locale: string) => `/${locale}/login?next=%2F${locale}%2Fhere` }));
 const cacheApi = vi.hoisted(() => ({ revalidatePath: vi.fn() }));
 
 vi.mock("@mteam/db", () => db);
@@ -114,7 +114,7 @@ describe("SavedSearchesPage", () => {
 describe("saved search actions", () => {
   it("need a signed-in user", async () => {
     session.currentUser.mockResolvedValue(null);
-    await expect(saveSearchAction(form({ query: "deal=sale" }))).rejects.toThrow("REDIRECT /en/login");
+    await expect(saveSearchAction(form({ query: "deal=sale" }))).rejects.toThrow("REDIRECT /en/login?next=%2Fen%2Fhere");
     expect(db.saveSearch).not.toHaveBeenCalled();
   });
 

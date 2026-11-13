@@ -15,7 +15,7 @@ const db = vi.hoisted(() => ({
   sendMessage: vi.fn(),
   startConversation: vi.fn(),
 }));
-const session = vi.hoisted(() => ({ currentUser: vi.fn() }));
+const session = vi.hoisted(() => ({ currentUser: vi.fn(), signInHere: async (locale: string) => `/${locale}/login?next=%2F${locale}%2Fhere` }));
 const refresh = vi.hoisted(() => vi.fn());
 
 vi.mock("@mteam/db", () => db);
@@ -202,8 +202,8 @@ describe("LiveRefresh", () => {
 describe("chat actions", () => {
   it("need a signed-in user", async () => {
     session.currentUser.mockResolvedValue(null);
-    await expect(startChatAction(form({ listingId: "7", body: "hi" }))).rejects.toThrow("REDIRECT /en/login");
-    await expect(sendChatAction(form({ conversationId: "c1", body: "hi" }))).rejects.toThrow("REDIRECT /en/login");
+    await expect(startChatAction(form({ listingId: "7", body: "hi" }))).rejects.toThrow("REDIRECT /en/login?next=%2Fen%2Fhere");
+    await expect(sendChatAction(form({ conversationId: "c1", body: "hi" }))).rejects.toThrow("REDIRECT /en/login?next=%2Fen%2Fhere");
     expect(db.startConversation).not.toHaveBeenCalled();
     expect(db.sendMessage).not.toHaveBeenCalled();
   });
