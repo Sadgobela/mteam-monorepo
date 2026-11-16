@@ -21,6 +21,9 @@ function page() {
     <>
       <NavProgress />
       <a href={brokers}>Brokers</a>
+      <a href={brokers}>
+        <button type="button">Next photo</button>
+      </a>
       <a href={`${home}?deal=sale`}>
         <span>Sale</span>
       </a>
@@ -54,7 +57,8 @@ function page() {
 }
 
 const click = (text: string, init: MouseEventInit = {}) => {
-  const target = Array.from(document.querySelectorAll("a, button, span")).find((element) => element.textContent === text) as HTMLElement;
+  // The innermost element with this text, as a pointer would hit it.
+  const target = Array.from(document.querySelectorAll("a, button, span")).reverse().find((element) => element.textContent === text) as HTMLElement;
   // Links would make jsdom try to navigate; the router takes them over in the real page.
   target.addEventListener("click", (event) => event.preventDefault());
   fireEvent.click(target, init);
@@ -109,6 +113,7 @@ describe("NavProgress", () => {
     ["a link opened with alt", "Brokers", { altKey: true }],
     ["a middle click", "Brokers", { button: 1 }],
     ["a click on something else", "Not a link", {}],
+    ["a button inside a link", "Next photo", {}],
   ])("stays idle for %s", (_name, text, init) => {
     page();
     click(text, init);

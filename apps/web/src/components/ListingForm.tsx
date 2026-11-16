@@ -336,7 +336,7 @@ export function ListingForm({
             </label>
             {ai && (
               <>
-                <button type="button" className="btn ghost ai-write" disabled={writing} onClick={writeDescriptions}>
+                <button type="button" className="btn ghost ai-write" disabled={writing} aria-busy={writing} onClick={writeDescriptions}>
                   {writing ? t.post.ai.writing : t.post.ai.write}
                 </button>
                 {aiNote && (

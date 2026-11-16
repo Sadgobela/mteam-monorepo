@@ -23,7 +23,8 @@ export function startNavProgress(href: string): void {
 /** Whether a click opens another page of this site in this tab: not a new tab, a download, a phone number or `#give`. */
 function opensPage(event: MouseEvent): boolean {
   if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return false;
-  const link = event.target instanceof Element ? event.target.closest("a[href]") : null;
+  // The nearest control: a button inside a link (the photo arrows on a card) does not open the link.
+  const link = event.target instanceof Element ? event.target.closest("a[href], button") : null;
   if (!(link instanceof HTMLAnchorElement) || (link.target !== "" && link.target !== "_self") || link.hasAttribute("download")) return false;
   return changesPage(link.href);
 }
