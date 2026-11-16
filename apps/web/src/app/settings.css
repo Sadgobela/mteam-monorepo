@@ -1,0 +1,13 @@
+/* Account settings (Track B). Colours from the tokens in globals.css, so both themes work. */
+.settings-card { display: grid; gap: 12px; padding: 16px; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; }
+.settings-card h2 { margin: 0; font-size: 18px; color: var(--fg); }
+.settings-hint { display: block; margin: 0; color: var(--muted); font-size: 14px; font-weight: 400; }
+.settings-row { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 4px 12px; min-height: 44px; }
+.settings-row label { flex: 1 1 0; min-width: 0; padding: 10px 0; cursor: pointer; color: var(--fg); }
+.settings-error { flex-basis: 100%; margin: 0; }
+.settings-devices { display: grid; list-style: none; margin: 0; padding: 0; }
+.settings-devices li { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 12px; padding: 12px 0; border-top: 1px solid var(--line); }
+.settings-devices li:first-child { border-top: 0; padding-top: 0; }
+.settings-badge { margin-inline-start: 8px; padding: 2px 8px; border-radius: 999px; background: var(--brand-soft); color: var(--brand-deep); font-size: 12px; font-weight: 700; white-space: nowrap; }
+.settings-consequences { margin: 0; padding-inline-start: 20px; display: grid; gap: 4px; color: var(--fg); }
+.settings-card form .ant-btn { min-height: 44px; }
