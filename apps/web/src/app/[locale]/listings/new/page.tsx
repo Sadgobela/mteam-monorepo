@@ -40,7 +40,7 @@ export default async function NewListingPage({
   return (
     <>
       <Header locale={locale} t={t} signedIn />
-      <main className="section narrow">
+      <main className="section post-page">
         <h1>{t.post.heading}</h1>
         {sent ? (
           <>

@@ -205,7 +205,8 @@ describe("ListingForm", () => {
   });
 
   describe("steps", () => {
-    const fill = (label: string, value: string) => fireEvent.change(screen.getByLabelText(label), { target: { value } });
+    // The selector skips the step of the same name ("Price"), which is labelled too.
+    const fill = (label: string, value: string) => fireEvent.change(screen.getByLabelText(label, { selector: "input, select, textarea" }), { target: { value } });
     const next = () => fireEvent.click(screen.getByRole("button", { name: t.post.next }));
     const current = () => document.querySelector("[aria-current=step]")?.textContent;
     const completeFirst = () => {
@@ -214,11 +215,20 @@ describe("ListingForm", () => {
       next();
     };
     const completeSecond = () => {
-      fill(t.post.fields.price, "1000");
       fill(t.post.fields.area, "50");
       fill(t.post.fields.rooms, "2");
       fill(t.post.fields.title, "Flat");
       fill(t.post.fields.description, "Sunny");
+      next();
+    };
+    const completePrice = () => {
+      fill(t.post.fields.price, "1000");
+      next();
+    };
+    const toLast = () => {
+      completeFirst();
+      completeSecond();
+      completePrice();
       next();
     };
 
@@ -295,8 +305,12 @@ describe("ListingForm", () => {
       expect(current()).toBe("2 Details");
       expect(screen.getByRole("group", { name: t.post.steps.details })).toHaveFocus();
       completeSecond();
-      expect(current()).toBe("3 Photos");
+      expect(current()).toBe("3 Price");
+      completePrice();
+      expect(current()).toBe("4 Photos");
       expect(screen.getByRole("group", { name: t.post.steps.photos })).toHaveFocus();
+      next();
+      expect(current()).toBe("5 Contact");
       expect(screen.getByRole("button", { name: t.post.submit })).toHaveAttribute("type", "submit");
       expect(screen.queryByRole("button", { name: t.post.next })).toBeNull();
     });
@@ -304,9 +318,8 @@ describe("ListingForm", () => {
     it("lets someone whose session ended post again after closing sign-in", async () => {
       reply(401, { error: "signedOut" });
       render(<ListingForm locale="en" t={t} />);
-      completeFirst();
-      completeSecond();
       choose("a.jpg");
+      toLast();
       const button = screen.getByRole("button", { name: t.post.submit });
       fireEvent.submit(button.closest("form") as HTMLFormElement);
       await waitFor(() => expect(router.push).toHaveBeenCalledWith("/en/login?next=%2Fen%2Flistings%2Fnew"));
@@ -316,7 +329,7 @@ describe("ListingForm", () => {
     it("hides the other steps but keeps their values in the form", () => {
       const { container } = render(<ListingForm locale="en" t={t} />);
       completeFirst();
-      expect(container.querySelectorAll("fieldset.off")).toHaveLength(2);
+      expect(container.querySelectorAll("fieldset.off")).toHaveLength(4);
       expect(container.querySelector("fieldset:not(.off)")).toHaveAccessibleName(t.post.steps.details);
       expect(screen.getByLabelText(t.post.fields.district)).toHaveValue("ვაკე");
     });
@@ -332,8 +345,19 @@ describe("ListingForm", () => {
 
       fill(t.post.fields.floors, "12");
       next();
-      expect(current()).toBe("3 Photos");
+      expect(current()).toBe("3 Price");
       expect(screen.queryByRole("alert")).toBeNull();
+    });
+
+    it("catches a price per m² beyond any real one before the photos step", () => {
+      render(<ListingForm locale="en" t={t} />);
+      completeFirst();
+      completeSecond();
+      fill(t.post.fields.area, "1");
+      fill(t.post.fields.price, "2000000000");
+      next();
+      expect(current()).toBe("3 Price");
+      expect(screen.getByRole("alert")).toHaveTextContent(t.post.errors.invalid);
     });
 
     it("clears that error when going back", () => {
@@ -352,6 +376,108 @@ describe("ListingForm", () => {
       fireEvent.click(screen.getByRole("button", { name: t.post.back }));
       expect(current()).toBe("1 Location");
       expect(screen.getByLabelText(t.post.fields.address)).toHaveValue("Main 1");
+    });
+  });
+
+  describe("preview and quality", () => {
+    const type = (label: string, value: string) => fireEvent.change(screen.getByLabelText(label, { selector: "input, textarea" }), { target: { value } });
+    const preview = () => screen.getByRole("region", { name: t.post.preview });
+
+    it("shows the listing as a card while it is typed, with the first photo", async () => {
+      render(<ListingForm locale="en" t={t} />);
+      expect(preview()).toHaveTextContent("Tbilisi");
+      fireEvent.change(screen.getByLabelText(t.search.deal), { target: { value: "rent" } });
+      fireEvent.change(screen.getByLabelText(t.post.fields.district), { target: { value: "ვაკე" } });
+      type(t.post.fields.title, "Sunny flat");
+      type(t.post.fields.price, "900");
+      type(t.post.fields.area, "50");
+      type(t.post.fields.rooms, "2");
+      fireEvent.change(screen.getByLabelText(t.post.fields.currency), { target: { value: "GEL" } });
+      choose("a.jpg");
+      await waitFor(() => expect(preview()).toHaveTextContent(`₾900 ${t.perMonth}`));
+      expect(preview()).toHaveTextContent("Sunny flat");
+      expect(preview()).toHaveTextContent("Vake, Tbilisi");
+      expect(preview()).toHaveTextContent(`50 ${t.units.sqm}`);
+      expect(preview()).toHaveTextContent(`2 ${t.units.rooms}`);
+      expect(preview().querySelector("img")).toHaveAttribute("src", "blob:1");
+    });
+
+    it("shows a dash for what is not filled in yet", () => {
+      render(<ListingForm locale="en" t={t} />);
+      expect(preview()).toHaveTextContent(`${t.post.preview}——`);
+    });
+
+    it("scores the listing and says what to add next", async () => {
+      render(<ListingForm locale="en" t={t} />);
+      const meter = () => screen.getByRole("meter", { name: t.post.quality.heading });
+      expect(meter()).toHaveAttribute("value", "0");
+      expect(screen.getByText(t.post.quality.tips.photos.replace("{count}", "8"))).toBeInTheDocument();
+      type(t.post.fields.cadastralCode, "01.10");
+      fireEvent.change(screen.getByLabelText(t.search.status), { target: { value: "new" } });
+      await waitFor(() => expect(meter()).toHaveAttribute("value", String(10 + 4)));
+      expect(screen.queryByText(t.post.quality.tips.cadastralCode)).toBeNull();
+    });
+
+    it("says when nothing is missing", async () => {
+      const full = { ...editable, images: Array.from({ length: 8 }, (_, index) => `https://cdn/${index}.webp`), fields: { ...editable.fields, description: "a".repeat(300), bedrooms: "1", ceiling: "3", yearBuilt: "2020" } };
+      render(<ListingForm locale="en" t={t} initial={full} />);
+      expect(await screen.findByText(t.post.quality.done)).toBeInTheDocument();
+    });
+  });
+
+  describe("autosave", () => {
+    const next = () => fireEvent.click(screen.getByRole("button", { name: t.post.next }));
+    const start = () => {
+      fireEvent.change(screen.getByLabelText(t.post.fields.district), { target: { value: "ვაკე" } });
+      fireEvent.change(screen.getByLabelText(t.post.fields.address, { selector: "input" }), { target: { value: "Main 1" } });
+    };
+
+    it("saves a new listing as a draft at each step, into the same draft, and sends that draft for review", async () => {
+      reply(200, { id: 12, status: "DRAFT" });
+      render(<ListingForm locale="en" t={t} />);
+      start();
+      choose("a.jpg");
+      next();
+      await waitFor(() => expect(sentTo("/api/listings")).toHaveLength(1));
+      const [first] = sentTo("/api/listings");
+      expect([first.get("intent"), first.get("id"), first.get("district"), first.getAll("photos")]).toEqual(["draft", null, "ვაკე", ["https://cdn/u1.webp"]]);
+
+      fireEvent.click(screen.getByRole("button", { name: t.post.back }));
+      await waitFor(() => expect(sentTo("/api/listings")).toHaveLength(2));
+      expect(sentTo("/api/listings")[1].get("id")).toBe("12");
+      expect(sentTo("/api/listings/photos")).toHaveLength(1);
+
+      fireEvent.submit(formOf(t.post.fields.title));
+      await waitFor(() => expect(router.push).toHaveBeenCalledWith("/en/listings/new?sent=1"));
+      expect([sentTo("/api/listings")[2].get("intent"), sentTo("/api/listings")[2].get("id")]).toEqual(["submit", "12"]);
+    });
+
+    it("carries on quietly when a draft cannot be saved", async () => {
+      server.mockRejectedValue(new Error("offline"));
+      render(<ListingForm locale="en" t={t} />);
+      start();
+      next();
+      await waitFor(() => expect(server).toHaveBeenCalled());
+      expect(screen.queryByRole("alert")).toBeNull();
+    });
+
+    it("saves nothing while a field holds something it cannot store", async () => {
+      reply(200, { id: 12, status: "DRAFT" });
+      render(<ListingForm locale="en" t={t} />);
+      start();
+      fireEvent.click(screen.getByRole("button", { name: t.post.next }));
+      fireEvent.change(screen.getByLabelText(t.post.fields.area, { selector: "input" }), { target: { value: "-5" } });
+      fireEvent.click(screen.getByRole("button", { name: t.post.back }));
+      await waitFor(() => expect(sentTo("/api/listings")).toHaveLength(1));
+    });
+
+    it("never autosaves a published listing, which would send it for review", async () => {
+      reply(200, { id: 9, status: "ACTIVE" });
+      render(<ListingForm locale="en" t={t} initial={editable} />);
+      next();
+      fireEvent.click(screen.getByRole("button", { name: t.post.back }));
+      await new Promise((resolve) => setTimeout(resolve, 50));
+      expect(server).not.toHaveBeenCalled();
     });
   });
 
@@ -435,8 +561,7 @@ describe("editing a listing", () => {
     expect(screen.getByRole("checkbox", { name: t.post.fields.hidePhone, hidden: true })).toBeChecked();
     expect(document.querySelector(".photo-list img")).toHaveAttribute("src", "https://cdn/listings/old.webp");
 
-    fireEvent.click(screen.getByRole("button", { name: t.post.next }));
-    fireEvent.click(screen.getByRole("button", { name: t.post.next }));
+    for (let step = 0; step < 4; step++) fireEvent.click(screen.getByRole("button", { name: t.post.next }));
     fireEvent.click(screen.getByRole("button", { name: t.post.save }));
     await waitFor(() => expect(router.push).toHaveBeenCalledWith("/en/listings/9/edit?saved=1"));
     expect(sentTo("/api/listings/photos")).toHaveLength(0);

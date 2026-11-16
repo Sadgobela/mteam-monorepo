@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { isFeature, specKeys, type SpecName } from "./details";
+import { isFeature, specKeys, specNames, type SpecName } from "./details";
 import { cityDistricts, isCity, isMetro, METRO_CITY } from "./places";
 import { buildingStatuses, canonicalSearch, currencies, dealTypes, FALLBACK_GEL_PER_USD, MAX_PRICE, priceInUsd, propertyTypes } from "./search";
 
@@ -157,6 +157,30 @@ export function draftProblems(fields: Record<string, unknown>): string[] {
   if (result.success) return [];
   const named = result.error.issues.map((issue) => issue.path.join(".")).filter(Boolean);
   return named.length > 0 ? [...new Set(named)] : ["combination"];
+}
+
+/** What a complete listing has. The copy quotes these numbers. */
+export const QUALITY_TARGETS = { photos: 8, description: 300, details: 6, cadastralCode: 1 } as const;
+
+export type QualityTip = "photos" | "description" | "details" | "cadastralCode";
+
+/** The optional facts that make a listing easier to judge, by form field name. */
+const detailFields = ["building", "floor", "bedrooms", "ceiling", "yearBuilt", "features", "lat", ...specNames];
+
+/**
+ * How complete a listing form is, from 0 to 100, with what would raise it most, first. Photos weigh most, then the description
+ * and the details; a cadastral code adds trust. Works on the raw form values, so it can follow the form as it is filled in.
+ */
+export function draftQuality(fields: Record<string, string>, photos: number): { score: number; tips: QualityTip[] } {
+  const filled = (name: string) => (fields[name] ?? "").trim() !== "";
+  const parts = [
+    { tip: "photos", weight: 40, share: photos / QUALITY_TARGETS.photos },
+    { tip: "description", weight: 25, share: (fields.description ?? "").trim().length / QUALITY_TARGETS.description },
+    { tip: "details", weight: 25, share: detailFields.filter(filled).length / QUALITY_TARGETS.details },
+    { tip: "cadastralCode", weight: 10, share: filled("cadastralCode") ? QUALITY_TARGETS.cadastralCode : 0 },
+  ] as const;
+  const score = Math.round(parts.reduce((sum, part) => sum + part.weight * Math.min(part.share, 1), 0));
+  return { score, tips: parts.filter((part) => part.share < 1).map((part) => part.tip) };
 }
 
 export const MAX_MESSAGE = 2000;

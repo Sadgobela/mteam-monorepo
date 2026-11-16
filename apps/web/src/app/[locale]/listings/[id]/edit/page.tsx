@@ -29,7 +29,7 @@ export default async function EditListingPage({
   return (
     <>
       <Header locale={locale} t={t} signedIn />
-      <main className="section narrow">
+      <main className="section post-page">
         <h1>{listing.status === "DRAFT" ? t.post.heading : t.post.editHeading}</h1>
         {saved ? (
           <>

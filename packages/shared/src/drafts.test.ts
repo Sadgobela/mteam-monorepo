@@ -1,5 +1,22 @@
 import { describe, expect, it } from "vitest";
-import { draftFields, draftProblems, parseDraftProgress, thumbUrl, parseLead, parseMessage, parseListingDraft, parsePhone, parseReport } from "./index";
+import { draftFields, draftProblems, draftQuality, parseDraftProgress, thumbUrl, parseLead, parseMessage, parseListingDraft, parsePhone, parseReport } from "./index";
+
+describe("draftQuality", () => {
+  it("scores an empty form at nothing and suggests everything, photos first", () => {
+    expect(draftQuality({}, 0)).toEqual({ score: 0, tips: ["photos", "description", "details", "cadastralCode"] });
+  });
+
+  it("counts each part in proportion until its target", () => {
+    // Half the photos, a third of the description, three of six details, no cadastral code.
+    const fields = { description: " " + "a".repeat(100) + " ", floor: "3", heating: "central", features: "lift", ceiling: " " };
+    expect(draftQuality(fields, 4)).toEqual({ score: 20 + 8 + 13, tips: ["photos", "description", "details", "cadastralCode"] });
+  });
+
+  it("gives a complete listing the full score and no tips, and nothing extra for going past a target", () => {
+    const details = { building: "new", floor: "3", bedrooms: "2", ceiling: "3", yearBuilt: "2020", heating: "central", parking: "garage" };
+    expect(draftQuality({ ...details, description: "a".repeat(400), cadastralCode: "01.10" }, 16)).toEqual({ score: 100, tips: [] });
+  });
+});
 
 describe("thumbUrl", () => {
   it("names the small copy of a photo we stored, and leaves any other address alone", () => {
