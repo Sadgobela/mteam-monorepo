@@ -19,6 +19,17 @@ const TIMEOUT_MS = 10_000;
 const GONE = new Set([404, 410]);
 const failureSchema = z.object({ statusCode: z.number() });
 
+/** The push services of the browsers we support. The server posts to a stored address, so no other host is let in. */
+const PUSH_HOSTS = /^(fcm\.googleapis\.com|updates\.push\.services\.mozilla\.com|[a-z0-9-]+\.push\.apple\.com|[a-z0-9-]+\.notify\.windows\.com)$/;
+const base64url = (min: number, max: number) => z.string().min(min).max(max).regex(/^[\w-]+={0,2}$/);
+
+/** A browser's PushSubscription.toJSON(), as the settings page sends it. */
+export const pushSubscriptionSchema = z.object({
+  endpoint: z.url({ protocol: /^https$/, hostname: PUSH_HOSTS }).max(1024),
+  // A P-256 public key (65 bytes) and a 16-byte secret, base64url.
+  keys: z.object({ p256dh: base64url(80, 100), auth: base64url(16, 32) }),
+});
+
 export interface PushMessage {
   title: string;
   body: string;
