@@ -4,7 +4,8 @@ import { getDictionary } from "@mteam/shared";
 import { SearchAssistant } from "./SearchAssistant";
 
 const countSearchAction = vi.hoisted(() => vi.fn(async (search: string) => search.length));
-vi.mock("@/lib/search-actions", () => ({ countSearchAction }));
+const askAssistantAction = vi.hoisted(() => vi.fn());
+vi.mock("@/lib/search-actions", () => ({ countSearchAction, askAssistantAction }));
 vi.mock("@/lib/lead-actions", () => ({ leadAction: vi.fn(async () => ({})) }));
 
 const click = (name: string) => fireEvent.click(screen.getByRole("button", { name }));
@@ -14,6 +15,7 @@ describe("SearchAssistant", () => {
   it("asks one question at a time and links to the matching results with their count", async () => {
     render(<SearchAssistant locale="en" t={getDictionary("en")} />);
     expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("Tell me what you are looking for");
+    expect(screen.queryByRole("textbox")).toBeNull();
     expect(results()).toBeNull();
 
     click("Buy");
@@ -50,5 +52,43 @@ describe("SearchAssistant", () => {
     click("Start over");
     expect(results()).toBeNull();
     expect(screen.getByRole("button", { name: "Buy" })).toBeInTheDocument();
+  });
+
+  it("reads typed text, shows what it understood and asks only what is left", async () => {
+    askAssistantAction.mockResolvedValueOnce({ search: "deal=sale&type=apartment&city=თბილისი&rooms=2&priceMax=120000" });
+    render(<SearchAssistant locale="en" t={getDictionary("en")} ai />);
+    expect(screen.getByText(/Tell me what property you want/)).toBeInTheDocument();
+    const box = screen.getByRole("textbox", { name: "Describe what you are looking for" });
+
+    fireEvent.submit(box.closest("form")!);
+    expect(askAssistantAction).not.toHaveBeenCalled();
+
+    fireEvent.change(box, { target: { value: "2-room flat in Tbilisi up to 120k" } });
+    fireEvent.submit(box.closest("form")!);
+    await waitFor(() => expect(screen.getByText(/Got it, searching for:/)).toHaveTextContent("For sale · Apartment · Tbilisi"));
+    expect(askAssistantAction).toHaveBeenCalledWith("2-room flat in Tbilisi up to 120k", "");
+    expect(box).toHaveValue("");
+    expect(screen.getByText("Which district?")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Change answer: 2-room flat in Tbilisi up to 120k" })).toBeInTheDocument();
+
+    click("Any");
+    click("New building");
+    askAssistantAction.mockResolvedValueOnce({ search: "deal=rent" });
+    fireEvent.change(box, { target: { value: "actually rent" } });
+    fireEvent.submit(box.closest("form")!);
+    await waitFor(() => expect(results()).toHaveAttribute("href", "/en?deal=rent"));
+    expect(askAssistantAction).toHaveBeenLastCalledWith("actually rent", expect.stringContaining("building=new"));
+  });
+
+  it("explains when typed text cannot be used", async () => {
+    askAssistantAction.mockResolvedValueOnce({ error: "busy" });
+    render(<SearchAssistant locale="en" t={getDictionary("en")} ai />);
+    const box = screen.getByRole("textbox");
+    fireEvent.change(box, { target: { value: "flat" } });
+    fireEvent.submit(box.closest("form")!);
+    expect(await screen.findByRole("alert")).toHaveTextContent("Too many questions");
+    expect(box).toHaveValue("flat");
+    click("Buy");
+    expect(screen.queryByRole("alert")).toBeNull();
   });
 });

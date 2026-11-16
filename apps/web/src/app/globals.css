@@ -126,6 +126,9 @@ h1, h2, h3 { margin: 0; text-wrap: balance; }
 .assistant-choices { display: flex; flex-wrap: wrap; gap: 8px; }
 .assistant-choices button { font: inherit; font-weight: 600; font-size: 14px; color: var(--brand-deep); background: var(--brand-soft); border: 1px solid var(--line); border-radius: 999px; padding: 8px 16px; min-height: 44px; cursor: pointer; transition: border-color 0.2s; }
 @media (hover: hover) { .assistant-choices button:hover, .assistant-log .me:hover { border-color: var(--brand); filter: brightness(1.05); } }
+.assistant-input { display: flex; gap: 8px; background: var(--surface); border: 2px solid var(--action); border-radius: 16px; padding: 6px; }
+.assistant-input input { flex: 1; min-width: 0; font: inherit; font-size: 16px; border: 0; outline: 0; padding: 10px 12px; background: transparent; color: var(--fg); }
+.assistant-input:focus-within { outline: 3px solid var(--focus); outline-offset: 2px; }
 .assistant-actions { display: flex; flex-wrap: wrap; gap: 8px; }
 @media (max-width: 760px) { .assistant-actions .btn { flex: 1 1 100%; } }
 .assistant-broker { background: var(--brand-soft); border-radius: 16px; padding: 8px 16px; }

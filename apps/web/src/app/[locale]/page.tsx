@@ -71,7 +71,7 @@ export default async function HomePage({
           <SearchBar key={JSON.stringify([filters, display])} results locale={locale} t={t} filters={filters} display={display} />
         ) : (
           <>
-            <SearchAssistant locale={locale} t={t} />
+            <SearchAssistant locale={locale} t={t} ai={Boolean(process.env.ANTHROPIC_API_KEY)} />
             <details className="classic-search">
               <summary>{t.assistant.filters}</summary>
               <SearchBar key={JSON.stringify([filters, display])} locale={locale} t={t} filters={filters} display={display} />
