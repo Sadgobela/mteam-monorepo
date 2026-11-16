@@ -1,14 +1,34 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const prisma = vi.hoisted(() => ({
-  listing: { findMany: vi.fn(), findFirst: vi.fn(), count: vi.fn(), create: vi.fn(), groupBy: vi.fn(), fields: { floors: "FLOORS" } },
+  listing: { findMany: vi.fn(), findFirst: vi.fn(), count: vi.fn(), create: vi.fn(), updateMany: vi.fn(), groupBy: vi.fn(), fields: { floors: "FLOORS" } },
+  listingImage: { deleteMany: vi.fn(), createMany: vi.fn(), count: vi.fn() },
+  listingPriceChange: { create: vi.fn() },
+  user: { findUnique: vi.fn() },
+  $transaction: vi.fn(),
   // No stored rate, so the fallback of 2.7 lari per dollar applies.
   exchangeRate: { findUnique: vi.fn(async () => null) },
 }));
 
 vi.mock("./client", () => ({ db: () => prisma }));
 
-import { countSellerListings, listSellerListings, listSimilarListings, countListings, createListing, getListing, searchListings, sitemapListings, sitemapSearches } from "./index";
+import { draftFields, type ListingDraft } from "@mteam/shared";
+import {
+  countSellerListings,
+  listSellerListings,
+  listSimilarListings,
+  countListings,
+  createListing,
+  getEditableListing,
+  getListing,
+  hidesPhoneByDefault,
+  photosOfOthers,
+  saveDraft,
+  searchListings,
+  sitemapListings,
+  sitemapSearches,
+  updateListing,
+} from "./index";
 
 const fullRow = {
   id: 20418,
@@ -95,6 +115,13 @@ describe("getListing", () => {
       tone: "steel",
       updatedAt: "2026-11-06",
     });
+  });
+
+  it("says when the number is hidden, and never gives out the cadastral code", async () => {
+    prisma.listing.findFirst.mockResolvedValue({ ...fullRow, hidePhone: true, cadastralCode: "01.10.14" });
+    const listing = await getListing("20418");
+    expect(listing?.hidePhone).toBe(true);
+    expect(JSON.stringify(listing)).not.toContain("01.10.14");
   });
 
   it("fills required fields and drops optional ones when the row has nulls", async () => {
@@ -400,22 +427,26 @@ describe("createListing", () => {
     currency: "GEL",
     area: 80,
     rooms: 4,
+    hidePhone: false,
   } as const;
 
   it("stores a pending, unverified listing owned by the user, with photos in order", async () => {
     prisma.listing.create.mockResolvedValue({ id: 7 });
     expect(await createListing("u1", draft, ["https://cdn/a.jpg", "https://cdn/b.jpg"])).toBe(7);
     expect(prisma.listing.create.mock.calls[0][0].data).toEqual({
+      ...Object.fromEntries(draftFields.map((name) => [name, null])),
       ...draft,
+      features: [],
       priceUsd: 333,
       pricePerSqmUsd: 4,
-      building: undefined,
+      building: null,
       deal: "RENT",
       type: "HOUSE",
       city: "ბათუმი",
       status: "PENDING",
       verified: false,
       ownerId: "u1",
+      agentId: null,
       images: {
         create: [
           { url: "https://cdn/a.jpg", position: 0 },
@@ -429,8 +460,192 @@ describe("createListing", () => {
 describe("createListing building status", () => {
   it("stores the status in the database's form", async () => {
     prisma.listing.create.mockResolvedValue({ id: 8 });
-    await createListing("u1", { deal: "sale", type: "house", city: "ბათუმი", address: "a", title: "t", description: "d", price: 100, currency: "USD", area: 10, building: "new" }, []);
-    expect(prisma.listing.create.mock.calls[0][0].data).toMatchObject({ building: "NEW", pricePerSqmUsd: 10 });
+    await createListing("u1", { deal: "sale", type: "house", city: "ბათუმი", address: "a", title: "t", description: "d", price: 100, currency: "USD", area: 10, building: "new", hidePhone: true }, []);
+    expect(prisma.listing.create.mock.calls[0][0].data).toMatchObject({ building: "NEW", pricePerSqmUsd: 10, hidePhone: true });
+  });
+
+  it("gives a broker's listing to the broker, so it never expires", async () => {
+    prisma.listing.create.mockResolvedValue({ id: 8 });
+    await createListing("u1", { deal: "sale", type: "land", city: "ბათუმი", address: "a", title: "t", description: "d", price: 100, currency: "USD", area: 10, hidePhone: false }, [], "a1");
+    expect(prisma.listing.create.mock.calls[0][0].data.agentId).toBe("a1");
+  });
+});
+
+describe("editing", () => {
+  const draft: ListingDraft = {
+    deal: "sale",
+    type: "apartment",
+    city: "თბილისი",
+    district: "ვაკე",
+    address: "Main 1",
+    title: "Flat",
+    description: "Sunny",
+    price: 100000,
+    currency: "USD",
+    area: 50,
+    rooms: 2,
+    features: ["lift", "balcony"],
+    hidePhone: false,
+  };
+  const photos = ["https://cdn/a.jpg", "https://cdn/b.jpg"];
+  // The row as the database holds the draft above.
+  const stored = {
+    ...Object.fromEntries(draftFields.map((name) => [name, null])),
+    ...draft,
+    id: 9,
+    deal: "SALE",
+    type: "APARTMENT",
+    features: ["balcony", "lift"],
+    priceUsd: 100000,
+    pricePerSqmUsd: 2000,
+    images: photos.map((url) => ({ url })),
+  };
+
+  beforeEach(() => {
+    prisma.$transaction.mockImplementation(async (work: (tx: typeof prisma) => unknown) => work(prisma));
+    prisma.listing.updateMany.mockResolvedValue({ count: 1 });
+  });
+
+  describe("updateListing", () => {
+    const edit = (status: string, change: Record<string, unknown> = {}, images = photos) => {
+      prisma.listing.findFirst.mockResolvedValue({ ...stored, status });
+      return updateListing("u1", 9, { ...draft, ...change }, images);
+    };
+
+    it("keeps a published listing live when only the price changed, and records the old and new dollar price", async () => {
+      expect(await edit("ACTIVE", { price: 90000 })).toBe("ACTIVE");
+      expect(prisma.listing.updateMany).toHaveBeenCalledWith({ where: { id: 9, ownerId: "u1", status: "ACTIVE" }, data: expect.objectContaining({ price: 90000, priceUsd: 90000, status: "ACTIVE" }) });
+      expect(prisma.listing.updateMany.mock.calls[0][0].data).not.toHaveProperty("expiresAt");
+      // The verification vouched for photos, area and price, and a new price alone keeps the badge.
+      expect(prisma.listing.updateMany.mock.calls[0][0].data).not.toHaveProperty("verified");
+      expect(prisma.listingPriceChange.create).toHaveBeenCalledWith({ data: { listingId: 9, oldPriceUsd: 100000, newPriceUsd: 90000 } });
+    });
+
+    it("records a change of currency as a price change", async () => {
+      expect(await edit("ACTIVE", { price: 100000, currency: "GEL" })).toBe("ACTIVE");
+      expect(prisma.listingPriceChange.create).toHaveBeenCalledWith({ data: { listingId: 9, oldPriceUsd: 100000, newPriceUsd: 37037 } });
+    });
+
+    it("keeps a published listing live and records nothing when nothing changed, the order of features aside", async () => {
+      expect(await edit("ACTIVE")).toBe("ACTIVE");
+      expect(prisma.listingPriceChange.create).not.toHaveBeenCalled();
+    });
+
+    // Every field but the price, so a field added later cannot slip past moderation.
+    it.each(draftFields.filter((name) => name !== "price" && name !== "currency"))("sends a published listing back to review when %s changes", async (name) => {
+      const changes: Record<string, unknown> = { deal: "rent", type: "house", city: "ბათუმი", features: ["lift"], hidePhone: true, area: 51, building: "new", lat: 41.7, lng: 44.7 };
+      expect(await edit("ACTIVE", { [name]: changes[name] ?? 7 })).toBe("PENDING");
+      // Without an end date, so renewing it cannot bring the change back unreviewed.
+      expect(prisma.listing.updateMany.mock.calls[0][0].data).toMatchObject({ status: "PENDING", expiresAt: null, verified: false, verifiedAt: null, verifiedById: null });
+    });
+
+    it.each([
+      ["a removed photo", ["https://cdn/a.jpg"]],
+      ["an added photo", [...photos, "https://cdn/c.jpg"]],
+      ["photos in a new order", [...photos].reverse()],
+    ])("sends a published listing back to review for %s, and stores the photos in the order given", async (_name, images) => {
+      expect(await edit("ACTIVE", {}, images)).toBe("PENDING");
+      expect(prisma.listingImage.deleteMany).toHaveBeenCalledWith({ where: { listingId: 9 } });
+      expect(prisma.listingImage.createMany).toHaveBeenCalledWith({ data: images.map((url, position) => ({ url, position, listingId: 9 })) });
+    });
+
+    it("records the price even when other changes send the listing back to review", async () => {
+      expect(await edit("ACTIVE", { price: 120000, title: "Bigger flat" })).toBe("PENDING");
+      expect(prisma.listingPriceChange.create).toHaveBeenCalled();
+    });
+
+    it.each([["DRAFT"], ["PENDING"]])("sends a %s listing for review, without a price record", async (status) => {
+      expect(await edit(status, { price: 1 })).toBe("PENDING");
+      expect(prisma.listingPriceChange.create).not.toHaveBeenCalled();
+    });
+
+    it("only reads the owner's listing in a status that can be edited", async () => {
+      prisma.listing.findFirst.mockResolvedValue(null);
+      expect(await updateListing("u2", 9, draft, photos)).toBeNull();
+      expect(prisma.listing.findFirst.mock.calls[0][0].where).toEqual({ id: 9, ownerId: "u2", status: { in: ["DRAFT", "PENDING", "ACTIVE"] } });
+      expect(prisma.listing.updateMany).not.toHaveBeenCalled();
+    });
+
+    it("leaves a listing alone that was moderated while the edit was saved", async () => {
+      prisma.listing.updateMany.mockResolvedValue({ count: 0 });
+      expect(await edit("ACTIVE", { price: 1 })).toBeNull();
+      expect(prisma.listingImage.deleteMany).not.toHaveBeenCalled();
+      expect(prisma.listingPriceChange.create).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("saveDraft", () => {
+    it("starts a draft with neutral values for what is not filled in yet", async () => {
+      prisma.listing.count.mockResolvedValue(0);
+      prisma.listing.create.mockResolvedValue({ id: 11 });
+      expect(await saveDraft("u1", null, { deal: "sale", type: "apartment", city: "თბილისი" }, [])).toBe(11);
+      expect(prisma.listing.create.mock.calls[0][0].data).toMatchObject({ status: "DRAFT", verified: false, ownerId: "u1", agentId: null, title: "", description: "", price: 0, area: 0, currency: "USD", priceUsd: 0, pricePerSqmUsd: 0, hidePhone: false, district: null });
+    });
+
+    it("starts a broker's draft as the broker's", async () => {
+      prisma.listing.count.mockResolvedValue(0);
+      prisma.listing.create.mockResolvedValue({ id: 11 });
+      await saveDraft("u1", null, draft, [], "a1");
+      expect(prisma.listing.create.mock.calls[0][0].data.agentId).toBe("a1");
+    });
+
+    it("refuses a new draft past the limit", async () => {
+      prisma.listing.count.mockResolvedValue(10);
+      expect(await saveDraft("u1", null, draft, [])).toBeNull();
+      expect(prisma.listing.count).toHaveBeenCalledWith({ where: { ownerId: "u1", status: "DRAFT" } });
+      expect(prisma.listing.create).not.toHaveBeenCalled();
+    });
+
+    it("updates the user's own draft and its photos", async () => {
+      expect(await saveDraft("u1", 9, draft, photos)).toBe(9);
+      expect(prisma.listing.updateMany.mock.calls[0][0].where).toEqual({ id: 9, ownerId: "u1", status: "DRAFT" });
+      expect(prisma.listingImage.createMany).toHaveBeenCalled();
+    });
+
+    it("leaves anything that is not the user's draft alone", async () => {
+      prisma.listing.updateMany.mockResolvedValue({ count: 0 });
+      expect(await saveDraft("u2", 9, draft, photos)).toBeNull();
+      expect(prisma.listingImage.deleteMany).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("getEditableListing", () => {
+    it("gives the owner the form's values, blanks included", async () => {
+      prisma.listing.findFirst.mockResolvedValue({ ...stored, status: "ACTIVE", building: "NEW", cadastralCode: "01.10", hidePhone: true, lat: 41.7 });
+      const editable = await getEditableListing("u1", "9");
+      expect(editable).toMatchObject({ id: 9, status: "ACTIVE", images: photos });
+      expect(editable?.fields).toMatchObject({ deal: "sale", type: "apartment", building: "new", price: "100000", area: "50", rooms: "2", features: "balcony|lift", hidePhone: "on", cadastralCode: "01.10", lat: "41.7", floor: "" });
+      expect(prisma.listing.findFirst.mock.calls[0][0].where).toEqual({ id: 9, ownerId: "u1", status: { in: ["DRAFT", "PENDING", "ACTIVE"] } });
+    });
+
+    it("leaves the zeros of an unfinished draft blank", async () => {
+      prisma.listing.findFirst.mockResolvedValue({ ...stored, status: "DRAFT", price: 0, area: 0 });
+      expect((await getEditableListing("u1", "9"))?.fields).toMatchObject({ price: "", area: "", building: "", hidePhone: "" });
+    });
+
+    it("finds nothing for a malformed id or someone else's listing", async () => {
+      expect(await getEditableListing("u1", "nine")).toBeNull();
+      expect(prisma.listing.findFirst).not.toHaveBeenCalled();
+      prisma.listing.findFirst.mockResolvedValue(null);
+      expect(await getEditableListing("u2", "9")).toBeNull();
+    });
+  });
+
+  it("finds photos that belong to someone else's listing", async () => {
+    expect(await photosOfOthers("u1", [])).toBe(false);
+    expect(prisma.listingImage.count).not.toHaveBeenCalled();
+    prisma.listingImage.count.mockResolvedValue(1);
+    expect(await photosOfOthers("u1", photos)).toBe(true);
+    expect(prisma.listingImage.count).toHaveBeenCalledWith({ where: { url: { in: photos }, listing: { ownerId: { not: "u1" } } } });
+    prisma.listingImage.count.mockResolvedValue(0);
+    expect(await photosOfOthers("u1", photos)).toBe(false);
+  });
+
+  it("reads whether the user hides their number by default", async () => {
+    prisma.user.findUnique.mockResolvedValue({ hidePhoneDefault: true });
+    expect(await hidesPhoneByDefault("u1")).toBe(true);
+    prisma.user.findUnique.mockResolvedValue(null);
+    expect(await hidesPhoneByDefault("u1")).toBe(false);
   });
 });
 

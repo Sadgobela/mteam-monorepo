@@ -111,7 +111,7 @@ describe("importListings", () => {
       row({ ref: "A4", agentPhone: "555000009" }),
       row({ ref: "A5", agentPhone: "nonsense" }),
       row({ ref: "A6", photos: "javascript:alert(1)" }),
-      row({ ref: "A7", photos: Array(11).fill("https://x.test/a.jpg").join("|") }),
+      row({ ref: "A7", photos: Array(17).fill("https://x.test/a.jpg").join("|") }),
       row({ ref: "A8" }),
     );
     expect(result).toEqual({

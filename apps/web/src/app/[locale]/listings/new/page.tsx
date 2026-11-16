@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { getGelPerUsd, hidesPhoneByDefault } from "@mteam/db";
 import { getDictionary } from "@mteam/shared";
 import { Header } from "@/components/Header";
 import { ListingForm } from "@/components/ListingForm";
@@ -39,7 +40,7 @@ export default async function NewListingPage({
   return (
     <>
       <Header locale={locale} t={t} signedIn />
-      <main className="section narrow">
+      <main className="section post-page">
         <h1>{t.post.heading}</h1>
         {sent ? (
           <>
@@ -47,7 +48,7 @@ export default async function NewListingPage({
             <Link href={`/${locale}/listings/new`}>{t.post.another}</Link>
           </>
         ) : (
-          <ListingForm locale={locale} t={t} />
+          <ListingForm locale={locale} t={t} gelPerUsd={await getGelPerUsd()} hidePhoneDefault={await hidesPhoneByDefault(user.id)} ai={Boolean(process.env.ANTHROPIC_API_KEY)} />
         )}
       </main>
     </>

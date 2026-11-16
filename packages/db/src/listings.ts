@@ -1,5 +1,7 @@
-import type { BuildingStatus as DbBuildingStatus, DealType as DbDealType, Prisma, PropertyType as DbPropertyType } from "@prisma/client";
+import type { BuildingStatus as DbBuildingStatus, DealType as DbDealType, ListingStatus, Prisma, PropertyType as DbPropertyType } from "@prisma/client";
 import {
+  draftFields,
+  type DraftProgress,
   specKeys,
   specNames,
   type BuildingStatus,
@@ -105,6 +107,7 @@ export function toListing(row: ListingRow): Listing {
       : undefined,
     // Posting needs a phone, so an owner without one (signed in with Google, Facebook or Apple) has no listings.
     contactPhone: agent?.user.phone ?? row.owner.phone ?? "",
+    hidePhone: row.hidePhone,
     sellerId: row.ownerId,
     images: row.images.map((image) => image.url),
     // ponytail: placeholder gradient picked from the id, remove once every listing has photos.
@@ -278,32 +281,177 @@ export async function getListing(rawId: string): Promise<Listing | undefined> {
   return row ? toListing(row) : undefined;
 }
 
-/** A validated draft as listing columns, with dollar prices at the given rate. */
-export function draftColumns(draft: ListingDraft, gelPerUsd: number) {
-  const priceUsd = priceInUsd(draft.price, draft.currency, gelPerUsd);
+/** Optional fields become nullable columns; the required ones stay as they are. */
+type DraftColumns = { [K in keyof Required<DraftProgress>]: Exclude<DraftProgress[K], undefined> | (undefined extends DraftProgress[K] ? null : never) };
+
+/**
+ * A validated draft, finished or not, as listing columns, with dollar prices at the given rate. Every field is set, a blank one to
+ * null, so an edit clears what was removed. An unfinished draft gets neutral values for the columns that cannot be empty.
+ */
+export function draftColumns(draft: DraftProgress, gelPerUsd: number) {
+  const price = draft.price ?? 0;
+  const area = draft.area ?? 0;
+  const currency = draft.currency ?? "USD";
+  const priceUsd = priceInUsd(price, currency, gelPerUsd);
+  const columns = Object.fromEntries(draftFields.map((name) => [name, draft[name as keyof DraftProgress] ?? null])) as DraftColumns;
   return {
-    ...draft,
+    ...columns,
+    title: draft.title ?? "",
+    description: draft.description ?? "",
+    price,
+    currency,
+    area,
+    features: draft.features ?? [],
+    hidePhone: draft.hidePhone ?? false,
     priceUsd,
-    pricePerSqmUsd: Math.round(priceUsd / draft.area),
-    building: draft.building && dbBuildings[draft.building],
+    pricePerSqmUsd: area > 0 ? Math.round(priceUsd / area) : 0,
+    building: draft.building ? dbBuildings[draft.building] : null,
     deal: dbDeals[draft.deal],
     type: dbPropertyTypes[draft.type],
   };
 }
 
-/** Saves a user's listing. It stays PENDING and unverified until MTeam reviews it. */
-export async function createListing(ownerId: string, draft: ListingDraft, imageUrls: string[]): Promise<number> {
+const imageRows = (imageUrls: string[]) => imageUrls.map((url, position) => ({ url, position }));
+
+/**
+ * Saves a user's listing. It stays PENDING and unverified until MTeam reviews it. `agentId` is the poster's broker id when the
+ * poster is a broker: a broker's listing is theirs to handle, and it never expires.
+ */
+export async function createListing(ownerId: string, draft: ListingDraft, imageUrls: string[], agentId: string | null = null): Promise<number> {
   const { id } = await db().listing.create({
     data: {
       ...draftColumns(draft, await getGelPerUsd()),
       status: "PENDING",
       verified: false,
       ownerId,
-      images: { create: imageUrls.map((url, position) => ({ url, position })) },
+      agentId,
+      images: { create: imageRows(imageUrls) },
     },
     select: { id: true },
   });
   return id;
+}
+
+/** Enough for someone posting several properties at once, few enough that autosave cannot pile up rows. */
+const MAX_DRAFTS = 10;
+
+/**
+ * Autosaves an unfinished form as a DRAFT, which nobody else sees. Without an id it starts a new draft and returns its id; with
+ * one it updates that draft. Returns null when the draft is not the user's, is no longer a draft, or the user has too many.
+ * `agentId` as for `createListing`; it stays with the draft when it is sent for review.
+ */
+export async function saveDraft(ownerId: string, id: number | null, draft: DraftProgress, imageUrls: string[], agentId: string | null = null): Promise<number | null> {
+  const columns = draftColumns(draft, await getGelPerUsd());
+  if (id === null) {
+    if ((await db().listing.count({ where: { ownerId, status: "DRAFT" } })) >= MAX_DRAFTS) return null;
+    const created = await db().listing.create({
+      data: { ...columns, status: "DRAFT", verified: false, ownerId, agentId, images: { create: imageRows(imageUrls) } },
+      select: { id: true },
+    });
+    return created.id;
+  }
+  return db().$transaction(async (tx) => {
+    const { count } = await tx.listing.updateMany({ where: { id, ownerId, status: "DRAFT" }, data: columns });
+    if (count === 0) return null;
+    await replaceImages(tx, id, imageUrls);
+    return id;
+  });
+}
+
+async function replaceImages(tx: Prisma.TransactionClient, listingId: number, imageUrls: string[]): Promise<void> {
+  await tx.listingImage.deleteMany({ where: { listingId } });
+  await tx.listingImage.createMany({ data: imageRows(imageUrls).map((image) => ({ ...image, listingId })) });
+}
+
+const EDITABLE: ListingStatus[] = ["DRAFT", "PENDING", "ACTIVE"];
+/** Changing only these leaves a published listing published. */
+const PRICE_FIELDS = new Set(["price", "currency"]);
+
+/** Compares a stored value with a new one: the order features were ticked in does not matter. */
+const sameValue = (stored: unknown, next: unknown) =>
+  JSON.stringify(Array.isArray(stored) ? [...stored].sort() : stored) === JSON.stringify(Array.isArray(next) ? [...next].sort() : next);
+
+/**
+ * The owner's edit of a listing, sent for review. A draft or a pending listing becomes PENDING. A published one stays ACTIVE when
+ * only its price changed, and goes back to PENDING for any other change, photos and their order included. Whenever a published
+ * listing's price or currency changes, a `ListingPriceChange` row records the old and new dollar price, whatever the new status.
+ * Any change but the price also removes MTeam's verification, which vouched for the content as it was.
+ * Archived and rejected listings cannot be edited. Returns the new status, or null when the listing is not the user's or not editable.
+ */
+export async function updateListing(ownerId: string, id: number, draft: ListingDraft, imageUrls: string[]): Promise<ListingStatus | null> {
+  const columns = draftColumns(draft, await getGelPerUsd());
+  return db().$transaction(async (tx) => {
+    const row = await tx.listing.findFirst({ where: { id, ownerId, status: { in: EDITABLE } }, include: { images: { select: { url: true }, orderBy: { position: "asc" } } } });
+    if (!row) return null;
+    const stored: Record<string, unknown> = row;
+    const next: Record<string, unknown> = columns;
+    const contentChanged =
+      draftFields.some((name) => !PRICE_FIELDS.has(name) && !sameValue(stored[name], next[name])) || !sameValue(row.images.map((image) => image.url).join("\n"), imageUrls.join("\n"));
+    const status: ListingStatus = row.status === "ACTIVE" && !contentChanged ? "ACTIVE" : "PENDING";
+    // The status read above is part of the write, so a listing moderated in between is left alone.
+    // Back in review it has no end date, or taking it down and renewing it would publish the change unreviewed. Approval sets a new one.
+    // A broker's check confirmed the photos, area and price as they were, so changed content loses the badge; a new price alone keeps it.
+    const { count } = await tx.listing.updateMany({
+      where: { id, ownerId, status: row.status },
+      data: {
+        ...columns,
+        status,
+        ...(status === "PENDING" ? { expiresAt: null } : {}),
+        ...(contentChanged ? { verified: false, verifiedAt: null, verifiedById: null } : {}),
+      },
+    });
+    if (count === 0) return null;
+    await replaceImages(tx, id, imageUrls);
+    // From the entered price, not the dollar one: that is recalculated at today's rate, which would make every lari listing look repriced.
+    if (row.status === "ACTIVE" && (row.price !== columns.price || row.currency !== columns.currency)) {
+      await tx.listingPriceChange.create({ data: { listingId: id, oldPriceUsd: row.priceUsd, newPriceUsd: columns.priceUsd } });
+    }
+    return status;
+  });
+}
+
+export interface EditableListing {
+  id: number;
+  status: ListingStatus;
+  /** The form's starting values by field name, blank where nothing is set. */
+  fields: Record<string, string>;
+  images: string[];
+}
+
+/** The owner's own draft, pending or published listing, as the posting form's values. Includes the cadastral code, so it is only for the owner. */
+export async function getEditableListing(ownerId: string, rawId: string): Promise<EditableListing | null> {
+  const id = parseListingId(rawId);
+  if (id === null) return null;
+  const row = await db().listing.findFirst({ where: { id, ownerId, status: { in: EDITABLE } }, include: { images: { select: { url: true }, orderBy: { position: "asc" } } } });
+  if (!row) return null;
+  const stored: Record<string, unknown> = row;
+  const text = (value: unknown) => (value === null || value === false ? "" : value === true ? "on" : Array.isArray(value) ? value.join("|") : String(value));
+  return {
+    id,
+    status: row.status,
+    fields: {
+      ...Object.fromEntries(draftFields.map((name) => [name, text(stored[name])])),
+      deal: deals[row.deal],
+      type: propertyTypes[row.type],
+      building: row.building ? buildings[row.building] : "",
+      // An unfinished draft stores 0 where nothing was entered yet.
+      price: row.price > 0 ? String(row.price) : "",
+      area: row.area > 0 ? String(row.area) : "",
+    },
+    images: row.images.map((image) => image.url),
+  };
+}
+
+/** Whether any of these photo addresses belongs to someone else's listing, which a form must not take over. */
+export async function photosOfOthers(ownerId: string, urls: string[]): Promise<boolean> {
+  if (urls.length === 0) return false;
+  return (await db().listingImage.count({ where: { url: { in: urls }, listing: { ownerId: { not: ownerId } } } })) > 0;
+}
+
+/** Whether the user chose to hide their number on new listings. */
+export async function hidesPhoneByDefault(userId: string): Promise<boolean> {
+  const user = await db().user.findUnique({ where: { id: userId }, select: { hidePhoneDefault: true } });
+  return user?.hidePhoneDefault ?? false;
 }
 
 /** Everything a user has posted, whatever its status. */

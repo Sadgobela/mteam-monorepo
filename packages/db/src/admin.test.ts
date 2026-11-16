@@ -39,30 +39,42 @@ beforeEach(() => {
 afterEach(() => vi.useRealTimers());
 
 describe("moderation queue", () => {
-  it("lists pending listings oldest first", async () => {
-    prisma.listing.findMany.mockResolvedValue([row]);
-    expect((await listPendingListings()).map((l) => l.id)).toEqual([7]);
+  const seen = new Date("2026-11-06T10:00:00.123Z");
+  const applies = () => prisma.listing.updateMany.mockResolvedValue({ count: 1 });
+
+  it("lists pending listings oldest first, with the exact time each last changed", async () => {
+    prisma.listing.findMany.mockResolvedValue([{ ...row, updatedAt: seen }]);
+    expect((await listPendingListings()).map((l) => [l.id, l.editedAt])).toEqual([[7, "2026-11-06T10:00:00.123Z"]]);
     expect(prisma.listing.findMany.mock.calls[0][0]).toMatchObject({ where: { status: "PENDING" }, orderBy: [{ sourceRef: { sort: "asc", nulls: "first" } }, { id: "asc" }] });
   });
 
-  it.each(["ACTIVE", "REJECTED"] as const)("only moves a listing that is still pending to %s", async (decision) => {
-    await reviewListing(7, decision);
-    expect(prisma.listing.updateMany).toHaveBeenLastCalledWith({ where: { id: 7, status: "PENDING" }, data: { status: decision } });
+  it.each(["ACTIVE", "REJECTED"] as const)("only moves a listing that is still pending and unchanged to %s", async (decision) => {
+    applies();
+    expect(await reviewListing(7, decision, seen)).toBe(true);
+    expect(prisma.listing.updateMany).toHaveBeenLastCalledWith({ where: { id: 7, status: "PENDING", updatedAt: seen }, data: { status: decision } });
     expect(notices.notifyListingReviewed).toHaveBeenCalledWith(7, decision);
+  });
+
+  it("leaves a listing edited since it was seen pending, and tells nobody", async () => {
+    prisma.listing.updateMany.mockResolvedValue({ count: 0 });
+    expect(await reviewListing(7, "ACTIVE", seen)).toBe(false);
+    expect(notices.notifyListingReviewed).not.toHaveBeenCalled();
   });
 
   it("starts an owner's 60 days on approval, and never a broker's", async () => {
     const now = new Date("2026-11-16T00:00:00Z");
-    await reviewListing(7, "ACTIVE", now);
+    prisma.listing.updateMany.mockResolvedValueOnce({ count: 1 }).mockResolvedValueOnce({ count: 0 });
+    expect(await reviewListing(7, "ACTIVE", seen, now)).toBe(true);
+    expect(notices.notifyListingReviewed).toHaveBeenCalled();
     expect(prisma.listing.updateMany).toHaveBeenNthCalledWith(1, {
-      where: { id: 7, status: "PENDING", agentId: null },
+      where: { id: 7, status: "PENDING", updatedAt: seen, agentId: null },
       data: { status: "ACTIVE", expiresAt: new Date("2027-01-15T00:00:00Z") },
     });
   });
 
   it("sets no end date on a rejection", async () => {
-    prisma.listing.updateMany.mockClear();
-    await reviewListing(7, "REJECTED");
+    applies();
+    await reviewListing(7, "REJECTED", seen);
     expect(prisma.listing.updateMany).toHaveBeenCalledTimes(1);
   });
 });

@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen } from "@testing-library/react";
 import { getDictionary } from "@mteam/shared";
 import { DetailFields } from "./DetailFields";
@@ -24,5 +24,15 @@ describe("DetailFields", () => {
     rerender(<DetailFields locale="en" t={t} showsRooms={false} />);
     expect(container.querySelector("input[name=bedrooms]")).toBeNull();
     expect(container.querySelector("input[name=heating]")).not.toBeNull();
+  });
+
+  it("starts from the values of a listing being edited, and reports each change", () => {
+    const changed = vi.fn();
+    const { container } = render(<DetailFields locale="en" t={t} showsRooms values={{ features: "lift|sauna", ceiling: "2.8", heating: "central" }} onChange={changed} />);
+    expect(hidden(container)).toHaveValue("lift|sauna");
+    expect(container.querySelector("input[name=ceiling]")).toHaveValue(2.8);
+    expect(container.querySelector("input[name=heating]")).toHaveValue("central");
+    fireEvent.click(screen.getByText("Lift").closest("label")?.querySelector("input") as HTMLInputElement);
+    expect(changed).toHaveBeenCalled();
   });
 });

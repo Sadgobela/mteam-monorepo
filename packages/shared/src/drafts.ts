@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { isFeature, specKeys, type SpecName } from "./details";
+import { isFeature, specKeys, specNames, type SpecName } from "./details";
 import { cityDistricts, isCity, isMetro, METRO_CITY } from "./places";
 import { buildingStatuses, canonicalSearch, currencies, dealTypes, FALLBACK_GEL_PER_USD, MAX_PRICE, priceInUsd, propertyTypes } from "./search";
 
@@ -9,8 +9,20 @@ export function parsePhone(input: string): string | null {
   return /^5\d{8}$/.test(national) ? `+995${national}` : null;
 }
 
-export const MAX_PHOTOS = 10;
-export const MAX_PHOTO_BYTES = 5 * 1024 * 1024;
+export const MAX_PHOTOS = 16;
+/** Photos go up one per request, and a Vercel function refuses a body over 4.5 MB, so one photo plus the form's framing must stay below that. */
+export const MAX_PHOTO_BYTES = 4 * 1024 * 1024;
+
+/** How the server names a stored photo, `listings/<uuid>.webp`, and its small copy, `listings/<uuid>_thumb.webp`. */
+const storedPhoto = /(\/listings\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})\.webp$/;
+
+/**
+ * The small copy of a photo, for cards and previews. Photos stored before copies were made, and imported ones on other hosts,
+ * have none, so anything not named like ours comes back unchanged; an older photo of ours that has no copy needs an image's onError fallback.
+ */
+export function thumbUrl(url: string): string {
+  return url.replace(storedPhoto, "$1_thumb.webp");
+}
 
 /** Postgres text columns cannot hold a NUL byte. */
 const text = (max: number) =>
@@ -46,8 +58,9 @@ const coordinate = (limit: number) =>
 /** One of a detail's fixed choices, or blank. */
 const spec = (name: SpecName) => z.union([z.literal("").transform(() => undefined), z.enum(specKeys(name) as [string, ...string[]])]).optional();
 
-const draftSchema = z
-  .object({
+const blankOr = <T extends z.ZodType>(schema: T) => z.union([z.literal("").transform(() => undefined), schema]).optional();
+
+const draftObject = z.object({
     deal: z.enum(dealTypes),
     type: z.enum(propertyTypes),
     city: z.string().refine(isCity),
@@ -85,6 +98,12 @@ const draftSchema = z
       .optional(),
     title: text(120),
     description: text(5000),
+    descriptionEn: blankOr(text(5000)),
+    descriptionRu: blankOr(text(5000)),
+    /** The public registry's number, digits in dot-separated groups. Kept for MTeam, never shown on the site. */
+    cadastralCode: blankOr(z.string().trim().max(40).regex(/^\d+(\.\d+)*$/)),
+    /** A ticked box posts "on"; an unticked one posts nothing. */
+    hidePhone: z.literal("on").optional().transform((value) => value === "on"),
     price: whole(1, 2_000_000_000),
     currency: z.enum(currencies),
     area: z
@@ -97,7 +116,9 @@ const draftSchema = z
     floors: optionalWhole(1, 200),
     lat: coordinate(90),
     lng: coordinate(180),
-  })
+});
+
+const draftSchema = draftObject
   // Exact names, or searching by district would miss the listing. Places without districts have none to give.
   .refine((d) => (cityDistricts(d.city).length === 0 ? d.district === undefined : cityDistricts(d.city).includes(d.district ?? "")))
   .refine((d) => d.metro === undefined || d.city === METRO_CITY)
@@ -116,7 +137,19 @@ export function parseListingDraft(fields: Record<string, unknown>): ListingDraft
 }
 
 /** The columns a listing can be given. */
-export const draftFields = Object.keys(draftSchema.shape);
+export const draftFields = Object.keys(draftObject.shape);
+
+/** An unfinished form, saved as a draft: each field filled in must be valid, but only the deal, type and city must be there. */
+const progressSchema = draftObject.partial().required({ deal: true, type: true, city: true });
+
+export type DraftProgress = z.infer<typeof progressSchema>;
+
+/** Validates a form part way through, for an autosaved draft. A draft is checked in full with `parseListingDraft` before it is sent for review. */
+export function parseDraftProgress(fields: Record<string, unknown>): DraftProgress | null {
+  // Blank means not filled in yet, which a required field like the price would otherwise refuse.
+  const result = progressSchema.safeParse(Object.fromEntries(Object.entries(fields).filter(([, value]) => value !== "")));
+  return result.success ? result.data : null;
+}
 
 /** Which fields of a draft are wrong, for a bulk import's report. A rule across several fields has no single name. */
 export function draftProblems(fields: Record<string, unknown>): string[] {
@@ -124,6 +157,30 @@ export function draftProblems(fields: Record<string, unknown>): string[] {
   if (result.success) return [];
   const named = result.error.issues.map((issue) => issue.path.join(".")).filter(Boolean);
   return named.length > 0 ? [...new Set(named)] : ["combination"];
+}
+
+/** What a complete listing has. The copy quotes these numbers. */
+export const QUALITY_TARGETS = { photos: 8, description: 300, details: 6, cadastralCode: 1 } as const;
+
+export type QualityTip = "photos" | "description" | "details" | "cadastralCode";
+
+/** The optional facts that make a listing easier to judge, by form field name. */
+const detailFields = ["building", "floor", "bedrooms", "ceiling", "yearBuilt", "features", "lat", ...specNames];
+
+/**
+ * How complete a listing form is, from 0 to 100, with what would raise it most, first. Photos weigh most, then the description
+ * and the details; a cadastral code adds trust. Works on the raw form values, so it can follow the form as it is filled in.
+ */
+export function draftQuality(fields: Record<string, string>, photos: number): { score: number; tips: QualityTip[] } {
+  const filled = (name: string) => (fields[name] ?? "").trim() !== "";
+  const parts = [
+    { tip: "photos", weight: 40, share: photos / QUALITY_TARGETS.photos },
+    { tip: "description", weight: 25, share: (fields.description ?? "").trim().length / QUALITY_TARGETS.description },
+    { tip: "details", weight: 25, share: detailFields.filter(filled).length / QUALITY_TARGETS.details },
+    { tip: "cadastralCode", weight: 10, share: filled("cadastralCode") ? QUALITY_TARGETS.cadastralCode : 0 },
+  ] as const;
+  const score = Math.round(parts.reduce((sum, part) => sum + part.weight * Math.min(part.share, 1), 0));
+  return { score, tips: parts.filter((part) => part.share < 1).map((part) => part.tip) };
 }
 
 export const MAX_MESSAGE = 2000;

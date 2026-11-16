@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { notFound } from "next/navigation";
 import { markLeadContacted, parseListingId, resolveReport, reviewListing, verifyListing } from "@mteam/db";
+import { z } from "zod";
 import { currentUser } from "./session";
 
 async function staffUser() {
@@ -20,12 +21,15 @@ export async function resolveReportAction(form: FormData): Promise<void> {
   refresh();
 }
 
+const reviewSchema = z.object({ listingId: z.string(), decision: z.enum(["ACTIVE", "REJECTED"]), editedAt: z.iso.datetime() });
+
 export async function reviewListingAction(form: FormData): Promise<void> {
   const user = await staffUser();
   if (user.role !== "ADMIN") notFound();
-  const id = parseListingId(String(form.get("listingId")));
-  const decision = form.get("decision");
-  if (id !== null && (decision === "ACTIVE" || decision === "REJECTED")) await reviewListing(id, decision);
+  const input = reviewSchema.safeParse(Object.fromEntries(form));
+  const id = input.success ? parseListingId(input.data.listingId) : null;
+  // A decision names the version it was made on, so an edit that came in meanwhile stays in the queue.
+  if (input.success && id !== null) await reviewListing(id, input.data.decision, new Date(input.data.editedAt));
   refresh();
 }
 

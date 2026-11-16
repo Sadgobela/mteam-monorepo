@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, type MouseEvent } from "react";
-import Image from "next/image";
+import { Thumbnail } from "./Thumbnail";
 
 /** A card's photos: swipe on a phone, arrows under a mouse. The arrows sit inside the card's link, so they stop it. */
 export function CardPhotos({ images, alt }: { images: string[]; alt: string }) {
@@ -18,7 +18,7 @@ export function CardPhotos({ images, alt }: { images: string[]; alt: string }) {
       <div ref={strip} className="strip">
         {images.map((src, index) => (
           <div key={src} className="strip-photo">
-            <Image src={src} alt={index === 0 ? alt : ""} fill unoptimized />
+            <Thumbnail src={src} alt={index === 0 ? alt : ""} />
           </div>
         ))}
       </div>

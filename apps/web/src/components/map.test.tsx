@@ -97,6 +97,18 @@ describe("LocationPicker", () => {
     return latlng;
   };
 
+  it("starts from the pin of a listing being edited", async () => {
+    const { container } = render(
+      <form aria-label="f">
+        <LocationPicker label="Pin" clearLabel="Remove" initial={{ lat: "41.7", lng: "44.8" }} />
+      </form>,
+    );
+    await waitFor(() => expect(leaflet.instance.on).toHaveBeenCalled());
+    expect(leaflet.instance.setView).toHaveBeenCalledWith([41.7, 44.8], 15);
+    expect(leaflet.api.circleMarker.mock.calls[0]).toEqual([[41.7, 44.8], expect.objectContaining({ opacity: 1 })]);
+    expect(container.querySelector("input[name=lat]")).toHaveValue("41.7");
+  });
+
   it("starts with no visible pin", async () => {
     await ready();
     expect(leaflet.api.circleMarker.mock.calls[0]).toEqual([[41.7151, 44.8271], expect.objectContaining({ opacity: 0, fillOpacity: 0 })]);

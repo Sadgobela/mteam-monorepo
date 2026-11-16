@@ -153,9 +153,12 @@ export default async function ListingPage({
                 {t.listing.sellerListings.replace("{count}", String(sellerCount))}
               </Link>
             )}
-            <div className="btns">
-              <PhoneReveal listingId={listing.id} masked={maskPhone(listing.contactPhone)} t={t} />
-            </div>
+            {/* An owner who hid the number is reached through chat only, so not even its masked form is sent. */}
+            {!listing.hidePhone && (
+              <div className="btns">
+                <PhoneReveal listingId={listing.id} masked={maskPhone(listing.contactPhone)} t={t} />
+              </div>
+            )}
           </div>
           {!ownListing && (
             <div className="chat-start">

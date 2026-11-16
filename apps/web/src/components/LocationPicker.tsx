@@ -8,19 +8,22 @@ const HIDDEN = { opacity: 0, fillOpacity: 0 };
 const SHOWN = { opacity: 1, fillOpacity: 0.9 };
 
 /** An optional pin for the posting form. The chosen point travels in hidden fields with the rest of the form. */
-export function LocationPicker({ label, clearLabel }: { label: string; clearLabel: string }) {
+export function LocationPicker({ label, clearLabel, initial = null }: { label: string; clearLabel: string; initial?: { lat: string; lng: string } | null }) {
   const box = useRef<HTMLDivElement>(null);
   const pin = useRef<CircleMarker | null>(null);
-  const [point, setPoint] = useState<{ lat: string; lng: string } | null>(null);
+  const [point, setPoint] = useState(initial);
+  // Read once when the map is built, so the effect below does not rebuild it on every click.
+  const start = useRef(initial);
 
   useEffect(() => {
     let cleanup = () => {};
     let cancelled = false;
     void import("leaflet").then(({ default: L }) => {
       if (cancelled || !box.current) return;
-      const map = L.map(box.current).setView(TBILISI, 12);
+      const placed = start.current && ([Number(start.current.lat), Number(start.current.lng)] as [number, number]);
+      const map = L.map(box.current).setView(placed || TBILISI, placed ? 15 : 12);
       L.tileLayer(TILE_URL, { attribution: TILE_ATTRIBUTION }).addTo(map);
-      const marker = L.circleMarker(TBILISI, { radius: 9, color: PIN_COLOR, fillColor: PIN_COLOR, ...HIDDEN }).addTo(map);
+      const marker = L.circleMarker(placed || TBILISI, { radius: 9, color: PIN_COLOR, fillColor: PIN_COLOR, ...(placed ? SHOWN : HIDDEN) }).addTo(map);
       pin.current = marker;
       map.on("click", (event) => {
         marker.setLatLng(event.latlng).setStyle(SHOWN);

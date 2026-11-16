@@ -1,14 +1,15 @@
+/** Long enough for a profile or broker photo. Listing photos ask for more, since the server keeps them at 2048 px. */
 const LONG_EDGE = 1600;
 const QUALITY = 0.9;
 
 /**
- * A phone photo made small enough to send: the long edge at most 1600 px, as a JPEG, turned the way the camera held it.
+ * A phone photo made small enough to send: the long edge at most `longEdge` px (1600 by default), as a JPEG, turned the way the camera held it.
  * In the browser only. A file the browser cannot decode goes as it is, and the server says if it is not a photo.
  */
-export async function shrinkPhoto(file: File): Promise<File> {
+export async function shrinkPhoto(file: File, longEdge = LONG_EDGE): Promise<File> {
   try {
     const bitmap = await createImageBitmap(file, { imageOrientation: "from-image" });
-    const scale = Math.min(1, LONG_EDGE / Math.max(bitmap.width, bitmap.height));
+    const scale = Math.min(1, longEdge / Math.max(bitmap.width, bitmap.height));
     const canvas = document.createElement("canvas");
     canvas.width = Math.round(bitmap.width * scale);
     canvas.height = Math.round(bitmap.height * scale);

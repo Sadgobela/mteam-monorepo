@@ -5,15 +5,15 @@ import { Checkbox } from "antd";
 import { featureLabel, groupKeys, groupNames, groupTitles, specKeys, specLabel, specNames, specTitles, type Dict, type Locale } from "@mteam/shared";
 import { FormSelect } from "./FormSelect";
 
-/** The optional details on the posting form. They post as ordinary fields, with the ticked features joined into one. */
-export function DetailFields({ locale, t, showsRooms }: { locale: Locale; t: Dict; showsRooms: boolean }) {
+/** The optional details on the posting form. They post as ordinary fields, with the ticked features joined into one. `values` fills them in when editing. */
+export function DetailFields({ locale, t, showsRooms, values = {}, onChange }: { locale: Locale; t: Dict; showsRooms: boolean; values?: Record<string, string>; onChange?: () => void }) {
   const f = t.post.fields;
-  const [features, setFeatures] = useState<string[]>([]);
+  const [features, setFeatures] = useState<string[]>(() => (values.features ? values.features.split("|") : []));
   // No browser limits: a field in the closed section could not show its message and would silently block Next. The draft check reports it instead.
   const number = (name: string, label: string) => (
     <label className="field">
       <small>{label}</small>
-      <input name={name} type="number" step="any" />
+      <input name={name} type="number" step="any" defaultValue={values[name]} />
     </label>
   );
   return (
@@ -25,14 +25,17 @@ export function DetailFields({ locale, t, showsRooms }: { locale: Locale; t: Dic
       </div>
       <div className="form-row">
         {specNames.map((name) => (
-          <FormSelect key={name} name={name} optional label={specTitles[name][locale]} options={specKeys(name).map((key) => ({ value: key, label: specLabel(name, key, locale) }))} />
+          <FormSelect key={name} name={name} optional initial={values[name]} onChange={onChange} label={specTitles[name][locale]} options={specKeys(name).map((key) => ({ value: key, label: specLabel(name, key, locale) }))} />
         ))}
       </div>
       {groupNames.map((group) => (
         <fieldset key={group} className="feature-group">
           <legend>{groupTitles[group][locale]}</legend>
           {groupKeys(group).map((key) => (
-            <Checkbox key={key} checked={features.includes(key)} onChange={(event) => setFeatures(event.target.checked ? [...features, key] : features.filter((item) => item !== key))}>
+            <Checkbox key={key} checked={features.includes(key)} onChange={(event) => {
+                setFeatures(event.target.checked ? [...features, key] : features.filter((item) => item !== key));
+                onChange?.();
+              }}>
               {featureLabel(key, locale)}
             </Checkbox>
           ))}

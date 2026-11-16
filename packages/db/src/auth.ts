@@ -16,6 +16,12 @@ const CODES_PER_ADDRESS = 20;
 const PHONE_LOOKUPS_PER_ADDRESS = 60;
 // Each typed search costs an AI request, so a script must not be able to run up the bill.
 const ASSISTANT_QUERIES_PER_ADDRESS = 30;
+// Each written description costs an AI request; a few listings' worth an hour, with room to try again.
+const DESCRIPTION_WRITES_PER_ADDRESS = 10;
+// Per account as well, so one account cannot spend from many addresses.
+const DESCRIPTION_WRITES_PER_USER = 20;
+// Several full listings of 16 photos an hour, with room for replacing some; every upload is stored, so a script must not fill the bucket.
+const PHOTO_UPLOADS_PER_USER = 100;
 const ADDRESS_WINDOW_MS = 60 * 60_000;
 
 const smsEnvSchema = z.object({ SMS_PROVIDER: z.enum(["console", "log"]) });
@@ -87,6 +93,16 @@ export function claimPhoneLookup(ip: string, now = Date.now()): Promise<boolean>
 /** Plenty for one person refining a search in the assistant, few enough to cap what a script can cost. */
 export function claimAssistantQuery(ip: string, now = Date.now()): Promise<boolean> {
   return claimQuota(`ai:${addressHash(ip)}`, ASSISTANT_QUERIES_PER_ADDRESS, now);
+}
+
+/** A description written by AI on the posting form. */
+export async function claimDescriptionWrite(ip: string, userId: string, now = Date.now()): Promise<boolean> {
+  return (await claimQuota(`desc-user:${userId}`, DESCRIPTION_WRITES_PER_USER, now)) && claimQuota(`desc:${addressHash(ip)}`, DESCRIPTION_WRITES_PER_ADDRESS, now);
+}
+
+/** Counted per account rather than per address: only signed-in users with a phone can upload. */
+export function claimPhotoUpload(userId: string, now = Date.now()): Promise<boolean> {
+  return claimQuota(`photo:${userId}`, PHOTO_UPLOADS_PER_USER, now);
 }
 
 /**

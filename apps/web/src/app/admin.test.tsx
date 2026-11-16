@@ -51,23 +51,27 @@ beforeEach(() => {
 });
 
 describe("reviewListingAction", () => {
-  it.each(["ACTIVE", "REJECTED"])("lets an admin set %s", async (decision) => {
+  const editedAt = "2026-11-06T10:00:00.123Z";
+
+  it.each(["ACTIVE", "REJECTED"])("lets an admin set %s on the version they saw", async (decision) => {
     session.currentUser.mockResolvedValue(admin);
-    await reviewListingAction(form({ listingId: "7", decision }));
-    expect(db.reviewListing).toHaveBeenCalledWith(7, decision);
+    await reviewListingAction(form({ listingId: "7", decision, editedAt }));
+    expect(db.reviewListing).toHaveBeenCalledWith(7, decision, new Date(editedAt));
   });
 
   it.each([[null], [user], [broker]])("refuses anyone else", async (who) => {
     session.currentUser.mockResolvedValue(who);
-    await expect(reviewListingAction(form({ listingId: "7", decision: "ACTIVE" }))).rejects.toThrow("NEXT_NOT_FOUND");
+    await expect(reviewListingAction(form({ listingId: "7", decision: "ACTIVE", editedAt }))).rejects.toThrow("NEXT_NOT_FOUND");
     expect(db.reviewListing).not.toHaveBeenCalled();
   });
 
-  it("ignores an unknown decision or id", async () => {
+  it("ignores an unknown decision or id, and a decision that does not say which version it was made on", async () => {
     session.currentUser.mockResolvedValue(admin);
-    await reviewListingAction(form({ listingId: "7", decision: "ARCHIVED" }));
+    await reviewListingAction(form({ listingId: "7", decision: "ARCHIVED", editedAt }));
+    await reviewListingAction(form({ listingId: "7", decision: "ACTIVE" }));
+    await reviewListingAction(form({ listingId: "7", decision: "ACTIVE", editedAt: "yesterday" }));
     db.parseListingId.mockReturnValue(null);
-    await reviewListingAction(form({ listingId: "x", decision: "ACTIVE" }));
+    await reviewListingAction(form({ listingId: "x", decision: "ACTIVE", editedAt }));
     expect(db.reviewListing).not.toHaveBeenCalled();
   });
 });
@@ -141,7 +145,7 @@ describe("AdminPage", () => {
 
   it("shows admins every queue", async () => {
     session.currentUser.mockResolvedValue(admin);
-    db.listPendingListings.mockResolvedValue([{ ...fixtureListings[0], images: ["https://cdn/a.jpg"] }]);
+    db.listPendingListings.mockResolvedValue([{ ...fixtureListings[0], images: ["https://cdn/a.jpg"], editedAt: "2026-11-06T10:00:00.123Z" }]);
     db.listUnverifiedListings.mockResolvedValue([fixtureListings[1]]);
     db.listOpenLeads.mockResolvedValue([
       lead("NEW", "SALE"),
@@ -151,6 +155,7 @@ describe("AdminPage", () => {
     ]);
     render(await AdminPage({ params }));
     expect(screen.getByRole("button", { name: t.admin.approve })).toBeInTheDocument();
+    expect(document.querySelector("input[name=editedAt]")).toHaveValue("2026-11-06T10:00:00.123Z");
     expect(screen.getByRole("button", { name: t.admin.reject })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: t.admin.verify })).toBeInTheDocument();
     expect(screen.getAllByRole("button", { name: t.admin.contacted })).toHaveLength(3);
