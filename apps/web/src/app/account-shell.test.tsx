@@ -18,7 +18,6 @@ vi.mock("@/lib/auth-actions", () => ({ logoutAction: vi.fn() }));
 
 import AccountLayout from "./[locale]/(account)/layout";
 import ProfilePage from "./[locale]/(account)/account/profile/page";
-import NotificationsPage from "./[locale]/(account)/account/notifications/page";
 import { AccountNav } from "@/components/AccountNav";
 
 const t = getDictionary("en");
@@ -46,7 +45,6 @@ describe("account shell", () => {
 
   it.each([
     ["profile", ProfilePage, "Profile"],
-    ["notifications", NotificationsPage, "Notifications"],
   ] as const)("shows the %s placeholder to a signed-in user and sends others to sign in", async (name, Page, heading) => {
     session.currentUser.mockResolvedValueOnce({ id: "u1" });
     render(await Page({ params }));

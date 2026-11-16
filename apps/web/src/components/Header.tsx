@@ -1,12 +1,21 @@
 import Link from "next/link";
+import { countUnreadNotifications } from "@mteam/db";
 import type { Dict, Locale } from "@mteam/shared";
 import { logoutAction } from "@/lib/auth-actions";
+import { currentUser } from "@/lib/session";
 import { AccountMenu } from "./AccountMenu";
 import { LanguageMenu } from "./LanguageMenu";
 import { Logo } from "./Logo";
 import { PhoneMenu } from "./PhoneMenu";
 import { ThemeToggle } from "./ThemeToggle";
 import { LoginLink } from "./LoginLink";
+import { NotificationBell } from "./NotificationBell";
+
+/** For the bell. A stale session counts none. */
+async function unreadNotifications(): Promise<number> {
+  const user = await currentUser();
+  return user ? countUnreadNotifications(user.id) : 0;
+}
 
 export function Header({ locale, t, signedIn, onLoginPage = false }: { locale: Locale; t: Dict; signedIn: boolean; onLoginPage?: boolean }) {
   const language = <LanguageMenu locale={locale} label={t.nav.language} />;
@@ -47,6 +56,7 @@ export function Header({ locale, t, signedIn, onLoginPage = false }: { locale: L
         </Link>
         <span className="sp" />
         <Link href={`/${locale}/listings/new`} className="btn">{t.nav.post}</Link>
+        {signedIn && <NotificationBell locale={locale} labels={t.notifications} unread={unreadNotifications()} />}
         <div className="nav-wide">
           {language}
           <ThemeToggle labels={t.theme} />

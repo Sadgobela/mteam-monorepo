@@ -7,6 +7,8 @@ const prisma = vi.hoisted(() => ({
 }));
 
 vi.mock("./client", () => ({ db: () => prisma }));
+const notices = vi.hoisted(() => ({ notifyListingReviewed: vi.fn() }));
+vi.mock("./notifications", () => notices);
 
 import {
   listOpenLeads,
@@ -46,6 +48,7 @@ describe("moderation queue", () => {
   it.each(["ACTIVE", "REJECTED"] as const)("only moves a listing that is still pending to %s", async (decision) => {
     await reviewListing(7, decision);
     expect(prisma.listing.updateMany).toHaveBeenLastCalledWith({ where: { id: 7, status: "PENDING" }, data: { status: decision } });
+    expect(notices.notifyListingReviewed).toHaveBeenCalledWith(7, decision);
   });
 
   it("starts an owner's 60 days on approval, and never a broker's", async () => {
