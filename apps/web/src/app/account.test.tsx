@@ -36,7 +36,7 @@ vi.mock("next/navigation", () => ({
 
 import { Header } from "@/components/Header";
 import { archiveListingAction, setFavoriteAction, setHiddenAction } from "@/lib/account-actions";
-import HomePage from "./[locale]/page";
+import HomePage from "./[locale]/(home)/page";
 import FavoritesPage from "./[locale]/(account)/favorites/page";
 
 const t = getDictionary("en");

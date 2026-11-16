@@ -14,7 +14,7 @@ vi.mock("next/navigation", () => ({ notFound: vi.fn(), redirect: vi.fn(), useRou
 import { generateMetadata as brokersMetadata } from "./[locale]/brokers/page";
 import { generateMetadata as layoutMetadata } from "./[locale]/layout";
 import { generateMetadata as listingMetadata } from "./[locale]/listings/[id]/page";
-import { generateMetadata as homeMetadata } from "./[locale]/page";
+import { generateMetadata as homeMetadata } from "./[locale]/(home)/page";
 import { generateMetadata as pricesMetadata } from "./[locale]/prices/page";
 import { register } from "../instrumentation";
 import robots from "./robots";
