@@ -49,7 +49,7 @@ describe("ActionForm", () => {
     const { action, finish } = held();
     const sent = vi.fn<(form: FormData) => Promise<void>>(() => action());
     render(
-      <ActionForm action={sent} className="row">
+      <ActionForm action={sent} failed="Failed" className="row">
         <input type="hidden" name="id" value="7" />
         <ConfirmSubmit label="Archive" question="Sure?" yes="Yes" no="No" />
       </ActionForm>,

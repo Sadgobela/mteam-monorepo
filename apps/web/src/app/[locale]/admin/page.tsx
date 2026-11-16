@@ -64,7 +64,7 @@ export default async function AdminPage({ params }: { params: Promise<{ locale: 
               {pending.map((listing) => (
                 <li key={listing.id}>
                   <ListingSummary listing={listing} t={t} />
-                  <ActionForm action={reviewListingAction} className="queue-actions">
+                  <ActionForm action={reviewListingAction} failed={t.feedback.failed} className="queue-actions">
                     <input type="hidden" name="listingId" value={listing.id} />
                     <input type="hidden" name="editedAt" value={listing.editedAt} />
                     <SubmitButton name="decision" value="ACTIVE">{t.admin.approve}</SubmitButton>

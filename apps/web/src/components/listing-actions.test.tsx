@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { App } from "antd";
 import { getDictionary } from "@mteam/shared";
 import { LoanCalculator } from "./LoanCalculator";
 import { PhoneReveal } from "./PhoneReveal";
@@ -64,9 +65,15 @@ describe("ShareButton", () => {
   it("copies the link otherwise and says so", async () => {
     const writeText = vi.fn(async () => undefined);
     setNavigator({ clipboard: { writeText } });
-    render(<ShareButton title="Flat" t={t} />);
+    render(
+      <App>
+        <ShareButton title="Flat" t={t} />
+      </App>,
+    );
     fireEvent.click(screen.getByRole("button", { name: "Share" }));
     expect(await screen.findByRole("button", { name: "Link copied" })).toBeInTheDocument();
+    // And in a toast, for a button that may be out of view.
+    await waitFor(() => expect(document.querySelector(".ant-message")).toHaveTextContent("Link copied"));
     expect(writeText).toHaveBeenCalledWith(window.location.href);
   });
 });

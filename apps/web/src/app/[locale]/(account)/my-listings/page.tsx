@@ -36,10 +36,10 @@ function viewHref(locale: Locale, { tab, q, sort }: View): string {
   return `/${locale}/my-listings?${params}`;
 }
 
-/** The hidden fields every row action sends; the server checks the listing is the user's. */
-function RowForm({ action, locale, id, children }: { action: (form: FormData) => Promise<void>; locale: Locale; id: number; children: ReactNode }) {
+/** The hidden fields every row action sends; the server checks the listing is the user's. `done` is the note shown after. */
+function RowForm({ action, locale, id, t, done, children }: { action: (form: FormData) => Promise<unknown>; locale: Locale; id: number; t: Dict; done: string; children: ReactNode }) {
   return (
-    <ActionForm action={action}>
+    <ActionForm action={action} done={done} failed={t.feedback.failed}>
       <input type="hidden" name="locale" value={locale} />
       <input type="hidden" name="listingId" value={id} />
       {children}
@@ -95,17 +95,17 @@ function Row({ mine, locale, t }: { mine: MyListing; locale: Locale; t: Dict }) 
           {my.edit}
         </Link>
         {mine.canBump && (
-          <RowForm action={bumpListingAction} locale={locale} id={listing.id}>
+          <RowForm action={bumpListingAction} locale={locale} id={listing.id} t={t} done={t.feedback.bumped}>
             <SubmitButton className="btn ghost">{my.bump}</SubmitButton>
           </RowForm>
         )}
         {mine.canRenew && (
-          <RowForm action={renewListingAction} locale={locale} id={listing.id}>
+          <RowForm action={renewListingAction} locale={locale} id={listing.id} t={t} done={t.feedback.renewed}>
             <SubmitButton className="btn ghost">{my.renew}</SubmitButton>
           </RowForm>
         )}
         {(status === "ACTIVE" || status === "PENDING") && (
-          <RowForm action={archiveListingAction} locale={locale} id={listing.id}>
+          <RowForm action={archiveListingAction} locale={locale} id={listing.id} t={t} done={t.feedback.archived}>
             <ConfirmSubmit label={t.my.archive} question={t.my.confirmArchive} yes={t.confirm.yes} no={t.confirm.no} />
           </RowForm>
         )}

@@ -149,8 +149,11 @@ describe("my listings actions", () => {
   it.each([
     ["bumps", bumpListingAction, db.bumpListing],
     ["renews", renewListingAction, db.renewListing],
-  ] as const)("%s only through the signed-in user and refreshes", async (_name, action, write) => {
-    await action(form(body));
+  ] as const)("%s only through the signed-in user, refreshes and says whether it was done", async (_name, action, write) => {
+    write.mockResolvedValue(true);
+    expect(await action(form(body))).toBe(true);
+    write.mockResolvedValue(false);
+    expect(await action(form(body))).toBe(false);
     expect(db.parseListingId).toHaveBeenCalledWith("7");
     expect(write).toHaveBeenCalledWith("u1", 7);
     expect(revalidatePath).toHaveBeenCalledWith("/", "layout");
@@ -164,7 +167,7 @@ describe("my listings actions", () => {
 
   it("ignores an invalid id", async () => {
     db.parseListingId.mockReturnValue(null);
-    await renewListingAction(form({ locale: "en", listingId: "x" }));
+    expect(await renewListingAction(form({ locale: "en", listingId: "x" }))).toBe(false);
     expect(db.renewListing).not.toHaveBeenCalled();
   });
 });

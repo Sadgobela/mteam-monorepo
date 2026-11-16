@@ -53,7 +53,7 @@ export default async function AdminBrokersPage({ params }: { params: Promise<{ l
                   </div>
                 </div>
                 {invite.status === "open" && (
-                  <ActionForm action={revokeInviteAction}>
+                  <ActionForm action={revokeInviteAction} failed={t.feedback.failed}>
                     <input type="hidden" name="id" value={invite.id} />
                     <ConfirmSubmit label={copy.revoke} question={copy.confirmRevoke} yes={t.confirm.yes} no={t.confirm.no} />
                   </ActionForm>
@@ -73,7 +73,7 @@ export default async function AdminBrokersPage({ params }: { params: Promise<{ l
                   <b>{broker.name || copy.noName}</b>
                   <div className="meta">{[broker.phone, broker.branch || copy.noBranch].filter(Boolean).join(" · ")}</div>
                 </div>
-                <ActionForm action={removeBrokerAction}>
+                <ActionForm action={removeBrokerAction} failed={t.feedback.failed}>
                   <input type="hidden" name="userId" value={broker.userId} />
                   <ConfirmSubmit label={copy.remove} question={copy.confirmRemove} yes={t.confirm.yes} no={t.confirm.no} />
                 </ActionForm>
