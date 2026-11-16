@@ -41,6 +41,7 @@ import AccountLayout from "./[locale]/(account)/layout";
 import BrokerProfilePage from "./[locale]/(account)/account/broker/page";
 import AdminBrokersPage from "./[locale]/admin/brokers/page";
 import InvitePage from "./[locale]/invite/[token]/page";
+import { VerifyRequest } from "@/components/VerifyRequest";
 
 const t = getDictionary("en");
 const copy = t.brokersAdmin;
@@ -248,5 +249,26 @@ describe("account navigation for brokers", () => {
     session.currentUser.mockResolvedValue(owner);
     render(await AccountLayout({ children: null, params }));
     expect(screen.queryByRole("link", { name: copy.profile })).toBeNull();
+  });
+});
+
+describe("VerifyRequest", () => {
+  it("files the request in one click and says a broker will be in touch", async () => {
+    const user = userEvent.setup();
+    actions.requestVerifyAction.mockResolvedValue({ sent: true });
+    render(<VerifyRequest listingId={7} locale="en" t={t} />);
+    expect(screen.getByText(copy.verifyLead)).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: copy.verifyAsk }));
+    expect(await screen.findByRole("status")).toHaveTextContent(copy.verifySent);
+    const sent = actions.requestVerifyAction.mock.calls[0][1] as FormData;
+    expect(Object.fromEntries(sent)).toEqual({ locale: "en", listingId: "7" });
+  });
+
+  it("says when it could not be sent", async () => {
+    const user = userEvent.setup();
+    actions.requestVerifyAction.mockResolvedValue({ failed: true });
+    render(<VerifyRequest listingId={7} locale="en" t={t} />);
+    await user.click(screen.getByRole("button", { name: copy.verifyAsk }));
+    expect(await screen.findByRole("alert")).toHaveTextContent(copy.verifyFailed);
   });
 });
