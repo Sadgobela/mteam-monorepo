@@ -1,10 +1,11 @@
 "use server";
 
 import { redirect } from "next/navigation";
-import { addPhone, requestLoginCode, verifyLoginCode } from "@mteam/db";
+import { addPhone, getSessionUser, requestLoginCode, verifyLoginCode } from "@mteam/db";
 import { parsePhone } from "@mteam/shared";
 import { resolveLocale } from "./locale";
 import { safeNext } from "./login-path";
+import { pathAfterSignIn } from "./onboarding";
 import { clientIp, currentUser, endSession, signInHere, startSession, userAgent } from "./session";
 
 export type LoginError = "invalidPhone" | "tooSoon" | "wrongCode" | "phoneTaken";
@@ -34,7 +35,8 @@ export async function loginAction(_previous: LoginState, form: FormData): Promis
   await startSession(token);
   // A full page load afterwards, not a redirect: a redirect from the modal leaves Next holding the sign-in route
   // in its modal slot, and it would show again after signing out.
-  return { done: safeNext(form.get("next"), resolveLocale(String(form.get("locale")))) };
+  const locale = resolveLocale(String(form.get("locale")));
+  return { done: pathAfterSignIn(await getSessionUser(token), safeNext(form.get("next"), locale), locale) };
 }
 
 /** Gives an account from Google, Facebook or Apple the checked phone that posting needs, in the same two steps. */

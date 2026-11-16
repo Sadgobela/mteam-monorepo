@@ -3,7 +3,7 @@ import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { getDictionary } from "@mteam/shared";
 
-const db = vi.hoisted(() => ({ requestLoginCode: vi.fn(), verifyLoginCode: vi.fn(), addPhone: vi.fn() }));
+const db = vi.hoisted(() => ({ requestLoginCode: vi.fn(), verifyLoginCode: vi.fn(), addPhone: vi.fn(), getSessionUser: vi.fn() }));
 const router = vi.hoisted(() => ({ back: vi.fn() }));
 const nav = vi.hoisted(() => ({ query: "deal=sale" }));
 const session = vi.hoisted(() => ({ startSession: vi.fn(), endSession: vi.fn(), currentUser: vi.fn(), hasSession: vi.fn(), clientIp: vi.fn(), signInHere: vi.fn(), userAgent: vi.fn() }));
@@ -45,6 +45,7 @@ beforeEach(() => {
   vi.resetAllMocks();
   session.clientIp.mockResolvedValue("203.0.113.7");
   session.userAgent.mockResolvedValue("Firefox");
+  db.getSessionUser.mockResolvedValue({ onboardedAt: new Date() });
 });
 
 describe("loginAction", () => {
@@ -89,6 +90,13 @@ describe("loginAction", () => {
     db.verifyLoginCode.mockResolvedValue("tok");
     expect(await loginAction({ phone }, form({ phone, code: "123456", locale: "ru", next: "//evil.example" }))).toEqual({ done: "/ru" });
     expect(await loginAction({ phone }, form({ phone, code: "123456", locale: "en" }))).toEqual({ done: "/en" });
+  });
+
+  it("sends a new account to the first-visit questions, keeping where it was going", async () => {
+    db.verifyLoginCode.mockResolvedValue("tok");
+    db.getSessionUser.mockResolvedValue({ onboardedAt: null });
+    expect(await loginAction({ phone }, form({ phone, code: "123456", locale: "en", next: "/en/saved" }))).toEqual({ done: "/en/onboarding?next=%2Fen%2Fsaved" });
+    expect(db.getSessionUser).toHaveBeenCalledWith("tok");
   });
 });
 
