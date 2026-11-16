@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { listCurrentBrokers, listInviteBranches, listInvites, type InviteRow } from "@mteam/db";
 import { formatDay, getDictionary, type Dict, type Locale } from "@mteam/shared";
+import { ActionForm } from "@/components/ActionForm";
 import { ConfirmSubmit } from "@/components/ConfirmSubmit";
 import { Header } from "@/components/Header";
 import { removeBrokerAction, revokeInviteAction } from "@/lib/invite-actions";
@@ -52,10 +53,10 @@ export default async function AdminBrokersPage({ params }: { params: Promise<{ l
                   </div>
                 </div>
                 {invite.status === "open" && (
-                  <form action={revokeInviteAction}>
+                  <ActionForm action={revokeInviteAction}>
                     <input type="hidden" name="id" value={invite.id} />
                     <ConfirmSubmit label={copy.revoke} question={copy.confirmRevoke} yes={t.confirm.yes} no={t.confirm.no} />
-                  </form>
+                  </ActionForm>
                 )}
               </li>
             ))}
@@ -72,10 +73,10 @@ export default async function AdminBrokersPage({ params }: { params: Promise<{ l
                   <b>{broker.name || copy.noName}</b>
                   <div className="meta">{[broker.phone, broker.branch || copy.noBranch].filter(Boolean).join(" · ")}</div>
                 </div>
-                <form action={removeBrokerAction}>
+                <ActionForm action={removeBrokerAction}>
                   <input type="hidden" name="userId" value={broker.userId} />
                   <ConfirmSubmit label={copy.remove} question={copy.confirmRemove} yes={t.confirm.yes} no={t.confirm.no} />
-                </form>
+                </ActionForm>
               </li>
             ))}
           </ul>

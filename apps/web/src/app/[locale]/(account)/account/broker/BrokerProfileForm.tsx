@@ -6,6 +6,7 @@ import { unstable_rethrow } from "next/navigation";
 import type { BrokerProfile } from "@mteam/db";
 import type { Dict, Locale } from "@mteam/shared";
 import { saveBrokerProfileAction, type BrokerProfileState } from "@/lib/invite-actions";
+import { SubmitButton } from "@/components/SubmitButton";
 import { withShrunkPhoto } from "@/lib/shrink-photo";
 
 /**
@@ -51,7 +52,7 @@ export function BrokerProfileForm({ locale, t, profile }: { locale: Locale; t: D
         <small>{copy.bioHint}</small>
       </label>
       <div>
-        <button type="submit" className="btn" disabled={pending}>{copy.save}</button>
+        <SubmitButton pending={pending}>{copy.save}</SubmitButton>
       </div>
       {state.saved && <p className="note" role="status">{copy.saved}</p>}
       {state.badPhoto && <p className="note" role="alert">{copy.badPhoto}</p>}

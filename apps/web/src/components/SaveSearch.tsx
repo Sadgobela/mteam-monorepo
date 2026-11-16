@@ -1,6 +1,7 @@
 import type { Dict, Locale } from "@mteam/shared";
 import { saveSearchAction } from "@/lib/account-actions";
 import { LoginLink } from "./LoginLink";
+import { SubmitButton } from "./SubmitButton";
 
 export function SaveSearch({ locale, t, query, signedIn, saved }: { locale: Locale; t: Dict; query: string; signedIn: boolean; saved: boolean }) {
   if (saved) return <span className="meta save-search">{t.saved.done}</span>;
@@ -15,9 +16,7 @@ export function SaveSearch({ locale, t, query, signedIn, saved }: { locale: Loca
     <form action={saveSearchAction} className="save-search">
       <input type="hidden" name="locale" value={locale} />
       <input type="hidden" name="query" value={query} />
-      <button type="submit" className="btn ghost">
-        {t.saved.save}
-      </button>
+      <SubmitButton className="btn ghost">{t.saved.save}</SubmitButton>
     </form>
   );
 }

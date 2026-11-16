@@ -11,6 +11,7 @@ import { Header } from "@/components/Header";
 import { GiveBand } from "@/components/LeadForm";
 import { ListingMap } from "@/components/ListingMap";
 import { Segmented } from "@/components/Segmented";
+import { SubmitButton } from "@/components/SubmitButton";
 import { resolveLocale } from "@/lib/locale";
 import { startChatAction } from "@/lib/chat-actions";
 import { listingMetadata } from "@/lib/seo";
@@ -180,7 +181,7 @@ export default async function ListingPage({
                 <input type="hidden" name="locale" value={locale} />
                 <input type="hidden" name="listingId" value={listing.id} />
                 <input type="hidden" name="want" value={hidden ? "0" : "1"} />
-                <button type="submit" className="btn ghost">{hidden ? t.listing.unhide : t.listing.hide}</button>
+                <SubmitButton className="btn ghost">{hidden ? t.listing.unhide : t.listing.hide}</SubmitButton>
               </form>
             ) : (
               <LoginLink locale={locale} className="btn ghost">{t.listing.hide}</LoginLink>

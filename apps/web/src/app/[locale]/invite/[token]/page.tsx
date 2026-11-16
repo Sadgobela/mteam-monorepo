@@ -3,6 +3,7 @@ import Link from "next/link";
 import { checkInvite, claimInviteCheck } from "@mteam/db";
 import { getDictionary, type Dict, type Locale } from "@mteam/shared";
 import { Header } from "@/components/Header";
+import { SubmitButton } from "@/components/SubmitButton";
 import { acceptInviteAction } from "@/lib/invite-actions";
 import { resolveLocale } from "@/lib/locale";
 import { loginPath } from "@/lib/login-path";
@@ -34,7 +35,7 @@ async function InviteBody({ user, token, locale, t }: { user: User; token: strin
       <form action={acceptInviteAction}>
         <input type="hidden" name="locale" value={locale} />
         <input type="hidden" name="token" value={token} />
-        <button type="submit" className="btn">{copy.accept}</button>
+        <SubmitButton>{copy.accept}</SubmitButton>
       </form>
     </>
   );

@@ -28,6 +28,7 @@ import { ListingPhotos, type PhotoItem } from "./ListingPhotos";
 import { ListingPreview, QualityMeter } from "./ListingPreview";
 import { PriceHint } from "./PriceHint";
 import { LocationPicker } from "./LocationPicker";
+import { SubmitButton } from "./SubmitButton";
 import { loginPath } from "@/lib/login-path";
 import { writeDescriptionAction, type WriteResult } from "@/lib/post-actions";
 import { shrinkPhoto } from "@/lib/shrink-photo";
@@ -375,7 +376,7 @@ export function ListingForm({
           {step < last ? (
             <button key="next" type="button" className="btn" onClick={(event) => move(event, 1)}>{t.post.next}</button>
           ) : (
-            <button key="submit" className="btn" type="submit" disabled={pending}>{isDraft ? t.post.submit : t.post.save}</button>
+            <SubmitButton key="submit" pending={pending}>{isDraft ? t.post.submit : t.post.save}</SubmitButton>
           )}
         </div>
       </form>

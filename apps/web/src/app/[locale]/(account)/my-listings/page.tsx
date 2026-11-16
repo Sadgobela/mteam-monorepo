@@ -6,9 +6,11 @@ import { Button, Input } from "antd";
 import { z } from "zod";
 import { countMyListings, listMyListingsTab, myListingTabs, type MyListing, type MyListingTab } from "@mteam/db";
 import { formatDay, formatPrice, getDictionary, sortOrders, type Dict, type Locale, type SortOrder } from "@mteam/shared";
+import { ActionForm } from "@/components/ActionForm";
 import { ConfirmSubmit } from "@/components/ConfirmSubmit";
 import { EmptyState } from "@/components/EmptyState";
 import { Segmented } from "@/components/Segmented";
+import { SubmitButton } from "@/components/SubmitButton";
 import { archiveListingAction } from "@/lib/account-actions";
 import { resolveLocale } from "@/lib/locale";
 import { bumpListingAction, renewListingAction } from "@/lib/my-listings-actions";
@@ -37,11 +39,11 @@ function viewHref(locale: Locale, { tab, q, sort }: View): string {
 /** The hidden fields every row action sends; the server checks the listing is the user's. */
 function RowForm({ action, locale, id, children }: { action: (form: FormData) => Promise<void>; locale: Locale; id: number; children: ReactNode }) {
   return (
-    <form action={action}>
+    <ActionForm action={action}>
       <input type="hidden" name="locale" value={locale} />
       <input type="hidden" name="listingId" value={id} />
       {children}
-    </form>
+    </ActionForm>
   );
 }
 
@@ -94,12 +96,12 @@ function Row({ mine, locale, t }: { mine: MyListing; locale: Locale; t: Dict }) 
         </Link>
         {mine.canBump && (
           <RowForm action={bumpListingAction} locale={locale} id={listing.id}>
-            <button type="submit" className="btn ghost">{my.bump}</button>
+            <SubmitButton className="btn ghost">{my.bump}</SubmitButton>
           </RowForm>
         )}
         {mine.canRenew && (
           <RowForm action={renewListingAction} locale={locale} id={listing.id}>
-            <button type="submit" className="btn ghost">{my.renew}</button>
+            <SubmitButton className="btn ghost">{my.renew}</SubmitButton>
           </RowForm>
         )}
         {(status === "ACTIVE" || status === "PENDING") && (

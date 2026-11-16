@@ -3,8 +3,10 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { listOpenLeads, listOpenReports, listPendingListings, listUnverifiedListings } from "@mteam/db";
 import { formatDay, formatPrice, getDictionary, reportReasons, type Dict, type Listing } from "@mteam/shared";
+import { ActionForm } from "@/components/ActionForm";
 import { ConfirmSubmit } from "@/components/ConfirmSubmit";
 import { Header } from "@/components/Header";
+import { SubmitButton } from "@/components/SubmitButton";
 import { markLeadContactedAction, resolveReportAction, reviewListingAction, verifyListingAction } from "@/lib/admin-actions";
 import { resolveLocale } from "@/lib/locale";
 import { currentUser } from "@/lib/session";
@@ -62,12 +64,12 @@ export default async function AdminPage({ params }: { params: Promise<{ locale: 
               {pending.map((listing) => (
                 <li key={listing.id}>
                   <ListingSummary listing={listing} t={t} />
-                  <form action={reviewListingAction} className="queue-actions">
+                  <ActionForm action={reviewListingAction} className="queue-actions">
                     <input type="hidden" name="listingId" value={listing.id} />
                     <input type="hidden" name="editedAt" value={listing.editedAt} />
-                    <button type="submit" name="decision" value="ACTIVE" className="btn">{t.admin.approve}</button>
+                    <SubmitButton name="decision" value="ACTIVE">{t.admin.approve}</SubmitButton>
                     <ConfirmSubmit label={t.admin.reject} question={t.admin.confirmReject} yes={t.confirm.yes} no={t.confirm.no} name="decision" value="REJECTED" />
-                  </form>
+                  </ActionForm>
                 </li>
               ))}
             </ul>
@@ -83,7 +85,7 @@ export default async function AdminPage({ params }: { params: Promise<{ locale: 
                 <ListingSummary listing={listing} t={t} />
                 <form action={verifyListingAction}>
                   <input type="hidden" name="listingId" value={listing.id} />
-                  <button type="submit" className="btn">{t.admin.verify}</button>
+                  <SubmitButton>{t.admin.verify}</SubmitButton>
                 </form>
               </li>
             ))}
@@ -104,7 +106,7 @@ export default async function AdminPage({ params }: { params: Promise<{ locale: 
                 </div>
                 <form action={resolveReportAction}>
                   <input type="hidden" name="reportId" value={report.id} />
-                  <button type="submit" className="btn ghost">{t.admin.resolve}</button>
+                  <SubmitButton className="btn ghost">{t.admin.resolve}</SubmitButton>
                 </form>
               </li>
             ))}
@@ -133,7 +135,7 @@ export default async function AdminPage({ params }: { params: Promise<{ locale: 
                 {lead.status === "NEW" ? (
                   <form action={markLeadContactedAction}>
                     <input type="hidden" name="leadId" value={lead.id} />
-                    <button type="submit" className="btn ghost">{t.admin.contacted}</button>
+                    <SubmitButton className="btn ghost">{t.admin.contacted}</SubmitButton>
                   </form>
                 ) : (
                   <span className="status">{t.admin.contactedDone}</span>
