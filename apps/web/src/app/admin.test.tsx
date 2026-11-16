@@ -143,12 +143,13 @@ describe("AdminPage", () => {
     session.currentUser.mockResolvedValue(admin);
     db.listPendingListings.mockResolvedValue([{ ...fixtureListings[0], images: ["https://cdn/a.jpg"] }]);
     db.listUnverifiedListings.mockResolvedValue([fixtureListings[1]]);
-    db.listOpenLeads.mockResolvedValue([lead("NEW", "SALE"), lead("CONTACTED", "RENT")]);
+    db.listOpenLeads.mockResolvedValue([lead("NEW", "SALE"), lead("CONTACTED", "RENT"), { ...lead("NEW", "DAILY"), id: "l-seek", search: "deal=daily&rooms=2" }]);
     render(await AdminPage({ params }));
     expect(screen.getByRole("button", { name: t.admin.approve })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: t.admin.reject })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: t.admin.verify })).toBeInTheDocument();
-    expect(screen.getAllByRole("button", { name: t.admin.contacted })).toHaveLength(1);
+    expect(screen.getAllByRole("button", { name: t.admin.contacted })).toHaveLength(2);
+    expect(screen.getByRole("link", { name: t.admin.seeking })).toHaveAttribute("href", "/en?deal=daily&rooms=2");
     expect(screen.getByText(t.admin.contactedDone)).toBeInTheDocument();
     expect(screen.getAllByRole("link", { name: "+995555" })[0]).toHaveAttribute("href", "tel:+995555");
   });

@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { assistantChoices, nextAssistantStep, type AssistantChoice, type AssistantStep, type Dict, type Locale } from "@mteam/shared";
 import { countSearchAction } from "@/lib/search-actions";
+import { LeadForm } from "./LeadForm";
 
 interface Answer extends AssistantChoice {
   step: AssistantStep;
@@ -63,6 +64,12 @@ export function SearchAssistant({ locale, t }: { locale: Locale; t: Dict }) {
             {t.assistant.restart}
           </button>
         </div>
+      )}
+      {!step && (
+        <details className="assistant-broker">
+          <summary>{t.assistant.broker}</summary>
+          <LeadForm t={t} seek={{ search, deal: params.deal }} />
+        </details>
       )}
     </section>
   );

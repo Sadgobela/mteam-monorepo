@@ -5,6 +5,7 @@ import { SearchAssistant } from "./SearchAssistant";
 
 const countSearchAction = vi.hoisted(() => vi.fn(async (search: string) => search.length));
 vi.mock("@/lib/search-actions", () => ({ countSearchAction }));
+vi.mock("@/lib/lead-actions", () => ({ leadAction: vi.fn(async () => ({})) }));
 
 const click = (name: string) => fireEvent.click(screen.getByRole("button", { name }));
 const results = () => screen.queryByRole("link", { name: /Show/ });
@@ -25,6 +26,10 @@ describe("SearchAssistant", () => {
     click("Up to $50,000");
     click("Yes, below market only");
     expect(screen.getByText(/Done!/)).toBeInTheDocument();
+    const broker = screen.getByText("Can't find it? An MTeam broker will search for you").closest("details")!;
+    expect(broker.querySelector<HTMLInputElement>("input[name=search]")!.value).toBe("deal=sale&type=land&priceMax=50000&belowMarket=1");
+    expect(broker.querySelector<HTMLInputElement>("input[name=deal]")!.value).toBe("sale");
+    expect(screen.getByRole("button", { name: "Have a broker call me" })).toBeInTheDocument();
     expect(results()).toHaveAttribute("href", "/en?deal=sale&type=land&priceMax=50000&belowMarket=1");
     expect(countSearchAction).toHaveBeenLastCalledWith("deal=sale&type=land&priceMax=50000&belowMarket=1");
   });
@@ -34,6 +39,7 @@ describe("SearchAssistant", () => {
     render(<SearchAssistant locale="en" t={getDictionary("en")} />);
     click("Rent");
     expect(results()).toHaveTextContent("Show results");
+    expect(screen.queryByText(/An MTeam broker/)).toBeNull();
 
     click("Apartment");
     click("Change answer: Rent");

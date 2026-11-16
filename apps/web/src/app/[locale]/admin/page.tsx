@@ -119,7 +119,7 @@ export default async function AdminPage({ params }: { params: Promise<{ locale: 
                 <div>
                   <b>{lead.name}</b>
                   <div className="meta">
-                    <a href={`tel:${lead.phone}`}>{lead.phone}</a> · {t.deal[lead.deal === "SALE" ? "sale" : "rent"]} · {formatDay(lead.createdAt.toISOString(), locale)}
+                    <a href={`tel:${lead.phone}`}>{lead.phone}</a> · {lead.search ? <a href={`/${locale}?${lead.search}`}>{t.admin.seeking}</a> : t.deal[lead.deal === "SALE" ? "sale" : "rent"]} · {formatDay(lead.createdAt.toISOString(), locale)}
                   </div>
                 </div>
                 {lead.status === "NEW" ? (
