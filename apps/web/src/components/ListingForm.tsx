@@ -29,6 +29,7 @@ import { ListingPreview, QualityMeter } from "./ListingPreview";
 import { PriceHint } from "./PriceHint";
 import { LocationPicker } from "./LocationPicker";
 import { loginPath } from "@/lib/login-path";
+import { writeDescriptionAction, type WriteResult } from "@/lib/post-actions";
 import { shrinkPhoto } from "@/lib/shrink-photo";
 
 import "@/app/post.css";
@@ -85,6 +86,7 @@ export function ListingForm({
   gelPerUsd,
   initial,
   hidePhoneDefault = false,
+  ai = false,
 }: {
   locale: Locale;
   t: Dict;
@@ -92,6 +94,8 @@ export function ListingForm({
   gelPerUsd: number;
   initial?: EditableListing;
   hidePhoneDefault?: boolean;
+  /** Offers to write the description with AI, which needs the AI key on the server. */
+  ai?: boolean;
 }) {
   const router = useRouter();
   const values = initial?.fields ?? {};
@@ -114,6 +118,8 @@ export function ListingForm({
   // The draft this form autosaves into, once there is one. Saves run one after another, so two never start two drafts.
   const draftId = useRef(initial?.status === "DRAFT" ? initial.id : null);
   const saving = useRef<Promise<void>>(Promise.resolve());
+  const [writing, setWriting] = useState(false);
+  const [aiNote, setAiNote] = useState<string | null>(null);
 
   // What the preview and the meter show. Read from the form after each change has rendered, as Ant's selects set their value then.
   const [snapshot, setSnapshot] = useState<Record<string, string>>({});
@@ -178,6 +184,20 @@ export function ListingForm({
     // Rendered first so the next step is visible when it takes focus, which also scrolls it into view.
     flushSync(() => setStep(step + by));
     steps[step + by].focus();
+  }
+
+  /** Fills the three descriptions with what AI wrote from the form's facts. The owner reads and edits them before sending. */
+  async function writeDescriptions(event: MouseEvent<HTMLButtonElement>) {
+    const form = event.currentTarget.form as HTMLFormElement;
+    setWriting(true);
+    setAiNote(null);
+    const result: WriteResult = await writeDescriptionAction(valuesOf(form)).catch(() => ({ error: "failed" }));
+    setWriting(false);
+    if ("error" in result) return setAiNote(t.post.ai.errors[result.error]);
+    const { ka, en, ru } = result.descriptions;
+    for (const [name, text] of [["description", ka], ["descriptionEn", en], ["descriptionRu", ru]]) (form.elements.namedItem(name) as HTMLTextAreaElement).value = text;
+    setAiNote(t.post.ai.check);
+    changed();
   }
 
   // Sent by hand so that a rejected listing does not clear the form.
@@ -305,6 +325,18 @@ export function ListingForm({
               <small>{f.descriptionRu}</small>
               <textarea name="descriptionRu" rows={3} maxLength={5000} defaultValue={values.descriptionRu} />
             </label>
+            {ai && (
+              <>
+                <button type="button" className="btn ghost ai-write" disabled={writing} onClick={writeDescriptions}>
+                  {writing ? t.post.ai.writing : t.post.ai.write}
+                </button>
+                {aiNote && (
+                  <p className="meta" role="status">
+                    {aiNote}
+                  </p>
+                )}
+              </>
+            )}
             {type !== "land" && (
               <Collapse items={[{ key: "details", label: f.moreDetails, forceRender: true, children: <DetailFields locale={locale} t={t} showsRooms={showsRooms} values={values} onChange={changed} /> }]} />
             )}

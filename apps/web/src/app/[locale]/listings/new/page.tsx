@@ -48,7 +48,7 @@ export default async function NewListingPage({
             <Link href={`/${locale}/listings/new`}>{t.post.another}</Link>
           </>
         ) : (
-          <ListingForm locale={locale} t={t} gelPerUsd={await getGelPerUsd()} hidePhoneDefault={await hidesPhoneByDefault(user.id)} />
+          <ListingForm locale={locale} t={t} gelPerUsd={await getGelPerUsd()} hidePhoneDefault={await hidesPhoneByDefault(user.id)} ai={Boolean(process.env.ANTHROPIC_API_KEY)} />
         )}
       </main>
     </>

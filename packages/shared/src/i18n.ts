@@ -63,6 +63,16 @@ const ka = {
     phoneLead: "განცხადებაზე ეს ნომერი გამოჩნდება, ამიტომ SMS კოდით ვამოწმებთ.",
     steps: { place: "მდებარეობა", details: "დეტალები", price: "ფასი", photos: "ფოტოები", contact: "კონტაქტი" },
     preview: "ასე გამოჩნდება",
+    ai: {
+      write: "აღწერის დაწერა AI-ით, სამ ენაზე",
+      writing: "იწერება…",
+      check: "აღწერა მზადაა. წაიკითხე და შეასწორე გაგზავნამდე: AI შეიძლება შეცდეს.",
+      errors: {
+        unclear: "ჯერ შეამოწმე ველები: რომელიღაც არასწორადაა შევსებული.",
+        busy: "ბოლო საათში ძალიან ბევრი აღწერა დაიწერა. სცადე მოგვიანებით ან დაწერე თავად.",
+        failed: "აღწერის დაწერა ვერ მოხერხდა. სცადე თავიდან ან დაწერე თავად.",
+      },
+    },
     market: { below: "ტიპურზე იაფია.", at: "ტიპური ფასია.", above: "ტიპურზე ძვირია.", typical: "მსგავსი ბინები აქ: დაახლოებით {price} მ²-ზე." },
     quality: {
       heading: "განცხადების ხარისხი",
@@ -150,6 +160,16 @@ const en: Dict = {
     phoneLead: "This number appears on your listing, so we check it with an SMS code.",
     steps: { place: "Location", details: "Details", price: "Price", photos: "Photos", contact: "Contact" },
     preview: "How it will look",
+    ai: {
+      write: "Write the description with AI, in three languages",
+      writing: "Writing…",
+      check: "The description is ready. Read and correct it before sending: AI can make mistakes.",
+      errors: {
+        unclear: "Check the fields first: one of them is not filled in correctly.",
+        busy: "Too many descriptions were written in the last hour. Try again later or write it yourself.",
+        failed: "The description could not be written. Try again or write it yourself.",
+      },
+    },
     market: { below: "Below typical.", at: "Typical price.", above: "Above typical.", typical: "Similar apartments here: about {price} per m²." },
     quality: {
       heading: "Listing quality",
@@ -235,6 +255,16 @@ const ru: Dict = {
     phoneLead: "Этот номер будет в объявлении, поэтому мы проверяем его кодом из SMS.",
     steps: { place: "Местоположение", details: "Детали", price: "Цена", photos: "Фото", contact: "Контакт" },
     preview: "Так это будет выглядеть",
+    ai: {
+      write: "Написать описание с AI на трёх языках",
+      writing: "Пишем…",
+      check: "Описание готово. Прочитайте и поправьте его перед отправкой: AI может ошибаться.",
+      errors: {
+        unclear: "Сначала проверьте поля: одно из них заполнено неверно.",
+        busy: "За последний час написано слишком много описаний. Попробуйте позже или напишите сами.",
+        failed: "Не удалось написать описание. Попробуйте ещё раз или напишите сами.",
+      },
+    },
     market: { below: "Ниже обычного.", at: "Обычная цена.", above: "Выше обычного.", typical: "Похожие квартиры здесь: около {price} за м²." },
     quality: {
       heading: "Качество объявления",

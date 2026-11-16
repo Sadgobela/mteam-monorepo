@@ -37,7 +37,7 @@ export default async function EditListingPage({
             <Link href={`/${locale}/my-listings`}>{t.post.toMyListings}</Link>
           </>
         ) : (
-          <ListingForm locale={locale} t={t} gelPerUsd={await getGelPerUsd()} initial={listing} />
+          <ListingForm locale={locale} t={t} gelPerUsd={await getGelPerUsd()} initial={listing} ai={Boolean(process.env.ANTHROPIC_API_KEY)} />
         )}
       </main>
     </>

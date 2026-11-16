@@ -14,12 +14,13 @@ const db = vi.hoisted(() => ({ getGelPerUsd: async () => 2.7,
 }));
 const session = vi.hoisted(() => ({ currentUser: vi.fn(), hasSession: vi.fn() }));
 const router = vi.hoisted(() => ({ push: vi.fn() }));
+const postActions = vi.hoisted(() => ({ marketStatsAction: async () => [], writeDescriptionAction: vi.fn() }));
 
 vi.mock("@mteam/db", () => db);
 // The browser redraw is tested on its own; here a chosen file goes up as it is.
 vi.mock("@/lib/shrink-photo", () => ({ shrinkPhoto: async (file: File) => file }));
 // The price hint has its own test; here the market has no figures.
-vi.mock("@/lib/post-actions", () => ({ marketStatsAction: async () => [] }));
+vi.mock("@/lib/post-actions", () => postActions);
 vi.mock("@/lib/session", () => session);
 vi.mock("@/lib/auth-actions", () => ({ logoutAction: vi.fn(), addPhoneAction: vi.fn(), loginAction: vi.fn() }));
 vi.mock("next/navigation", () => ({
@@ -483,6 +484,44 @@ describe("ListingForm", () => {
     });
   });
 
+  describe("writing the description with AI", () => {
+    const write = () => fireEvent.click(screen.getByRole("button", { name: t.post.ai.write }));
+    const text = (label: string) => screen.getByLabelText(label, { selector: "textarea" });
+
+    it("is offered only when the server has an AI key", () => {
+      render(<ListingForm gelPerUsd={2.7} locale="en" t={t} />);
+      expect(screen.queryByRole("button", { name: t.post.ai.write })).toBeNull();
+    });
+
+    it("fills the three descriptions from the form's facts and asks the owner to check them", async () => {
+      let answer: (value: unknown) => void = () => undefined;
+      postActions.writeDescriptionAction.mockReturnValue(new Promise((resolve) => (answer = resolve)));
+      render(<ListingForm gelPerUsd={2.7} locale="en" t={t} ai />);
+      fireEvent.change(text(t.post.fields.description), { target: { value: "Near the park" } });
+      write();
+      expect(screen.getByRole("button", { name: t.post.ai.writing })).toBeDisabled();
+      expect(postActions.writeDescriptionAction).toHaveBeenCalledWith(expect.objectContaining({ city: "თბილისი", description: "Near the park" }));
+      answer({ descriptions: { ka: "ქართულად", en: "In English", ru: "По-русски" } });
+      expect(await screen.findByText(t.post.ai.check)).toBeInTheDocument();
+      expect([text(t.post.fields.description), text(t.post.fields.descriptionEn), text(t.post.fields.descriptionRu)].map((area) => (area as HTMLTextAreaElement).value)).toEqual(["ქართულად", "In English", "По-русски"]);
+      expect(screen.getByRole("button", { name: t.post.ai.write })).toBeEnabled();
+    });
+
+    it.each([["busy"], ["unclear"]] as const)("says why nothing was written: %s", async (error) => {
+      postActions.writeDescriptionAction.mockResolvedValue({ error });
+      render(<ListingForm gelPerUsd={2.7} locale="en" t={t} ai />);
+      write();
+      expect(await screen.findByText(t.post.ai.errors[error])).toBeInTheDocument();
+    });
+
+    it("says so when the request does not get through", async () => {
+      postActions.writeDescriptionAction.mockRejectedValue(new Error("offline"));
+      render(<ListingForm gelPerUsd={2.7} locale="en" t={t} ai />);
+      write();
+      expect(await screen.findByText(t.post.ai.errors.failed)).toBeInTheDocument();
+    });
+  });
+
   it("offers translated choices", () => {
     render(<ListingForm gelPerUsd={2.7} locale="ru" t={getDictionary("ru")} />);
     expect(screen.getByRole("option", { name: "Батуми" })).toBeInTheDocument();
@@ -495,6 +534,13 @@ describe("NewListingPage", () => {
   it("requires a valid session", async () => {
     session.currentUser.mockResolvedValue(null);
     await expect(NewListingPage({ params, searchParams: Promise.resolve({}) })).rejects.toThrow("REDIRECT /en/login?next=%2Fen%2Flistings%2Fnew");
+  });
+
+  it("offers AI writing when the server has a key", async () => {
+    vi.stubEnv("ANTHROPIC_API_KEY", "test-key");
+    render(await NewListingPage({ params, searchParams: Promise.resolve({}) }));
+    expect(screen.getByRole("button", { name: t.post.ai.write })).toBeInTheDocument();
+    vi.unstubAllEnvs();
   });
 
   it("shows the form, with the number hidden when the user hides it by default", async () => {

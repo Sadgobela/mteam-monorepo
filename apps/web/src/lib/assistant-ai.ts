@@ -3,7 +3,8 @@ import { betaZodOutputFormat } from "@anthropic-ai/sdk/helpers/beta/zod";
 import { z } from "zod";
 import { buildingStatuses, canonicalSearch, cityAreas, popularCities, priceInUsd, propertyTypes } from "@mteam/shared";
 
-const MODEL = "claude-opus-5-5";
+/** The model behind every AI feature on the site. */
+export const MODEL = "claude-opus-5-5";
 
 const filtersSchema = z.object({
   understood: z.boolean(),
