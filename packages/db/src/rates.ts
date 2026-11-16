@@ -1,9 +1,10 @@
+import type { PrismaClient } from "@prisma/client";
 import { FALLBACK_GEL_PER_USD } from "@mteam/shared";
 import { db } from "./client";
 
 /** Lari per dollar: the stored National Bank rate, or the fallback until the first nightly run has stored one. */
-export async function getGelPerUsd(): Promise<number> {
-  const row = await db().exchangeRate.findUnique({ where: { currency: "USD" }, select: { gelPerUnit: true } });
+export async function getGelPerUsd(client: PrismaClient = db()): Promise<number> {
+  const row = await client.exchangeRate.findUnique({ where: { currency: "USD" }, select: { gelPerUnit: true } });
   return row?.gelPerUnit ?? FALLBACK_GEL_PER_USD;
 }
 

@@ -7,6 +7,7 @@ const client = {
   user: { findUnique: vi.fn() },
   agent: { findMany: vi.fn() },
   listing: { findMany: vi.fn(), create: vi.fn() },
+  exchangeRate: { findUnique: vi.fn() },
 };
 const prisma = client as unknown as PrismaClient;
 
@@ -74,6 +75,12 @@ describe("importListings", () => {
   it("skips what was imported before, and reports a ref repeated within the file", async () => {
     client.listing.findMany.mockResolvedValue([{ sourceRef: "OLD" }]);
     expect(await run(row({ ref: "OLD" }), row({ ref: "NEW" }), row({ ref: "NEW" }))).toEqual({ created: 1, skipped: 1, problems: [{ row: 4, reason: "ref repeated" }] });
+  });
+
+  it("prices lari listings in dollars at the stored rate", async () => {
+    client.exchangeRate.findUnique.mockResolvedValueOnce({ gelPerUnit: 2.5 });
+    await run(row({ price: "250000", currency: "GEL" }));
+    expect(created()).toMatchObject({ price: 250000, currency: "GEL", priceUsd: 100000, pricePerSqmUsd: 2000 });
   });
 
   it("reads a decimal comma in numeric columns", async () => {

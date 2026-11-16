@@ -2,6 +2,7 @@ import type { PrismaClient } from "@prisma/client";
 import { draftFields, draftProblems, isFeature, MAX_PHOTOS, parseListingDraft, parsePhone, type ListingDraft } from "@mteam/shared";
 import { streetsIn } from "@mteam/shared/streets";
 import { draftColumns } from "./listings";
+import { getGelPerUsd } from "./rates";
 
 const COLUMNS = new Set([...draftFields, "ref", "agentPhone", "photos"]);
 /** Excel writes 65,5 for these on a European system. */
@@ -73,6 +74,7 @@ export async function importListings(client: PrismaClient, csv: string, { ownerP
   // A private person's number could otherwise end up public on thousands of listings after a typo.
   if (!owner || owner.role === "USER") throw new Error("No staff account has that phone number");
   const agents = new Map((await client.agent.findMany({ where: { user: { role: "AGENT", name: { not: null }, phone: { not: null } } }, select: { id: true, user: { select: { phone: true } } } })).flatMap((agent) => (agent.user.phone ? [[agent.user.phone, agent.id] as const] : [])));
+  const gelPerUsd = await getGelPerUsd(client);
   const imported = new Set((await client.listing.findMany({ where: { sourceRef: { not: null } }, select: { sourceRef: true } })).map((listing) => listing.sourceRef));
 
   const inFile = new Set<string>();
@@ -106,7 +108,7 @@ export async function importListings(client: PrismaClient, csv: string, { ownerP
     }
     await client.listing.create({
       data: {
-        ...draftColumns(parsed.draft),
+        ...draftColumns(parsed.draft, gelPerUsd),
         status: publish ? "ACTIVE" : "PENDING",
         verified: false,
         sourceRef: fields.ref,
