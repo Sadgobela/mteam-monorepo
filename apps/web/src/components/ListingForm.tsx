@@ -26,6 +26,7 @@ import { DetailFields } from "./DetailFields";
 import { FormSelect } from "./FormSelect";
 import { ListingPhotos, type PhotoItem } from "./ListingPhotos";
 import { ListingPreview, QualityMeter } from "./ListingPreview";
+import { PriceHint } from "./PriceHint";
 import { LocationPicker } from "./LocationPicker";
 import { loginPath } from "@/lib/login-path";
 import { shrinkPhoto } from "@/lib/shrink-photo";
@@ -78,7 +79,20 @@ const PRICE = 2;
  * Posts a new listing, or edits one when `initial` is given: the same form, filled in. A preview card and a quality meter follow
  * what is typed. A new listing or a draft is saved as a DRAFT at each step change, so it can be finished later from my listings.
  */
-export function ListingForm({ locale, t, initial, hidePhoneDefault = false }: { locale: Locale; t: Dict; initial?: EditableListing; hidePhoneDefault?: boolean }) {
+export function ListingForm({
+  locale,
+  t,
+  gelPerUsd,
+  initial,
+  hidePhoneDefault = false,
+}: {
+  locale: Locale;
+  t: Dict;
+  /** The stored lari rate, for comparing a price in lari with the market. */
+  gelPerUsd: number;
+  initial?: EditableListing;
+  hidePhoneDefault?: boolean;
+}) {
   const router = useRouter();
   const values = initial?.fields ?? {};
   const formRef = useRef<HTMLFormElement>(null);
@@ -300,6 +314,7 @@ export function ListingForm({ locale, t, initial, hidePhoneDefault = false }: { 
               <Input label={f.price} name="price" type="number" required min={1} max={2000000000} defaultValue={values.price} />
               <FormSelect name="currency" label={f.currency} initial={values.currency || currencies[0]} options={currencies.map((c) => ({ value: c, label: c }))} onChange={changed} />
             </div>
+            <PriceHint values={snapshot} gelPerUsd={gelPerUsd} t={t} />
           </fieldset>
           <fieldset {...stepProps(3)}>
             <ListingPhotos items={photos} onChange={setPhotos} onTooMany={() => setRejected("photos")} t={t} />

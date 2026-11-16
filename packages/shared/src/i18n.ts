@@ -63,6 +63,7 @@ const ka = {
     phoneLead: "განცხადებაზე ეს ნომერი გამოჩნდება, ამიტომ SMS კოდით ვამოწმებთ.",
     steps: { place: "მდებარეობა", details: "დეტალები", price: "ფასი", photos: "ფოტოები", contact: "კონტაქტი" },
     preview: "ასე გამოჩნდება",
+    market: { below: "ტიპურზე იაფია.", at: "ტიპური ფასია.", above: "ტიპურზე ძვირია.", typical: "მსგავსი ბინები აქ: დაახლოებით {price} მ²-ზე." },
     quality: {
       heading: "განცხადების ხარისხი",
       done: "განცხადებაში ყველაფერია, რასაც მყიდველები ეძებენ.",
@@ -149,6 +150,7 @@ const en: Dict = {
     phoneLead: "This number appears on your listing, so we check it with an SMS code.",
     steps: { place: "Location", details: "Details", price: "Price", photos: "Photos", contact: "Contact" },
     preview: "How it will look",
+    market: { below: "Below typical.", at: "Typical price.", above: "Above typical.", typical: "Similar apartments here: about {price} per m²." },
     quality: {
       heading: "Listing quality",
       done: "Your listing has everything buyers look for.",
@@ -233,6 +235,7 @@ const ru: Dict = {
     phoneLead: "Этот номер будет в объявлении, поэтому мы проверяем его кодом из SMS.",
     steps: { place: "Местоположение", details: "Детали", price: "Цена", photos: "Фото", contact: "Контакт" },
     preview: "Так это будет выглядеть",
+    market: { below: "Ниже обычного.", at: "Обычная цена.", above: "Выше обычного.", typical: "Похожие квартиры здесь: около {price} за м²." },
     quality: {
       heading: "Качество объявления",
       done: "В объявлении есть всё, что ищут покупатели.",

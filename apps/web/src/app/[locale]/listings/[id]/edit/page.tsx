@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
-import { getEditableListing } from "@mteam/db";
+import { getEditableListing, getGelPerUsd } from "@mteam/db";
 import { getDictionary } from "@mteam/shared";
 import { Header } from "@/components/Header";
 import { ListingForm } from "@/components/ListingForm";
@@ -37,7 +37,7 @@ export default async function EditListingPage({
             <Link href={`/${locale}/my-listings`}>{t.post.toMyListings}</Link>
           </>
         ) : (
-          <ListingForm locale={locale} t={t} initial={listing} />
+          <ListingForm locale={locale} t={t} gelPerUsd={await getGelPerUsd()} initial={listing} />
         )}
       </main>
     </>

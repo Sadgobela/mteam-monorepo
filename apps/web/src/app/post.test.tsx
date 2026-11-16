@@ -18,6 +18,8 @@ const router = vi.hoisted(() => ({ push: vi.fn() }));
 vi.mock("@mteam/db", () => db);
 // The browser redraw is tested on its own; here a chosen file goes up as it is.
 vi.mock("@/lib/shrink-photo", () => ({ shrinkPhoto: async (file: File) => file }));
+// The price hint has its own test; here the market has no figures.
+vi.mock("@/lib/post-actions", () => ({ marketStatsAction: async () => [] }));
 vi.mock("@/lib/session", () => session);
 vi.mock("@/lib/auth-actions", () => ({ logoutAction: vi.fn(), addPhoneAction: vi.fn(), loginAction: vi.fn() }));
 vi.mock("next/navigation", () => ({
@@ -92,7 +94,7 @@ const formOf = (label: string) => screen.getByLabelText(label).closest("form") a
 describe("ListingForm", () => {
   it("keeps what was typed and shows the error when the server rejects it", async () => {
     reply(422, { error: "invalid" });
-    render(<ListingForm locale="en" t={t} />);
+    render(<ListingForm gelPerUsd={2.7} locale="en" t={t} />);
     choose("a.jpg");
     const title = screen.getByLabelText(t.post.fields.title);
     fireEvent.change(title, { target: { value: "My flat" } });
@@ -103,7 +105,7 @@ describe("ListingForm", () => {
   });
 
   it("asks for a photo before sending anything", async () => {
-    render(<ListingForm locale="en" t={t} />);
+    render(<ListingForm gelPerUsd={2.7} locale="en" t={t} />);
     fireEvent.submit(formOf(t.post.fields.title));
     expect(await screen.findByRole("alert")).toHaveTextContent(t.post.errors.photos);
     expect(server).not.toHaveBeenCalled();
@@ -111,7 +113,7 @@ describe("ListingForm", () => {
 
   describe("sending", () => {
     const send = (...photos: string[]) => {
-      render(<ListingForm locale="ka" t={t} />);
+      render(<ListingForm gelPerUsd={2.7} locale="ka" t={t} />);
       choose(...(photos.length ? photos : ["a.jpg"]));
       fireEvent.submit(formOf(t.post.fields.title));
     };
@@ -169,7 +171,7 @@ describe("ListingForm", () => {
     const shown = () => Array.from(document.querySelectorAll(".photo-list img")).map((image) => image.getAttribute("src"));
 
     it("adds chosen photos after the ones there, marks the first as the main one, and reorders and removes them", () => {
-      render(<ListingForm locale="en" t={t} />);
+      render(<ListingForm gelPerUsd={2.7} locale="en" t={t} />);
       choose("a.jpg", "b.jpg");
       choose("c.jpg");
       expect(shown()).toEqual(["blob:1", "blob:2", "blob:3"]);
@@ -187,7 +189,7 @@ describe("ListingForm", () => {
     });
 
     it("keeps at most sixteen and says so", () => {
-      render(<ListingForm locale="en" t={t} />);
+      render(<ListingForm gelPerUsd={2.7} locale="en" t={t} />);
       choose(...Array.from({ length: 15 }, (_, index) => `${index}.jpg`));
       choose("x.jpg", "y.jpg");
       expect(shown()).toHaveLength(16);
@@ -197,7 +199,7 @@ describe("ListingForm", () => {
     });
 
     it("releases the previews of chosen photos when the form goes away", () => {
-      const { unmount } = render(<ListingForm locale="en" t={t} />);
+      const { unmount } = render(<ListingForm gelPerUsd={2.7} locale="en" t={t} />);
       choose("a.jpg");
       unmount();
       expect(URL.revokeObjectURL).toHaveBeenCalledWith("blob:1");
@@ -233,20 +235,20 @@ describe("ListingForm", () => {
     };
 
     it("starts on the first step with no way back and no submit", () => {
-      render(<ListingForm locale="en" t={t} />);
+      render(<ListingForm gelPerUsd={2.7} locale="en" t={t} />);
       expect(current()).toBe("1 Location");
       expect(screen.queryByRole("button", { name: t.post.back })).toBeNull();
       expect(screen.queryByRole("button", { name: t.post.submit })).toBeNull();
     });
 
     it("does not advance past a step with a missing required field", () => {
-      render(<ListingForm locale="en" t={t} />);
+      render(<ListingForm gelPerUsd={2.7} locale="en" t={t} />);
       next();
       expect(current()).toBe("1 Location");
     });
 
     it("asks only for what fits the property type", () => {
-      render(<ListingForm locale="en" t={t} />);
+      render(<ListingForm gelPerUsd={2.7} locale="en" t={t} />);
       const shown = (label: string) => screen.queryByLabelText(label) !== null;
       expect(screen.getByLabelText(t.post.fields.rooms)).toBeRequired();
       fill(t.search.type, "land");
@@ -258,7 +260,7 @@ describe("ListingForm", () => {
     });
 
     it("offers metro stations only in Tbilisi, and building status always", () => {
-      render(<ListingForm locale="en" t={t} />);
+      render(<ListingForm gelPerUsd={2.7} locale="en" t={t} />);
       expect(document.querySelector("input[name=metro]")).not.toBeRequired();
       expect(document.querySelector("input[name=building]")).not.toBeRequired();
       expect(screen.getByRole("option", { name: t.search.building.construction, hidden: true })).toBeInTheDocument();
@@ -267,14 +269,14 @@ describe("ListingForm", () => {
     });
 
     it("needs a district in a city that has them", () => {
-      render(<ListingForm locale="en" t={t} />);
+      render(<ListingForm gelPerUsd={2.7} locale="en" t={t} />);
       fill(t.post.fields.address, "Main 1");
       next();
       expect(current()).toBe("1 Location");
     });
 
     it("offers the district's streets once one is chosen, and keeps them optional", async () => {
-      render(<ListingForm locale="en" t={t} />);
+      render(<ListingForm gelPerUsd={2.7} locale="en" t={t} />);
       expect(screen.queryByLabelText(t.post.fields.street)).toBeNull();
       fill(t.post.fields.district, "ვაკე");
       fireEvent.change(await screen.findByLabelText(t.post.fields.street), { target: { value: "ჭავჭავაძე ი. გამზირი" } });
@@ -287,7 +289,7 @@ describe("ListingForm", () => {
     });
 
     it("offers the chosen city's districts, and none where it has none", () => {
-      render(<ListingForm locale="en" t={t} />);
+      render(<ListingForm gelPerUsd={2.7} locale="en" t={t} />);
       expect(screen.getByRole("option", { name: "Vake" })).toBeInTheDocument();
       fill(t.search.city, "ბათუმი");
       expect(screen.queryByRole("option", { name: "Vake" })).toBeNull();
@@ -300,7 +302,7 @@ describe("ListingForm", () => {
     });
 
     it("advances, moves focus to the new step, and only then offers submit", () => {
-      render(<ListingForm locale="en" t={t} />);
+      render(<ListingForm gelPerUsd={2.7} locale="en" t={t} />);
       completeFirst();
       expect(current()).toBe("2 Details");
       expect(screen.getByRole("group", { name: t.post.steps.details })).toHaveFocus();
@@ -317,7 +319,7 @@ describe("ListingForm", () => {
 
     it("lets someone whose session ended post again after closing sign-in", async () => {
       reply(401, { error: "signedOut" });
-      render(<ListingForm locale="en" t={t} />);
+      render(<ListingForm gelPerUsd={2.7} locale="en" t={t} />);
       choose("a.jpg");
       toLast();
       const button = screen.getByRole("button", { name: t.post.submit });
@@ -327,7 +329,7 @@ describe("ListingForm", () => {
     });
 
     it("hides the other steps but keeps their values in the form", () => {
-      const { container } = render(<ListingForm locale="en" t={t} />);
+      const { container } = render(<ListingForm gelPerUsd={2.7} locale="en" t={t} />);
       completeFirst();
       expect(container.querySelectorAll("fieldset.off")).toHaveLength(4);
       expect(container.querySelector("fieldset:not(.off)")).toHaveAccessibleName(t.post.steps.details);
@@ -335,7 +337,7 @@ describe("ListingForm", () => {
     });
 
     it("catches a rule across fields before the photos step, then lets it be corrected", () => {
-      render(<ListingForm locale="en" t={t} />);
+      render(<ListingForm gelPerUsd={2.7} locale="en" t={t} />);
       completeFirst();
       fill(t.post.fields.floor, "9");
       fill(t.post.fields.floors, "5");
@@ -350,7 +352,7 @@ describe("ListingForm", () => {
     });
 
     it("catches a price per m² beyond any real one before the photos step", () => {
-      render(<ListingForm locale="en" t={t} />);
+      render(<ListingForm gelPerUsd={2.7} locale="en" t={t} />);
       completeFirst();
       completeSecond();
       fill(t.post.fields.area, "1");
@@ -361,7 +363,7 @@ describe("ListingForm", () => {
     });
 
     it("clears that error when going back", () => {
-      render(<ListingForm locale="en" t={t} />);
+      render(<ListingForm gelPerUsd={2.7} locale="en" t={t} />);
       completeFirst();
       fill(t.post.fields.floor, "9");
       completeSecond();
@@ -371,7 +373,7 @@ describe("ListingForm", () => {
     });
 
     it("goes back without needing the current step to be valid", () => {
-      render(<ListingForm locale="en" t={t} />);
+      render(<ListingForm gelPerUsd={2.7} locale="en" t={t} />);
       completeFirst();
       fireEvent.click(screen.getByRole("button", { name: t.post.back }));
       expect(current()).toBe("1 Location");
@@ -384,7 +386,7 @@ describe("ListingForm", () => {
     const preview = () => screen.getByRole("region", { name: t.post.preview });
 
     it("shows the listing as a card while it is typed, with the first photo", async () => {
-      render(<ListingForm locale="en" t={t} />);
+      render(<ListingForm gelPerUsd={2.7} locale="en" t={t} />);
       expect(preview()).toHaveTextContent("Tbilisi");
       fireEvent.change(screen.getByLabelText(t.search.deal), { target: { value: "rent" } });
       fireEvent.change(screen.getByLabelText(t.post.fields.district), { target: { value: "ვაკე" } });
@@ -403,12 +405,12 @@ describe("ListingForm", () => {
     });
 
     it("shows a dash for what is not filled in yet", () => {
-      render(<ListingForm locale="en" t={t} />);
+      render(<ListingForm gelPerUsd={2.7} locale="en" t={t} />);
       expect(preview()).toHaveTextContent(`${t.post.preview}——`);
     });
 
     it("scores the listing and says what to add next", async () => {
-      render(<ListingForm locale="en" t={t} />);
+      render(<ListingForm gelPerUsd={2.7} locale="en" t={t} />);
       const meter = () => screen.getByRole("meter", { name: t.post.quality.heading });
       expect(meter()).toHaveAttribute("value", "0");
       expect(screen.getByText(t.post.quality.tips.photos.replace("{count}", "8"))).toBeInTheDocument();
@@ -420,7 +422,7 @@ describe("ListingForm", () => {
 
     it("says when nothing is missing", async () => {
       const full = { ...editable, images: Array.from({ length: 8 }, (_, index) => `https://cdn/${index}.webp`), fields: { ...editable.fields, description: "a".repeat(300), bedrooms: "1", ceiling: "3", yearBuilt: "2020" } };
-      render(<ListingForm locale="en" t={t} initial={full} />);
+      render(<ListingForm gelPerUsd={2.7} locale="en" t={t} initial={full} />);
       expect(await screen.findByText(t.post.quality.done)).toBeInTheDocument();
     });
   });
@@ -434,7 +436,7 @@ describe("ListingForm", () => {
 
     it("saves a new listing as a draft at each step, into the same draft, and sends that draft for review", async () => {
       reply(200, { id: 12, status: "DRAFT" });
-      render(<ListingForm locale="en" t={t} />);
+      render(<ListingForm gelPerUsd={2.7} locale="en" t={t} />);
       start();
       choose("a.jpg");
       next();
@@ -454,7 +456,7 @@ describe("ListingForm", () => {
 
     it("carries on quietly when a draft cannot be saved", async () => {
       server.mockRejectedValue(new Error("offline"));
-      render(<ListingForm locale="en" t={t} />);
+      render(<ListingForm gelPerUsd={2.7} locale="en" t={t} />);
       start();
       next();
       await waitFor(() => expect(server).toHaveBeenCalled());
@@ -463,7 +465,7 @@ describe("ListingForm", () => {
 
     it("saves nothing while a field holds something it cannot store", async () => {
       reply(200, { id: 12, status: "DRAFT" });
-      render(<ListingForm locale="en" t={t} />);
+      render(<ListingForm gelPerUsd={2.7} locale="en" t={t} />);
       start();
       fireEvent.click(screen.getByRole("button", { name: t.post.next }));
       fireEvent.change(screen.getByLabelText(t.post.fields.area, { selector: "input" }), { target: { value: "-5" } });
@@ -473,7 +475,7 @@ describe("ListingForm", () => {
 
     it("never autosaves a published listing, which would send it for review", async () => {
       reply(200, { id: 9, status: "ACTIVE" });
-      render(<ListingForm locale="en" t={t} initial={editable} />);
+      render(<ListingForm gelPerUsd={2.7} locale="en" t={t} initial={editable} />);
       next();
       fireEvent.click(screen.getByRole("button", { name: t.post.back }));
       await new Promise((resolve) => setTimeout(resolve, 50));
@@ -482,7 +484,7 @@ describe("ListingForm", () => {
   });
 
   it("offers translated choices", () => {
-    render(<ListingForm locale="ru" t={getDictionary("ru")} />);
+    render(<ListingForm gelPerUsd={2.7} locale="ru" t={getDictionary("ru")} />);
     expect(screen.getByRole("option", { name: "Батуми" })).toBeInTheDocument();
   });
 });
@@ -552,7 +554,7 @@ const editable = {
 describe("editing a listing", () => {
   it("fills the form in, keeps the photos it had, and sends the listing's id", async () => {
     reply(200, { id: 9, status: "ACTIVE" });
-    render(<ListingForm locale="en" t={t} initial={editable} />);
+    render(<ListingForm gelPerUsd={2.7} locale="en" t={t} initial={editable} />);
     expect(screen.getByLabelText(t.post.fields.title)).toHaveValue("Flat");
     expect(screen.getByLabelText(t.post.fields.cadastralCode)).toHaveValue("01.10");
     expect(screen.getByLabelText(t.post.fields.descriptionEn)).toHaveValue("Sunny flat");
@@ -570,7 +572,7 @@ describe("editing a listing", () => {
   });
 
   it("forgets the saved street once another district is chosen", async () => {
-    render(<ListingForm locale="en" t={t} initial={editable} />);
+    render(<ListingForm gelPerUsd={2.7} locale="en" t={t} initial={editable} />);
     await screen.findByLabelText(t.post.fields.street);
     fireEvent.change(screen.getByLabelText(t.post.fields.district), { target: { value: "საბურთალო" } });
     expect(screen.getByLabelText(t.post.fields.street)).toHaveValue("");
@@ -578,7 +580,7 @@ describe("editing a listing", () => {
 
   it("sends a reopened draft for review like a new listing", async () => {
     reply(200, { id: 9, status: "PENDING" });
-    render(<ListingForm locale="en" t={t} initial={{ ...editable, status: "DRAFT", fields: { deal: "sale", type: "apartment", city: "თბილისი" } }} />);
+    render(<ListingForm gelPerUsd={2.7} locale="en" t={t} initial={{ ...editable, status: "DRAFT", fields: { deal: "sale", type: "apartment", city: "თბილისი" } }} />);
     expect(screen.queryByRole("checkbox", { name: t.post.fields.hidePhone, hidden: true })).not.toBeChecked();
     fireEvent.submit(formOf(t.post.fields.title));
     await waitFor(() => expect(router.push).toHaveBeenCalledWith("/en/listings/new?sent=1"));
@@ -586,7 +588,7 @@ describe("editing a listing", () => {
 
   it("sends someone whose session ended back to this edit after signing in", async () => {
     reply(401, { error: "signedOut" });
-    render(<ListingForm locale="en" t={t} initial={editable} />);
+    render(<ListingForm gelPerUsd={2.7} locale="en" t={t} initial={editable} />);
     fireEvent.submit(formOf(t.post.fields.title));
     await waitFor(() => expect(router.push).toHaveBeenCalledWith("/en/login?next=%2Fen%2Flistings%2F9%2Fedit"));
   });
