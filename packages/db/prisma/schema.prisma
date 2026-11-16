@@ -79,10 +79,10 @@ enum LeadStatus {
 }
 
 model User {
-  id                   String          @id @default(cuid())
-  phone                String?         @unique // login by SMS code; empty after Google, Facebook or Apple until one is added
+  id                   String             @id @default(cuid())
+  phone                String?            @unique // login by SMS code; empty after Google, Facebook or Apple until one is added
   name                 String?
-  email                String?         @unique // sign-in by email and password; never filled from Google, Facebook or Apple
+  email                String?            @unique // sign-in by email and password; never filled from Google, Facebook or Apple
   emailVerifiedAt      DateTime?
   passwordHash         String? // scrypt, see db/src/password.ts; empty for phone and social accounts
   avatarUrl            String?
@@ -91,27 +91,29 @@ model User {
   deletedAt            DateTime? // set when the user deleted their account; such a user can never sign in again
   termsAcceptedAt      DateTime?
   // What the user wants to hear about. In-app now; email and SMS follow these once a provider is in.
-  notifyMessages       Boolean         @default(true)
-  notifySavedSearches  Boolean         @default(true)
-  notifyPriceDrops     Boolean         @default(true)
-  notifyListingUpdates Boolean         @default(true)
-  hidePhoneDefault     Boolean         @default(false) // new listings start with the number hidden, chat only
+  notifyMessages       Boolean            @default(true)
+  notifySavedSearches  Boolean            @default(true)
+  notifyPriceDrops     Boolean            @default(true)
+  notifyListingUpdates Boolean            @default(true)
+  hidePhoneDefault     Boolean            @default(false) // new listings start with the number hidden, chat only
+  notifyPush           Boolean            @default(true) // push notifications on every device the user turned them on for
+  pushSubscriptions    PushSubscription[]
   notifications        Notification[]
   emailTokens          EmailToken[]
-  invitesSent          AgentInvite[]   @relation("InviteCreator")
-  invitesUsed          AgentInvite[]   @relation("InviteUser")
-  role                 Role            @default(USER)
+  invitesSent          AgentInvite[]      @relation("InviteCreator")
+  invitesUsed          AgentInvite[]      @relation("InviteUser")
+  role                 Role               @default(USER)
   agent                Agent?
   listings             Listing[]
   favorites            Favorite[]
   hidden               HiddenListing[]
   savedSearches        SavedSearch[]
-  buying               Conversation[]  @relation("Buyer")
-  selling              Conversation[]  @relation("Seller")
+  buying               Conversation[]     @relation("Buyer")
+  selling              Conversation[]     @relation("Seller")
   messages             Message[]
   sessions             Session[]
   identities           Identity[]
-  createdAt            DateTime        @default(now())
+  createdAt            DateTime           @default(now())
 }
 
 enum IdentityProvider {
@@ -395,6 +397,22 @@ model Notification {
 
   @@index([userId, readAt])
   @@index([userId, createdAt])
+}
+
+// A browser that agreed to receive push notifications for this user. The keys encrypt each message for that browser only.
+model PushSubscription {
+  id         String   @id @default(cuid())
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId     String
+  endpoint   String   @unique // the push service's address for this browser
+  p256dh     String
+  auth       String
+  userAgent  String?
+  locale     String   @default("ka") // the language of the page that subscribed, used for the message text
+  createdAt  DateTime @default(now())
+  lastUsedAt DateTime @default(now())
+
+  @@index([userId])
 }
 
 // A published listing's price change, in dollars, for price-drop alerts and price history.

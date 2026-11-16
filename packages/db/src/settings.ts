@@ -2,7 +2,7 @@ import { createHash } from "node:crypto";
 import { db } from "./client";
 
 /** The account's switches in settings, each a column on User. */
-export const PREFERENCE_KEYS = ["notifyMessages", "notifySavedSearches", "notifyPriceDrops", "notifyListingUpdates", "hidePhoneDefault"] as const;
+export const PREFERENCE_KEYS = ["notifyMessages", "notifySavedSearches", "notifyPriceDrops", "notifyListingUpdates", "notifyPush", "hidePhoneDefault"] as const;
 export type PreferenceKey = (typeof PREFERENCE_KEYS)[number];
 export type Preferences = Record<PreferenceKey, boolean>;
 
@@ -49,7 +49,7 @@ export async function signOutOtherDevices(userId: string, currentToken: string):
 
 /**
  * Removes a private person's account, keeping what others still need. Personal details are cleared and their sign-ins,
- * saved things and notifications deleted; their listings are archived; chats stay for the other person, where a user
+ * saved things, notifications and push subscriptions deleted; their listings are archived; chats stay for the other person, where a user
  * without a name already shows as someone unnamed. One transaction, so it never half happens.
  * Brokers and admins are refused (false): their listings and work belong to MTeam, so an admin removes them.
  * The role is checked by the first write itself, so a promotion a moment earlier cannot slip through.
@@ -69,6 +69,8 @@ export async function deleteAccount(userId: string): Promise<boolean> {
     await tx.hiddenListing.deleteMany(mine);
     await tx.emailToken.deleteMany(mine);
     await tx.notification.deleteMany(mine);
+    // Chats live on, and a new message there must not reach this person's phone.
+    await tx.pushSubscription.deleteMany(mine);
     // A former broker keeps the Agent row their listings and checks point to, but not their photo or bio.
     await tx.agent.updateMany({ where: { userId }, data: { photoUrl: null, bio: null } });
     await tx.listing.updateMany({ where: { ownerId: userId, status: { not: "ARCHIVED" } }, data: { status: "ARCHIVED" } });
