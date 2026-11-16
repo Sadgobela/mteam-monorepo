@@ -64,6 +64,7 @@ export default async function AdminPage({ params }: { params: Promise<{ locale: 
                   <ListingSummary listing={listing} t={t} />
                   <form action={reviewListingAction} className="queue-actions">
                     <input type="hidden" name="listingId" value={listing.id} />
+                    <input type="hidden" name="editedAt" value={listing.editedAt} />
                     <button type="submit" name="decision" value="ACTIVE" className="btn">{t.admin.approve}</button>
                     <ConfirmSubmit label={t.admin.reject} question={t.admin.confirmReject} yes={t.confirm.yes} no={t.confirm.no} name="decision" value="REJECTED" />
                   </form>
