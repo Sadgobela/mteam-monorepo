@@ -7,6 +7,7 @@ import type { Dict, Locale } from "@mteam/shared";
 import { z } from "zod";
 import { loginPath } from "@/lib/login-path";
 import { onboardingPath } from "@/lib/onboarding";
+import { shrinkPhoto } from "@/lib/shrink-photo";
 import { onboardAction, saveProfileAction } from "@/lib/profile-actions";
 import { Avatar } from "./Avatar";
 import { ChoicePills } from "./ChoicePills";
@@ -92,31 +93,12 @@ export function ProfileForm({ locale, t, name, intent }: { locale: Locale; t: Di
 const uploadReplySchema = z.object({ error: z.enum(["signedOut", "photo", "tooMany"]) });
 
 /** The longest side a photo is sent at: plenty for a 256 px avatar, and far under the upload limit. */
-const MAX_EDGE_PX = 1024;
+const SEND_EDGE_PX = 1024;
 
 /**
- * A phone photo shrunk to at most 1024 px and re-encoded as JPEG before it is sent, upright as the camera meant it.
- * The original goes when the browser cannot decode it; the server checks either way.
+ * The user's photo, replaced as soon as a new one is chosen. It is shrunk in the browser first; the server checks it, crops
+ * it square and removes its metadata.
  */
-async function shrink(file: File): Promise<Blob> {
-  try {
-    const bitmap = await createImageBitmap(file, { imageOrientation: "from-image" });
-    const scale = Math.min(1, MAX_EDGE_PX / Math.max(bitmap.width, bitmap.height));
-    const canvas = document.createElement("canvas");
-    canvas.width = Math.round(bitmap.width * scale);
-    canvas.height = Math.round(bitmap.height * scale);
-    const context = canvas.getContext("2d");
-    if (!context) return file;
-    context.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
-    bitmap.close();
-    const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, "image/jpeg", 0.9));
-    return blob ?? file;
-  } catch {
-    return file;
-  }
-}
-
-/** The user's photo, replaced as soon as a new one is chosen. The server crops it square and removes its metadata. */
 export function AvatarUpload({ locale, t, name, url, joined }: { locale: Locale; t: Dict; name: string | null; url: string | null; joined: string }) {
   const router = useRouter();
   const [pending, setPending] = useState(false);
@@ -129,7 +111,7 @@ export function AvatarUpload({ locale, t, name, url, joined }: { locale: Locale;
     setPending(true);
     setError(undefined);
     const body = new FormData();
-    body.set("photo", await shrink(file), file.name);
+    body.set("photo", await shrinkPhoto(file, SEND_EDGE_PX));
     let ok = false;
     let reply: unknown = null;
     try {

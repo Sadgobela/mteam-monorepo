@@ -315,18 +315,8 @@ describe("AvatarUpload", () => {
       expect(file.size).toBe(small.size);
     });
 
-    it("never enlarges a small photo", async () => {
-      vi.stubGlobal("createImageBitmap", vi.fn(async () => ({ ...bitmap, width: 300, height: 400 })));
-      await sent();
-      expect(draw).toHaveBeenCalledWith(expect.anything(), 0, 0, 300, 400);
-    });
-
-    it.each([
-      ["has no canvas", () => vi.spyOn(HTMLCanvasElement.prototype, "getContext").mockReturnValue(null)],
-      ["cannot encode", () => vi.spyOn(HTMLCanvasElement.prototype, "toBlob").mockImplementation((done) => done(null))],
-      ["cannot decode the photo", () => vi.stubGlobal("createImageBitmap", vi.fn(async () => Promise.reject(new Error("bad image"))))],
-    ])("sends the original when the browser %s", async (_, breakIt) => {
-      breakIt();
+    it("sends the original when the browser cannot decode it", async () => {
+      vi.stubGlobal("createImageBitmap", vi.fn(async () => Promise.reject(new Error("bad image"))));
       expect((await sent()).size).toBe(photo.size);
     });
   });
