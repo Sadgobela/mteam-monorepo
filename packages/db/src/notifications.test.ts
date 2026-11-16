@@ -197,7 +197,7 @@ describe("runNightlyNotifications", () => {
       { userId: "u1", listingId: 3, createdAt: hoursAgo(1) }, // a second run on the same night
     ]);
     expect(await runNightlyNotifications()).toBe(2);
-    expect(prisma.listingPriceChange.findMany.mock.calls[0][0].where).toEqual({ createdAt: { gte: hoursAgo(24) }, listing: { status: "ACTIVE" } });
+    expect(prisma.listingPriceChange.findMany.mock.calls[0][0].where).toEqual({ createdAt: { gte: hoursAgo(25) }, listing: { status: "ACTIVE" } });
     expect(prisma.favorite.findMany.mock.calls[0][0].where).toEqual({ listingId: { in: [1, 3] }, user: { notifyPriceDrops: true } });
     expect(prisma.notification.createMany).toHaveBeenCalledWith({
       data: [
@@ -231,9 +231,9 @@ describe("runNightlyNotifications", () => {
     prisma.listing.count.mockResolvedValueOnce(3).mockResolvedValueOnce(0).mockResolvedValueOnce(0);
     expect(await runNightlyNotifications()).toBe(1);
     expect(prisma.savedSearch.findMany.mock.calls[0][0].where).toEqual({ user: { notifySavedSearches: true } });
-    expect(prisma.notification.findMany.mock.calls[0][0].where).toEqual({ userId: { in: ["u1", "u2"] }, createdAt: { gte: hoursAgo(24) }, type: "SEARCH_MATCHES" });
+    expect(prisma.notification.findMany.mock.calls[0][0].where).toEqual({ userId: { in: ["u1", "u2"] }, createdAt: { gte: hoursAgo(25) }, type: "SEARCH_MATCHES" });
     const sinces = prisma.listing.count.mock.calls.map(([{ where }]) => where.createdAt.gt);
-    expect(sinces).toEqual([hoursAgo(24), hoursAgo(2), hoursAgo(1)]);
+    expect(sinces).toEqual([hoursAgo(25), hoursAgo(2), hoursAgo(1)]);
     expect(prisma.listing.count.mock.calls[0][0].where).toMatchObject({ status: "ACTIVE", deal: "SALE", id: { notIn: [9] } });
     expect(prisma.hiddenListing.findMany).toHaveBeenCalledTimes(2);
     expect(prisma.notification.createMany).toHaveBeenCalledWith({ data: [{ userId: "u1", type: "SEARCH_MATCHES", data: { savedSearchId: "s1", query: "deal=sale", count: 3 } }] });

@@ -10,6 +10,8 @@ const LIST_LIMIT = 50;
 const DAY_MS = 24 * 60 * 60_000;
 const EXPIRY_WARNING_DAYS = 3;
 const KEEP_READ_DAYS = 90;
+/** A day and an hour, so a run that starts late does not miss what came between; the dedupe keeps the overlap from being told twice. */
+const LOOKBACK_MS = DAY_MS + 60 * 60_000;
 
 /** The one setting that lets each kind of notification through. */
 const preference = {
@@ -141,11 +143,11 @@ async function notifyExpiring(now: Date): Promise<number> {
   return (await client.notification.createMany({ data: fresh })).count;
 }
 
-/** Users whose favourite got cheaper in the last day, told once per change. */
+/** Users whose favourite got cheaper since the last run, told once per change. */
 async function notifyPriceDrops(now: Date): Promise<number> {
   const client = db();
   const changes = await client.listingPriceChange.findMany({
-    where: { createdAt: { gte: new Date(now.getTime() - DAY_MS) }, listing: { status: "ACTIVE" } },
+    where: { createdAt: { gte: new Date(now.getTime() - LOOKBACK_MS) }, listing: { status: "ACTIVE" } },
     orderBy: { createdAt: "asc" },
     select: { listingId: true, oldPriceUsd: true, newPriceUsd: true, createdAt: true },
   });
@@ -159,7 +161,7 @@ async function notifyPriceDrops(now: Date): Promise<number> {
   const fans = await client.favorite.findMany({ where: { listingId: { in: [...drops.keys()] }, user: wants("PRICE_DROP") }, select: { userId: true, listingId: true } });
   if (fans.length === 0) return 0;
   const told = await client.notification.findMany({
-    where: { userId: { in: fans.map((fan) => fan.userId) }, createdAt: { gte: new Date(now.getTime() - DAY_MS) }, type: "PRICE_DROP", listingId: { in: [...drops.keys()] } },
+    where: { userId: { in: fans.map((fan) => fan.userId) }, createdAt: { gte: new Date(now.getTime() - LOOKBACK_MS) }, type: "PRICE_DROP", listingId: { in: [...drops.keys()] } },
     select: { userId: true, listingId: true, createdAt: true },
   });
   const fresh = [...drops].flatMap(([listingId, { oldPriceUsd, newPriceUsd, at }]) =>
@@ -175,12 +177,12 @@ const savedSearchOf = z.object({ savedSearchId: z.string() }).catch({ savedSearc
 /** Saved searches with new published listings since the last run, or since the user last opened them if that is later. */
 async function notifySearchMatches(now: Date): Promise<number> {
   const client = db();
-  const dayAgo = new Date(now.getTime() - DAY_MS);
+  const lookbackFrom = new Date(now.getTime() - LOOKBACK_MS);
   // ponytail: one count per saved search, one after another; batch them if the nightly job gets slow.
   const searches = await client.savedSearch.findMany({ where: { user: wants("SEARCH_MATCHES") }, select: { id: true, userId: true, query: true, seenAt: true } });
   if (searches.length === 0) return 0;
   const told = await client.notification.findMany({
-    where: { userId: { in: [...new Set(searches.map((search) => search.userId))] }, createdAt: { gte: dayAgo }, type: "SEARCH_MATCHES" },
+    where: { userId: { in: [...new Set(searches.map((search) => search.userId))] }, createdAt: { gte: lookbackFrom }, type: "SEARCH_MATCHES" },
     orderBy: { createdAt: "asc" },
     select: { createdAt: true, data: true },
   });
@@ -189,7 +191,7 @@ async function notifySearchMatches(now: Date): Promise<number> {
   const fresh: Prisma.NotificationCreateManyInput[] = [];
   for (const { id, userId, query, seenAt } of searches) {
     // A second run on the same day counts from the first one, so nothing is told twice.
-    const since = new Date(Math.max(dayAgo.getTime(), seenAt.getTime(), lastTold.get(id)?.getTime() ?? 0));
+    const since = new Date(Math.max(lookbackFrom.getTime(), seenAt.getTime(), lastTold.get(id)?.getTime() ?? 0));
     const hiddenIds = hidden.get(userId) ?? (await getHiddenIds(userId));
     hidden.set(userId, hiddenIds);
     // ponytail: counts by creation date like the saved searches page, so a listing approved a day after it was posted is missed.
