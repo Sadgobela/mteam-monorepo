@@ -35,6 +35,9 @@ export interface Listing {
   ceiling?: number;
   yearBuilt?: number;
   description: string;
+  /** The owner's own English and Russian versions, when written. */
+  descriptionEn?: string;
+  descriptionRu?: string;
   /** Checked on site by an MTeam broker. */
   verified: boolean;
   /** 1 (well below the market) to 5 (well above). Missing while there are too few comparable listings. */
