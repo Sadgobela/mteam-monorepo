@@ -62,7 +62,8 @@ describe("PushDevice", () => {
   const permission = { value: "default" as NotificationPermission };
   const requestPermission = vi.fn<() => Promise<NotificationPermission>>();
   const unsubscribe = vi.fn(async () => true);
-  const subscription = { endpoint: ENDPOINT, toJSON: () => json, unsubscribe };
+  const siteKey = new Uint8Array([1, 2, 62, 255]).buffer;
+  const subscription = { endpoint: ENDPOINT, options: { applicationServerKey: siteKey as ArrayBuffer | null }, toJSON: () => json, unsubscribe };
   const pushManager = { getSubscription: vi.fn(), subscribe: vi.fn() };
   const serviceWorker = { getRegistration: vi.fn(), register: vi.fn(), ready: Promise.resolve({ pushManager }) };
   const fetchMock = vi.fn();
@@ -90,6 +91,7 @@ describe("PushDevice", () => {
     pushManager.getSubscription.mockResolvedValue(null);
     pushManager.subscribe.mockResolvedValue(subscription);
     unsubscribe.mockResolvedValue(true);
+    subscription.options.applicationServerKey = siteKey;
   });
   afterEach(() => {
     vi.unstubAllGlobals();
@@ -170,6 +172,21 @@ describe("PushDevice", () => {
     pushManager.getSubscription.mockResolvedValue(subscription);
     show(endpoints);
     expect(await screen.findByRole("button", { name: copy.turnOn })).toBeInTheDocument();
+  });
+
+  it.each([
+    ["an earlier key pair", new Uint8Array([9, 9]).buffer],
+    ["no key", null],
+  ])("shows off for a subscription made with %s, and replaces it when turned on", async (_name, key) => {
+    permission.value = "granted";
+    requestPermission.mockResolvedValue("granted");
+    subscription.options.applicationServerKey = key;
+    pushManager.getSubscription.mockResolvedValue(subscription);
+    show();
+    await userEvent.click(await screen.findByRole("button", { name: copy.turnOn }));
+    expect(await screen.findByText(copy.on)).toBeInTheDocument();
+    expect(unsubscribe).toHaveBeenCalled();
+    expect(pushManager.subscribe).toHaveBeenCalled();
   });
 
   it("shows off when no worker is registered yet", async () => {

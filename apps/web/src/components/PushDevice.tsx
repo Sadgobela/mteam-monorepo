@@ -14,19 +14,26 @@ const isInstalled = () => window.matchMedia("(display-mode: standalone)").matche
 /** The VAPID public key, base64url as the server has it, in the bytes browsers expect. */
 const keyBytes = (key: string) => Uint8Array.from(atob(key.replace(/-/g, "+").replace(/_/g, "/")), (char) => char.charCodeAt(0));
 
+/** Whether a subscription was made with this key. One made with an earlier key pair can no longer be sent to. */
+const madeWith = (subscription: PushSubscription, key: Uint8Array) => {
+  const own = subscription.options.applicationServerKey;
+  return own !== null && new Uint8Array(own).join() === key.join();
+};
+
 async function currentSubscription(): Promise<PushSubscription | null> {
   const registration = await navigator.serviceWorker.getRegistration();
   return (await registration?.pushManager.getSubscription()) ?? null;
 }
 
 /** Where this browser stands. "On" only when it is subscribed for this user; someone else may have turned it on before. */
-async function detect(endpoints: string[]): Promise<State> {
+async function detect(publicKey: string, endpoints: string[]): Promise<State> {
   // On iPhone, Safari offers push only to sites added to the home screen.
   if (isAppleMobile() && !isInstalled()) return "install";
   if (!("serviceWorker" in navigator && "PushManager" in window && "Notification" in window)) return "unsupported";
   if (Notification.permission === "denied") return "blocked";
   const subscription = await currentSubscription();
-  return Notification.permission === "granted" && subscription && endpoints.includes(subscription.endpoint) ? "on" : "off";
+  const mine = subscription && endpoints.includes(subscription.endpoint) && madeWith(subscription, keyBytes(publicKey));
+  return Notification.permission === "granted" && mine ? "on" : "off";
 }
 
 async function post(path: string, body: unknown): Promise<void> {
@@ -44,8 +51,8 @@ export function PushDevice({ publicKey, locale, endpoints, copy }: { publicKey: 
   const [failed, setFailed] = useState(false);
 
   useEffect(() => {
-    detect(endpoints).then(setState, () => setState("unsupported"));
-  }, [endpoints]);
+    detect(publicKey, endpoints).then(setState, () => setState("unsupported"));
+  }, [publicKey, endpoints]);
 
   const run = async (work: () => Promise<State>) => {
     setBusy(true);
@@ -65,9 +72,14 @@ export function PushDevice({ publicKey, locale, endpoints, copy }: { publicKey: 
       const permission = await Notification.requestPermission();
       if (permission !== "granted") return permission === "denied" ? "blocked" : "off";
       await navigator.serviceWorker.register("/sw.js");
-      const registration = await navigator.serviceWorker.ready;
-      const subscription =
-        (await registration.pushManager.getSubscription()) ?? (await registration.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: keyBytes(publicKey) }));
+      const { pushManager } = await navigator.serviceWorker.ready;
+      const key = keyBytes(publicKey);
+      let subscription = await pushManager.getSubscription();
+      if (subscription && !madeWith(subscription, key)) {
+        await subscription.unsubscribe();
+        subscription = null;
+      }
+      subscription ??= await pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: key });
       await post("/api/push/subscribe", { ...subscription.toJSON(), locale });
       return "on";
     });
