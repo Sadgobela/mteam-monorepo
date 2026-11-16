@@ -12,6 +12,8 @@ const SESSION_TTL_MS = 30 * 24 * 60 * 60_000;
 // Generous, because Georgian mobile carriers put many customers behind one address. It exists to cap what a script can cost in SMS.
 const CODES_PER_ADDRESS = 20;
 const PHONE_LOOKUPS_PER_ADDRESS = 60;
+// Each typed search costs an AI request, so a script must not be able to run up the bill.
+const ASSISTANT_QUERIES_PER_ADDRESS = 30;
 const ADDRESS_WINDOW_MS = 60 * 60_000;
 
 const smsEnvSchema = z.object({ SMS_PROVIDER: z.enum(["console", "log"]) });
@@ -78,6 +80,11 @@ async function claimQuota(ipHash: string, limit: number, now: number): Promise<b
 /** Enough for someone comparing flats, too few to walk through every listing's number. */
 export function claimPhoneLookup(ip: string, now = Date.now()): Promise<boolean> {
   return claimQuota(`phone:${addressHash(ip)}`, PHONE_LOOKUPS_PER_ADDRESS, now);
+}
+
+/** Plenty for one person refining a search in the assistant, few enough to cap what a script can cost. */
+export function claimAssistantQuery(ip: string, now = Date.now()): Promise<boolean> {
+  return claimQuota(`ai:${addressHash(ip)}`, ASSISTANT_QUERIES_PER_ADDRESS, now);
 }
 
 /**

@@ -12,7 +12,7 @@ const prisma = vi.hoisted(() => ({
 vi.mock("./client", () => ({ db: () => prisma }));
 
 import { Prisma } from "@prisma/client";
-import { addPhone, claimPhoneLookup, deleteSession, getSessionUser, requestLoginCode, signInWithIdentity, verifyLoginCode } from "./index";
+import { addPhone, claimAssistantQuery, claimPhoneLookup, deleteSession, getSessionUser, requestLoginCode, signInWithIdentity, verifyLoginCode } from "./index";
 
 const phone = "+995555123456";
 const sha256 = (value: string) => createHash("sha256").update(value).digest("hex");
@@ -333,6 +333,18 @@ describe("sessions", () => {
     prisma.session.deleteMany.mockResolvedValue({ count: 1 });
     await deleteSession("tok");
     expect(prisma.session.deleteMany).toHaveBeenCalledWith({ where: { tokenHash: sha256("tok") } });
+  });
+});
+
+describe("claimAssistantQuery", () => {
+  it("counts typed searches on their own key, and refuses past the limit", async () => {
+    prisma.codeRequestLimit.updateMany.mockReset();
+    prisma.codeRequestLimit.updateMany.mockResolvedValue({ count: 1 });
+    expect(await claimAssistantQuery("1.2.3.4")).toBe(true);
+    expect(prisma.codeRequestLimit.updateMany.mock.calls[0][0].where.ipHash).toMatch(/^ai:/);
+    prisma.codeRequestLimit.updateMany.mockResolvedValue({ count: 0 });
+    prisma.codeRequestLimit.createMany.mockResolvedValue({ count: 0 });
+    expect(await claimAssistantQuery("1.2.3.4", 1000)).toBe(false);
   });
 });
 
