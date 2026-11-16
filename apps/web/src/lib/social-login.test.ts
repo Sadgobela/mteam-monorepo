@@ -67,8 +67,11 @@ describe("live", () => {
 
     flow.person.mockResolvedValue({ subject: "g-1" });
     db.signInWithIdentity.mockResolvedValue("tok");
-    const request = new NextRequest(`${origin}/api/auth/google/callback?code=c0de&state=st`, { headers: { cookie: `__Host-mteam_social=${encodeURIComponent(JSON.stringify(saved))}` } });
+    const request = new NextRequest(`${origin}/api/auth/google/callback?code=c0de&state=st`, {
+      headers: { cookie: `__Host-mteam_social=${encodeURIComponent(JSON.stringify(saved))}`, "user-agent": "Safari on iPhone" },
+    });
     const finished = await callbackRoute(request, params("google"));
+    expect(db.signInWithIdentity).toHaveBeenCalledWith("GOOGLE", "g-1", "Safari on iPhone");
     expect(finished.headers.get("location")).toBe(`${origin}/en/saved`);
     expect(finished.cookies.get("__Host-mteam_social")).toMatchObject({ value: "", path: "/", maxAge: 0 });
   });
@@ -81,7 +84,7 @@ describe("coming back", () => {
     const response = await callbackRoute(back("code=c0de&state=st"), params("google"));
 
     expect(flow.person).toHaveBeenCalledWith("c0de", { ...saved, redirectUri: `${origin}/api/auth/google/callback` });
-    expect(db.signInWithIdentity).toHaveBeenCalledWith("GOOGLE", "g-1");
+    expect(db.signInWithIdentity).toHaveBeenCalledWith("GOOGLE", "g-1", undefined);
     expect(response.headers.get("location")).toBe(`${origin}/en/saved`);
     expect(response.cookies.get("mteam_session")).toMatchObject({ value: "tok", httpOnly: true, path: "/" });
     expect(response.cookies.get("mteam_social")).toMatchObject({ value: "", maxAge: 0 });

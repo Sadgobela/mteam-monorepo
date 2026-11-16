@@ -6,7 +6,7 @@ const prisma = vi.hoisted(() => ({
   codeRequestLimit: { createMany: vi.fn(), updateMany: vi.fn() },
   user: { upsert: vi.fn(), updateMany: vi.fn() },
   identity: { upsert: vi.fn() },
-  session: { create: vi.fn(), findUnique: vi.fn(), deleteMany: vi.fn() },
+  session: { create: vi.fn(), findUnique: vi.fn(), deleteMany: vi.fn(), updateMany: vi.fn() },
 }));
 
 vi.mock("./client", () => ({ db: () => prisma }));
@@ -247,14 +247,26 @@ describe("verifyLoginCode", () => {
       tokenHash: sha256(token as string),
       userId: "u1",
       expiresAt: new Date("2026-12-09T10:00:00Z"),
+      userAgent: undefined,
+      lastSeenAt: new Date("2026-11-09T10:00:00Z"),
     });
+  });
+
+  it("records the browser, cut short, so the user can tell their devices apart", async () => {
+    open();
+    prisma.loginCode.deleteMany.mockResolvedValue({ count: 1 });
+    prisma.user.upsert.mockResolvedValue({ id: "u1" });
+    await verifyLoginCode(phone, "123456", `Mozilla/5.0 ${"x".repeat(400)}`);
+    const { userAgent } = prisma.session.create.mock.calls[0][0].data;
+    expect(userAgent).toHaveLength(300);
+    expect(userAgent.startsWith("Mozilla/5.0 x")).toBe(true);
   });
 });
 
 describe("signInWithIdentity", () => {
   it("signs in as the user linked to the account, making one the first time", async () => {
     prisma.identity.upsert.mockResolvedValue({ userId: "u7" });
-    const token = await signInWithIdentity("GOOGLE", "g-123");
+    const token = await signInWithIdentity("GOOGLE", "g-123", "Safari");
     expect(prisma.identity.upsert.mock.calls[0][0]).toEqual({
       where: { provider_subject: { provider: "GOOGLE", subject: "g-123" } },
       update: {},
@@ -265,6 +277,8 @@ describe("signInWithIdentity", () => {
       tokenHash: sha256(token),
       userId: "u7",
       expiresAt: new Date("2026-12-09T10:00:00Z"),
+      userAgent: "Safari",
+      lastSeenAt: new Date("2026-11-09T10:00:00Z"),
     });
   });
 });
@@ -313,15 +327,31 @@ describe("addPhone", () => {
 describe("sessions", () => {
   const user = { id: "u1", phone, role: "USER" };
 
-  it("returns the user of a live session, looked up by hash", async () => {
-    prisma.session.findUnique.mockResolvedValue({ expiresAt: new Date("2026-11-09T10:00:01Z"), user });
+  const live = new Date("2026-11-09T10:00:01Z");
+
+  it("returns the user of a live session, looked up by hash, without writing when it was seen within the hour", async () => {
+    prisma.session.findUnique.mockResolvedValue({ expiresAt: live, lastSeenAt: new Date("2026-11-09T09:00:00Z"), user });
     expect(await getSessionUser("tok")).toEqual(user);
     expect(prisma.session.findUnique.mock.calls[0][0].where).toEqual({ tokenHash: sha256("tok") });
+    expect(prisma.session.updateMany).not.toHaveBeenCalled();
   });
 
-  it("ignores an expired session", async () => {
-    prisma.session.findUnique.mockResolvedValue({ expiresAt: new Date("2026-11-09T10:00:00Z"), user });
+  it.each([
+    ["never", null],
+    ["over an hour ago", new Date("2026-11-09T08:59:59Z")],
+  ])("records the visit when the session was last seen %s, only if no parallel request did", async (_when, lastSeenAt) => {
+    prisma.session.findUnique.mockResolvedValue({ expiresAt: live, lastSeenAt, user });
+    expect(await getSessionUser("tok")).toEqual(user);
+    expect(prisma.session.updateMany).toHaveBeenCalledWith({
+      where: { tokenHash: sha256("tok"), OR: [{ lastSeenAt: null }, { lastSeenAt: { lt: new Date("2026-11-09T09:00:00Z") } }] },
+      data: { lastSeenAt: new Date("2026-11-09T10:00:00Z") },
+    });
+  });
+
+  it("ignores an expired session, and does not record it", async () => {
+    prisma.session.findUnique.mockResolvedValue({ expiresAt: new Date("2026-11-09T10:00:00Z"), lastSeenAt: null, user });
     expect(await getSessionUser("tok")).toBeNull();
+    expect(prisma.session.updateMany).not.toHaveBeenCalled();
   });
 
   it("ignores an unknown token", async () => {
