@@ -15,6 +15,8 @@ const KEY_BYTES = 64;
 const STORED = /^scrypt\$(\d+)\$(\d+)\$(\d+)\$([\w+/]+={0,2})\$([\w+/]{22,}={0,2})$/;
 
 // Counted per hour, the window claimQuota uses.
+const LIMIT_WINDOW_MS = 60 * 60_000;
+// Wrong passwords only, so the owner signing in often never locks their own email.
 const ATTEMPTS_PER_EMAIL = 10;
 const ATTEMPTS_PER_ADDRESS = 20;
 const ATTEMPTS_PER_USER = 10;
@@ -65,18 +67,25 @@ async function endSessionsAndLinks(client: Prisma.TransactionClient, userId: str
   await client.emailToken.updateMany({ where: { userId, usedAt: null }, data: { usedAt: new Date() } });
 }
 
-async function claimAttempt(email: string, ip: string, now: number): Promise<boolean> {
-  return (await claimQuota(addressKey("pw", ip), ATTEMPTS_PER_ADDRESS, now)) && claimQuota(emailKey("pw-email", email), ATTEMPTS_PER_EMAIL, now);
+/** Whether an email has used up its wrong passwords this hour. Read only: a right password must not count. */
+async function emailLocked(key: string, now: number): Promise<boolean> {
+  const row = await db().codeRequestLimit.findUnique({ where: { ipHash: key }, select: { count: true, windowStart: true } });
+  return !!row && row.count >= ATTEMPTS_PER_EMAIL && row.windowStart.getTime() > now - LIMIT_WINDOW_MS;
 }
 
 export type PasswordSignIn = { token: string } | { error: "wrong" | "limited" };
 
 /** Signs in with a normalized email and a password. An unknown email and a wrong password look the same, in answer and in time. */
 export async function signInWithPassword(email: string, password: string, ip: string, userAgent?: string): Promise<PasswordSignIn> {
-  if (!(await claimAttempt(email, ip, Date.now()))) return { error: "limited" };
+  const now = Date.now();
+  const key = emailKey("pw-email", email);
+  if (!(await claimQuota(addressKey("pw", ip), ATTEMPTS_PER_ADDRESS, now)) || (await emailLocked(key, now))) return { error: "limited" };
   const user = await db().user.findUnique({ where: { email }, select: { id: true, passwordHash: true } });
   const matches = await checkPassword(password, user?.passwordHash ?? (await anyHash()));
-  return user?.passwordHash && matches ? { token: await createSession(user.id, userAgent) } : { error: "wrong" };
+  if (user?.passwordHash && matches) return { token: await createSession(user.id, userAgent) };
+  // ponytail: checked before and counted after, so parallel guesses can pass the email limit by a few; the address limit still caps them.
+  await claimQuota(key, ATTEMPTS_PER_EMAIL, now);
+  return { error: "wrong" };
 }
 
 export type Registration = { token: string; verifyToken: string } | { error: "taken" | "limited" };
@@ -94,9 +103,13 @@ export async function registerWithPassword(email: string, password: string, ip: 
   }
 }
 
-/** Whether another email may go out from this address to this recipient. Each email costs, and must not become a way to flood an inbox. */
-export async function claimEmailSend(ip: string, email: string, now = Date.now()): Promise<boolean> {
-  return (await claimQuota(addressKey("mail", ip), EMAILS_PER_ADDRESS, now)) && claimQuota(emailKey("mail-to", email), EMAILS_PER_RECIPIENT, now);
+/**
+ * Whether another email may go out from this address to this recipient. Each email costs, and must not become a way to
+ * flood an inbox. Reset and confirmation mail are counted apart per recipient, so confirmation requests cannot use up
+ * the owner's reset mail.
+ */
+export async function claimEmailSend(ip: string, email: string, purpose: EmailTokenPurpose, now = Date.now()): Promise<boolean> {
+  return (await claimQuota(addressKey("mail", ip), EMAILS_PER_ADDRESS, now)) && claimQuota(emailKey(`mail-to-${purpose.toLowerCase()}`, email), EMAILS_PER_RECIPIENT, now);
 }
 
 /** A single-use link token for `email`. Only its hash is stored. */

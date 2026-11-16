@@ -93,7 +93,7 @@ describe("registerAction", () => {
     expect(await registerAction({}, form({ locale: "ka", email, password: strong, next: "/ka/listings/new" }))).toEqual({ done: "/ka/listings/new" });
     expect(db.registerWithPassword).toHaveBeenCalledWith(email, strong, "203.0.113.7", "Firefox");
     expect(log).toHaveBeenCalledWith(`[email] ${email}: ${getDictionary("ka").auth.mail.verifySubject} http://localhost:3111/ka/auth/verify?token=vt`);
-    expect(db.claimEmailSend).toHaveBeenCalledWith("203.0.113.7", email);
+    expect(db.claimEmailSend).toHaveBeenCalledWith("203.0.113.7", email, "VERIFY");
     expect(session.startSession).toHaveBeenCalledWith("tok");
   });
 
@@ -124,7 +124,7 @@ describe("forgotPasswordAction", () => {
   it("sends a reset link to an account's email and gives the same answer for an unknown one", async () => {
     db.createResetToken.mockResolvedValueOnce("rt").mockResolvedValueOnce(null);
     expect(await forgotPasswordAction({}, form({ locale: "en", email }))).toEqual({ notice: "linkSent" });
-    expect(db.claimEmailSend).toHaveBeenCalledWith("203.0.113.7", email);
+    expect(db.claimEmailSend).toHaveBeenCalledWith("203.0.113.7", email, "RESET");
     expect(log).toHaveBeenCalledWith(`[email] ${email}: ${t.auth.mail.resetSubject} http://localhost:3111/en/auth/reset?token=rt`);
     expect(await forgotPasswordAction({}, form({ locale: "en", email }))).toEqual({ notice: "linkSent" });
     expect(log).toHaveBeenCalledOnce();
@@ -188,6 +188,7 @@ describe("changeEmailAction", () => {
     db.requestEmailChange.mockResolvedValue({ token: "vt" });
     expect(await changeEmailAction({}, form({ locale: "en", email: "New@Example.com", current: "the password" }))).toEqual({ notice: "verifySent" });
     expect(db.requestEmailChange).toHaveBeenCalledWith("u1", "new@example.com", "the password");
+    expect(db.claimEmailSend).toHaveBeenCalledWith("203.0.113.7", "new@example.com", "VERIFY");
     expect(log).toHaveBeenCalledWith(`[email] new@example.com: ${t.auth.mail.verifySubject} http://localhost:3111/en/auth/verify?token=vt`);
     expect(await changeEmailAction({}, form({ locale: "en", email }))).toEqual({ notice: "verifySent" });
     expect(db.requestEmailChange).toHaveBeenLastCalledWith("u1", email, "");

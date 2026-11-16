@@ -62,7 +62,7 @@ export async function registerAction(_previous: AuthState, form: FormData): Prom
   const result = await registerWithPassword(email.data, password.data, ip, await userAgent());
   if ("error" in result) return { error: result.error };
   // Over the email limit the account still opens; the security page can send the link again.
-  if (await claimEmailSend(ip, email.data)) sendLink(locale, email.data, "verify", result.verifyToken);
+  if (await claimEmailSend(ip, email.data, "VERIFY")) sendLink(locale, email.data, "verify", result.verifyToken);
   await startSession(result.token);
   return { done: safeNext(form.get("next"), locale) };
 }
@@ -72,7 +72,7 @@ export async function forgotPasswordAction(_previous: AuthState, form: FormData)
   const locale = localeOf(form);
   const email = emailSchema.safeParse(form.get("email"));
   if (!email.success) return { error: "invalidEmail" };
-  if (!(await claimEmailSend(await clientIp(), email.data))) return { error: "limited" };
+  if (!(await claimEmailSend(await clientIp(), email.data, "RESET"))) return { error: "limited" };
   const token = await createResetToken(email.data);
   if (token) sendLink(locale, email.data, "reset", token);
   return { notice: "linkSent" };
@@ -108,7 +108,7 @@ export async function changeEmailAction(_previous: AuthState, form: FormData): P
   // Missing for a resend, and for an account without a password.
   const current = typedPasswordSchema.safeParse(form.get("current") ?? "");
   if (!current.success) return { error: "wrongCurrent" };
-  if (!(await claimEmailSend(await clientIp(), email.data))) return { error: "limited" };
+  if (!(await claimEmailSend(await clientIp(), email.data, "VERIFY"))) return { error: "limited" };
   const result = await requestEmailChange(user.id, email.data, current.data);
   if ("error" in result) return { error: result.error === "wrong" ? "wrongCurrent" : result.error };
   sendLink(locale, email.data, "verify", result.token);

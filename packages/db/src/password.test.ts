@@ -2,7 +2,7 @@ import { createHash, createHmac } from "node:crypto";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const prisma = vi.hoisted(() => ({
-  codeRequestLimit: { createMany: vi.fn(), updateMany: vi.fn() },
+  codeRequestLimit: { createMany: vi.fn(), updateMany: vi.fn(), findUnique: vi.fn() },
   user: { findUnique: vi.fn(), findUniqueOrThrow: vi.fn(), findFirst: vi.fn(), create: vi.fn(), update: vi.fn(), updateMany: vi.fn() },
   identity: { deleteMany: vi.fn() },
   session: { create: vi.fn(), deleteMany: vi.fn() },
@@ -82,18 +82,22 @@ describe("hashPassword and checkPassword", () => {
 });
 
 describe("signInWithPassword", () => {
-  it("signs in with the right password, counting the attempt per address and per email", async () => {
+  const emailLimitKey = `pw-email:${keyed(`ip:email:${email}`)}`;
+
+  it("signs in with the right password, counting the address but not the email", async () => {
     prisma.user.findUnique.mockResolvedValue({ id: "u1", passwordHash: await hashPassword("right password") });
     const result = await signInWithPassword(email, "right password", ip, "Firefox");
     expect(result).toEqual({ token: expect.any(String) });
     expect(prisma.session.create.mock.calls[0][0].data).toMatchObject({ userId: "u1", userAgent: "Firefox" });
-    expect(quotaKeys()).toEqual([`pw:${keyed(`ip:${ip}`)}`, `pw-email:${keyed(`ip:email:${email}`)}`]);
+    expect(quotaKeys()).toEqual([`pw:${keyed(`ip:${ip}`)}`]);
+    expect(prisma.codeRequestLimit.findUnique).toHaveBeenCalledWith({ where: { ipHash: emailLimitKey }, select: { count: true, windowStart: true } });
     expect(prisma.user.findUnique).toHaveBeenCalledWith({ where: { email }, select: { id: true, passwordHash: true } });
   });
 
-  it("gives the same answer for a wrong password, an unknown email and an account without a password", async () => {
+  it("gives the same answer for a wrong password, an unknown email and an account without a password, counting each against the email", async () => {
     prisma.user.findUnique.mockResolvedValueOnce({ id: "u1", passwordHash: await hashPassword("right password") });
     expect(await signInWithPassword(email, "wrong password", ip)).toEqual({ error: "wrong" });
+    expect(quotaKeys()).toEqual([`pw:${keyed(`ip:${ip}`)}`, emailLimitKey]);
     prisma.user.findUnique.mockResolvedValueOnce(null);
     expect(await signInWithPassword(email, "wrong password", ip)).toEqual({ error: "wrong" });
     prisma.user.findUnique.mockResolvedValueOnce({ id: "u2", passwordHash: null });
@@ -101,12 +105,21 @@ describe("signInWithPassword", () => {
     expect(prisma.session.create).not.toHaveBeenCalled();
   });
 
-  it("stops when the address or the email has used up its attempts", async () => {
+  it("stops when the address has used up its attempts, or the email its wrong passwords this hour", async () => {
     refuseQuota(0);
     expect(await signInWithPassword(email, "x", ip)).toEqual({ error: "limited" });
-    refuseQuota(1);
+    prisma.codeRequestLimit.updateMany.mockResolvedValue({ count: 1 });
+    prisma.codeRequestLimit.findUnique.mockResolvedValueOnce({ count: 10, windowStart: new Date("2026-11-16T09:30:00Z") });
     expect(await signInWithPassword(email, "x", ip)).toEqual({ error: "limited" });
     expect(prisma.user.findUnique).not.toHaveBeenCalled();
+  });
+
+  it("lets the email try again under the limit or once its hour is over", async () => {
+    prisma.user.findUnique.mockResolvedValue(null);
+    prisma.codeRequestLimit.findUnique.mockResolvedValueOnce({ count: 9, windowStart: new Date("2026-11-16T09:30:00Z") });
+    expect(await signInWithPassword(email, "x", ip)).toEqual({ error: "wrong" });
+    prisma.codeRequestLimit.findUnique.mockResolvedValueOnce({ count: 10, windowStart: new Date("2026-11-16T09:00:00Z") });
+    expect(await signInWithPassword(email, "x", ip)).toEqual({ error: "wrong" });
   });
 });
 
@@ -141,12 +154,17 @@ describe("registerWithPassword", () => {
 
 describe("claimEmailSend", () => {
   it("counts per address and per recipient", async () => {
-    expect(await claimEmailSend(ip, email)).toBe(true);
-    expect(quotaKeys()).toEqual([`mail:${keyed(`ip:${ip}`)}`, `mail-to:${keyed(`ip:email:${email}`)}`]);
+    expect(await claimEmailSend(ip, email, "VERIFY")).toBe(true);
+    expect(quotaKeys()).toEqual([`mail:${keyed(`ip:${ip}`)}`, `mail-to-verify:${keyed(`ip:email:${email}`)}`]);
     refuseQuota(0);
-    expect(await claimEmailSend(ip, email)).toBe(false);
+    expect(await claimEmailSend(ip, email, "VERIFY")).toBe(false);
     refuseQuota(1);
-    expect(await claimEmailSend(ip, email)).toBe(false);
+    expect(await claimEmailSend(ip, email, "VERIFY")).toBe(false);
+  });
+
+  it("counts reset mail to a recipient apart from confirmation mail", async () => {
+    expect(await claimEmailSend(ip, email, "RESET")).toBe(true);
+    expect(quotaKeys()).toEqual([`mail:${keyed(`ip:${ip}`)}`, `mail-to-reset:${keyed(`ip:email:${email}`)}`]);
   });
 });
 
