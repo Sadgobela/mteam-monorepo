@@ -202,20 +202,34 @@ describe("sitemap queries", () => {
 });
 
 describe("searchListings", () => {
+  // The conditions are the same for every sort; a price sort reads them in a single query.
   const whereFor = async (filters: Parameters<typeof searchListings>[0]) => {
     prisma.listing.findMany.mockResolvedValue([]);
-    await searchListings(filters);
+    await searchListings(filters, { sort: "asc" });
     return prisma.listing.findMany.mock.calls[0][0].where;
   };
 
-  it("returns a bounded page of published listings, verified first", async () => {
-    prisma.listing.findMany.mockResolvedValue([fullRow, bareRow]);
-    expect((await searchListings()).map((l) => l.id)).toEqual([20418, 20421]);
-    expect(prisma.listing.findMany.mock.calls[0][0]).toMatchObject({
-      where: { status: "ACTIVE" },
-      orderBy: [{ verified: "desc" }, { id: "desc" }],
-      skip: 0,
-      take: 24,
+  describe("newest first", () => {
+    const at = (day: number) => new Date(Date.UTC(2026, 10, day));
+    const listing = (id: number, verified: boolean, createdAt: Date, bumpedAt: Date | null = null) => ({ ...bareRow, id, verified, createdAt, bumpedAt });
+
+    it("puts verified first, then orders by the last bump, else creation", async () => {
+      prisma.listing.findMany
+        .mockResolvedValueOnce([listing(1, true, at(1), at(9)), listing(2, false, at(2), at(8))])
+        .mockResolvedValueOnce([listing(3, true, at(5)), listing(4, false, at(10)), listing(5, false, at(5)), listing(6, false, at(5))]);
+      // 2 was bumped on the 8th: after 4, created on the 10th, and before 5 and 6, created on the 5th, which tie and go by id.
+      expect((await searchListings()).map((l) => l.id)).toEqual([1, 3, 4, 2, 6, 5]);
+      const [bumped, unbumped] = prisma.listing.findMany.mock.calls.map(([query]) => query);
+      expect(bumped).toMatchObject({ where: { status: "ACTIVE", bumpedAt: { not: null } }, orderBy: [{ verified: "desc" }, { bumpedAt: "desc" }, { id: "desc" }], take: 24 });
+      expect(unbumped).toMatchObject({ where: { status: "ACTIVE", bumpedAt: null }, orderBy: [{ verified: "desc" }, { createdAt: "desc" }, { id: "desc" }], take: 24 });
+    });
+
+    it("reads enough of both halves to cut out a later page", async () => {
+      prisma.listing.findMany
+        .mockResolvedValueOnce([listing(1, false, at(1), at(9)), listing(2, false, at(1), at(7))])
+        .mockResolvedValueOnce([listing(3, false, at(8)), listing(4, false, at(6))]);
+      expect((await searchListings({}, { page: 2, limit: 2 })).map((l) => l.id)).toEqual([2, 4]);
+      expect(prisma.listing.findMany.mock.calls.map(([query]) => query.take)).toEqual([4, 4]);
     });
   });
 
@@ -235,9 +249,9 @@ describe("searchListings", () => {
 
   it("pages through results and honours a custom limit", async () => {
     prisma.listing.findMany.mockResolvedValue([]);
-    await searchListings({}, { page: 3 });
+    await searchListings({}, { page: 3, sort: "asc" });
     expect(prisma.listing.findMany.mock.calls[0][0]).toMatchObject({ skip: 48, take: 24 });
-    await searchListings({}, { limit: 4 });
+    await searchListings({}, { limit: 4, sort: "asc" });
     expect(prisma.listing.findMany.mock.calls[1][0]).toMatchObject({ skip: 0, take: 4 });
   });
 
@@ -480,7 +494,7 @@ describe("countListings", () => {
     const filters = { deal: "sale", q: "vake", priceMin: 100, priceMax: 200, rooms: 4, verified: true } as const;
     prisma.listing.findMany.mockResolvedValue([]);
     prisma.listing.count.mockResolvedValue(0);
-    await searchListings(filters);
+    await searchListings(filters, { sort: "asc" });
     await countListings(filters);
     expect(prisma.listing.count.mock.calls[0][0].where).toEqual(prisma.listing.findMany.mock.calls[0][0].where);
   });

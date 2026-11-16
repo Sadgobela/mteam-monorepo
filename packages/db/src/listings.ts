@@ -167,12 +167,28 @@ function whereFor(filters: ListingFilters, located = false, hiddenIds: number[] 
   };
 }
 
-const orderings: Record<SortOrder, Prisma.ListingOrderByWithRelationInput[]> = {
-  // Verified first is MTeam's default: trust leads, not paid placement.
-  new: [{ verified: "desc" }, { id: "desc" }],
+const orderings: Record<Exclude<SortOrder, "new">, Prisma.ListingOrderByWithRelationInput[]> = {
   asc: [{ priceUsd: "asc" }, { id: "desc" }],
   desc: [{ priceUsd: "desc" }, { id: "desc" }],
 };
+
+const newestKey = (row: ListingRow) => (row.bumpedAt ?? row.createdAt).getTime();
+
+/**
+ * "Newest" is verified first (MTeam's default: trust leads, not paid placement), then by the last bump, else creation:
+ * COALESCE(bumpedAt, createdAt), which Prisma cannot order by. Bumped and unbumped listings are each read in that order
+ * and merged, which is exact for any page.
+ */
+async function newestRows(where: Prisma.ListingWhereInput, skip: number, take: number): Promise<ListingRow[]> {
+  // ponytail: reads skip + take rows from each half, so deep pages cost more; a generated sort column fixes that if it matters.
+  const [bumped, unbumped] = await Promise.all([
+    db().listing.findMany({ where: { ...where, bumpedAt: { not: null } }, include: publicInclude, orderBy: [{ verified: "desc" }, { bumpedAt: "desc" }, { id: "desc" }], take: skip + take }),
+    db().listing.findMany({ where: { ...where, bumpedAt: null }, include: publicInclude, orderBy: [{ verified: "desc" }, { createdAt: "desc" }, { id: "desc" }], take: skip + take }),
+  ]);
+  return [...bumped, ...unbumped]
+    .sort((a, b) => Number(b.verified) - Number(a.verified) || newestKey(b) - newestKey(a) || b.id - a.id)
+    .slice(skip, skip + take);
+}
 
 /** One page of published listings matching the filters. No filters means all of them. */
 export async function searchListings(
@@ -185,13 +201,12 @@ export async function searchListings(
     hiddenIds = [],
   }: { sort?: SortOrder; page?: number; limit?: number; located?: boolean; hiddenIds?: number[] } = {},
 ): Promise<Listing[]> {
-  const rows = await db().listing.findMany({
-    where: whereFor(filters, located, hiddenIds),
-    include: publicInclude,
-    orderBy: orderings[sort],
-    skip: (page - 1) * limit,
-    take: limit,
-  });
+  const where = whereFor(filters, located, hiddenIds);
+  const skip = (page - 1) * limit;
+  const rows =
+    sort === "new"
+      ? await newestRows(where, skip, limit)
+      : await db().listing.findMany({ where, include: publicInclude, orderBy: orderings[sort], skip, take: limit });
   return rows.map(toListing);
 }
 
