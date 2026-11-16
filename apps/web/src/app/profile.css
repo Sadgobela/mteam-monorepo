@@ -24,3 +24,4 @@ img.av { object-fit: cover; }
 @media (max-width: 520px) { .onboarding-card { padding: 16px; } .profile-form .btn { justify-self: stretch; } }
 .account-layout > .account-main:only-child { grid-column: 1 / -1; }
 .person > div { display: grid; gap: 2px; min-width: 0; }
+.profile-form .choice-pills button { min-height: 44px; }
