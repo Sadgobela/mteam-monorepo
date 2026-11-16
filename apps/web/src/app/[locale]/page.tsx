@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { countListings, getFavoriteIds, getHiddenIds, isSearchSaved, PAGE_SIZE, searchListings } from "@mteam/db";
+import { countListings, getFavoriteIds, getGelPerUsd, getHiddenIds, isSearchSaved, PAGE_SIZE, searchListings } from "@mteam/db";
 import { canonicalSearch, getDictionary, parseListingDisplay, parseListingFilters } from "@mteam/shared";
 import { EmptyState } from "@/components/EmptyState";
 import { FilterChips } from "@/components/FilterChips";
@@ -54,6 +54,7 @@ export default async function HomePage({
     isResults ? countListings(filters, { located: isMap, hiddenIds }) : 0,
   ]);
   const favoriteIds = user ? await getFavoriteIds(user.id) : [];
+  const gelPerUsd = await getGelPerUsd();
   const savedQuery = isResults ? canonicalSearch(query) : "";
   const alreadySaved = user !== null && savedQuery !== "" && (await isSearchSaved(user.id, savedQuery));
   const href = (change: Record<string, string>) => resultsHref(locale, query, change);
@@ -68,18 +69,18 @@ export default async function HomePage({
       <main className="page">
         {/* Keyed so that header links, which navigate without a reload, reset the form. */}
         {isResults ? (
-          <SearchBar key={JSON.stringify([filters, display])} results locale={locale} t={t} filters={filters} display={display} />
+          <SearchBar key={JSON.stringify([filters, display])} results locale={locale} t={t} filters={filters} display={display} gelPerUsd={gelPerUsd} />
         ) : (
           <>
-            <SearchAssistant locale={locale} t={t} ai={Boolean(process.env.ANTHROPIC_API_KEY)} />
+            <SearchAssistant locale={locale} t={t} gelPerUsd={gelPerUsd} ai={Boolean(process.env.ANTHROPIC_API_KEY)} />
             <details className="classic-search">
               <summary>{t.assistant.filters}</summary>
-              <SearchBar key={JSON.stringify([filters, display])} locale={locale} t={t} filters={filters} display={display} />
+              <SearchBar key={JSON.stringify([filters, display])} locale={locale} t={t} filters={filters} display={display} gelPerUsd={gelPerUsd} />
             </details>
           </>
         )}
 
-        {isResults && <FilterChips locale={locale} t={t} query={query} filters={filters} />}
+        {isResults && <FilterChips locale={locale} t={t} query={query} filters={filters} gelPerUsd={gelPerUsd} />}
 
         {isResults ? (
           <div className="toolbar">
@@ -148,6 +149,7 @@ export default async function HomePage({
             locale={locale}
             t={t}
             cur={display.cur}
+            gelPerUsd={gelPerUsd}
             list={isResults && display.view === "list"}
             signedIn={user !== null}
             favoriteIds={favoriteIds}

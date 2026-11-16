@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { listFavorites } from "@mteam/db";
+import { getGelPerUsd, listFavorites } from "@mteam/db";
 import { getDictionary } from "@mteam/shared";
 import { EmptyState } from "@/components/EmptyState";
 import { Header } from "@/components/Header";
@@ -16,6 +16,7 @@ export default async function FavoritesPage({ params }: { params: Promise<{ loca
   if (!user) redirect(loginPath(locale, `/${locale}/favorites`));
   const t = getDictionary(locale);
   const listings = await listFavorites(user.id);
+  const gelPerUsd = await getGelPerUsd();
   return (
     <>
       <Header locale={locale} t={t} signedIn />
@@ -24,7 +25,7 @@ export default async function FavoritesPage({ params }: { params: Promise<{ loca
         {listings.length === 0 ? (
           <EmptyState text={t.favorites.empty} />
         ) : (
-          <ListingGrid listings={listings} locale={locale} t={t} cur="usd" signedIn favoriteIds={listings.map((l) => l.id)} />
+          <ListingGrid listings={listings} locale={locale} t={t} cur="usd" gelPerUsd={gelPerUsd} signedIn favoriteIds={listings.map((l) => l.id)} />
         )}
       </main>
     </>

@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 import { fixtureListings } from "@/test-fixtures";
 
-const db = vi.hoisted(() => ({
+const db = vi.hoisted(() => ({ getGelPerUsd: async () => 2.7,
   countSellerListings: vi.fn(),
   getFavoriteIds: vi.fn(),
   getHiddenIds: vi.fn(),

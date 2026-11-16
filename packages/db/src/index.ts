@@ -23,7 +23,8 @@ export {
   verifyListing,
 } from "./admin";
 export { getConversation, listConversations, sendMessage, startConversation, type ConversationRow, type ThreadMessage } from "./chat";
-export { priceStats, type PriceStat } from "./market";
+export { priceStats, refreshMarketLevels, type PriceStat } from "./market";
+export { getGelPerUsd, saveGelPerUsd } from "./rates";
 export { deleteSavedSearch, isSearchSaved, listSavedSearches, openSavedSearch, saveSearch, type SavedSearchRow } from "./saved-searches";
 export { getBranch, getBroker, listBranches, listBrokers, type BranchCard, type Broker, type BrokerCard } from "./brokers";
 export { getFavoriteIds, listFavorites, setFavorite } from "./favorites";

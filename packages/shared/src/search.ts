@@ -202,21 +202,22 @@ export function parseListingDisplay(query: Record<string, string | string[] | un
   return displaySchema.parse(query);
 }
 
-// ponytail: fixed rate. GEL drifts, so use a stored daily rate before launch.
-const unitsPerUsd: Record<Currency, number> = { USD: 1, GEL: 2.7 };
+/** Lari per dollar until the National Bank's daily rate has been stored, and for sanity bounds that need no exact rate. */
+export const FALLBACK_GEL_PER_USD = 2.7;
 
-export function priceInUsd(price: number, currency: Currency): number {
-  return Math.round(price / unitsPerUsd[currency]);
+/** Every conversion takes the rate, lari per dollar, so the stored daily rate is used everywhere. */
+export function priceInUsd(price: number, currency: Currency, gelPerUsd: number): number {
+  return Math.round(currency === "GEL" ? price / gelPerUsd : price);
 }
 
 /** A dollar filter in lari, on a round number when that still means the same dollars, so 150000 reads back as 150000. */
-export function priceInLari(usd: number): number {
-  const rounded = Math.round((usd * unitsPerUsd.GEL) / 10) * 10;
-  return priceInUsd(rounded, "GEL") === usd ? rounded : Math.round(usd * unitsPerUsd.GEL);
+export function priceInLari(usd: number, gelPerUsd: number): number {
+  const rounded = Math.round((usd * gelPerUsd) / 10) * 10;
+  return priceInUsd(rounded, "GEL", gelPerUsd) === usd ? rounded : Math.round(usd * gelPerUsd);
 }
 
 /** Converts a price into the currency the visitor chose to see. */
-export function convertPrice(price: number, currency: Currency, target: DisplayCurrency): number {
-  const usd = price / unitsPerUsd[currency];
-  return Math.round(target === "gel" ? usd * unitsPerUsd.GEL : usd);
+export function convertPrice(price: number, currency: Currency, target: DisplayCurrency, gelPerUsd: number): number {
+  if (currency === (target === "gel" ? "GEL" : "USD")) return price;
+  return Math.round(target === "gel" ? price * gelPerUsd : price / gelPerUsd);
 }

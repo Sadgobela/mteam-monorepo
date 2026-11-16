@@ -3,7 +3,7 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { getDictionary } from "@mteam/shared";
 import { fixtureListings } from "@/test-fixtures";
 
-const db = vi.hoisted(() => ({
+const db = vi.hoisted(() => ({ getGelPerUsd: async () => 2.7,
   getListing: vi.fn(),
   countSellerListings: vi.fn(async () => 0),
   getFavoriteIds: vi.fn(async () => []),
@@ -342,12 +342,12 @@ describe("listing photos", () => {
   const withPhotos = { ...fixtureListings[0], images: ["https://cdn/a.jpg", "https://cdn/b.jpg"] };
 
   it("shows the first photo on a card", () => {
-    render(<ListingCard listing={withPhotos} locale="en" t={t} />);
+    render(<ListingCard gelPerUsd={2.7} listing={withPhotos} locale="en" t={t} />);
     expect(screen.getAllByRole("img", { name: withPhotos.title })[0]).toHaveAttribute("src", "https://cdn/a.jpg");
   });
 
   it("omits the room count on a card for property without rooms", () => {
-    render(<ListingCard listing={{ ...fixtureListings[0], rooms: 0 }} locale="en" t={t} />);
+    render(<ListingCard gelPerUsd={2.7} listing={{ ...fixtureListings[0], rooms: 0 }} locale="en" t={t} />);
     expect(screen.queryByText(/rooms/)).toBeNull();
   });
 

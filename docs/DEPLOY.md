@@ -25,9 +25,14 @@ Only members of the fixitge team can open the site, through Vercel Authenticatio
 | `STORAGE_ACCESS_KEY_ID`, `STORAGE_SECRET_ACCESS_KEY` | An R2 API token with Object Read & Write on that bucket. |
 | `STORAGE_PUBLIC_URL` | The bucket's public address: its `r2.dev` URL, or a custom domain later. |
 | `GOOGLE_*`, `FACEBOOK_*`, `APPLE_*` | Optional; see `SOCIAL_LOGIN.md`. Add the live return address at each provider. |
+| `CRON_SECRET` | `openssl rand -hex 32`. Vercel Cron sends it to the nightly job; without it the job refuses every call. |
 | `ANTHROPIC_API_KEY` | Optional; console.anthropic.com → API Keys. Without it the search assistant offers buttons only. Set a monthly spend limit in the Console; each address may send 30 typed questions an hour. |
 
 The secrets go only into Vercel, never into the code or chat.
+
+## Nightly job
+
+`apps/web/vercel.json` runs `/api/cron/nightly` at 21:00 UTC (01:00 in Tbilisi), after the National Bank publishes the next day's rate. It stores the lari rate, which reprices listings priced in lari, then recalculates market levels. Check it in Vercel → the project → Settings → Cron Jobs, where "Run" starts it by hand, and in Logs (search `nightly:`). A broken bank feed keeps the previous rate and shows the run as failed (502).
 
 ## Cloudflare R2
 
@@ -37,4 +42,4 @@ The secrets go only into Vercel, never into the code or chat.
 
 ## Before opening to the public
 
-The list in `PROJECT_BRIEF.md` ("Before public launch"), mainly a real SMS provider in place of `log`, the real domain, and a nightly `db:market`.
+The list in `PROJECT_BRIEF.md` ("Before public launch"), mainly a real SMS provider in place of `log` and the real domain.

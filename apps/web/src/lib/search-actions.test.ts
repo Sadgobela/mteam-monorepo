@@ -1,7 +1,7 @@
 // @vitest-environment node
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const db = vi.hoisted(() => ({ countListings: vi.fn(async () => 34), getHiddenIds: vi.fn(async () => [5]), claimAssistantQuery: vi.fn(async () => true) }));
+const db = vi.hoisted(() => ({ countListings: vi.fn(async () => 34), getHiddenIds: vi.fn(async () => [5]), claimAssistantQuery: vi.fn(async () => true), getGelPerUsd: async () => 2.5931 }));
 const session = vi.hoisted(() => ({ currentUser: vi.fn(), clientIp: async () => "1.2.3.4" }));
 const ai = vi.hoisted(() => ({ interpretSearch: vi.fn() }));
 vi.mock("@mteam/db", () => db);
@@ -33,7 +33,7 @@ describe("askAssistantAction", () => {
     ai.interpretSearch.mockResolvedValue("deal=sale&rooms=2");
     expect(await askAssistantAction("  2 rooms to buy ", "deal=rent")).toEqual({ search: "deal=sale&rooms=2" });
     expect(db.claimAssistantQuery).toHaveBeenCalledWith("1.2.3.4");
-    expect(ai.interpretSearch).toHaveBeenCalledWith("2 rooms to buy", "deal=rent");
+    expect(ai.interpretSearch).toHaveBeenCalledWith("2 rooms to buy", "deal=rent", 2.5931);
   });
 
   it("refuses empty or overlong text without asking the AI", async () => {

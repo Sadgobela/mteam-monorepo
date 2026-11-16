@@ -27,7 +27,7 @@ const paramsOf = (answers: Answer[]) =>
 const asked = (answers: Answer[]) => answers.flatMap((answer) => (answer.step === "text" ? [] : [answer.step]));
 
 /** A chat that asks what the visitor is looking for, one question at a time, and leads to the matching results. With `ai`, it also reads typed text. */
-export function SearchAssistant({ locale, t, ai = false }: { locale: Locale; t: Dict; ai?: boolean }) {
+export function SearchAssistant({ locale, t, gelPerUsd, ai = false }: { locale: Locale; t: Dict; gelPerUsd: number; ai?: boolean }) {
   const [answers, setAnswers] = useState<Answer[]>([]);
   const [count, setCount] = useState<{ search: string; total: number }>();
   const [text, setText] = useState("");
@@ -57,7 +57,7 @@ export function SearchAssistant({ locale, t, ai = false }: { locale: Locale; t: 
   };
 
   const understood = (given: Answer) =>
-    filterLabels(locale, t, given.params, parseListingFilters(given.params))
+    filterLabels(locale, t, given.params, parseListingFilters(given.params), gelPerUsd)
       .map(([, label]) => label)
       .join(" · ");
 

@@ -353,12 +353,12 @@ describe("FilterChips", () => {
   } as const;
 
   it("renders nothing with no filters", () => {
-    const { container } = render(<FilterChips locale="en" t={t} query={{}} filters={{}} />);
+    const { container } = render(<FilterChips gelPerUsd={2.7} locale="en" t={t} query={{}} filters={{}} />);
     expect(container).toBeEmptyDOMElement();
   });
 
   it("shows each active filter as a link that removes only it", () => {
-    render(<FilterChips locale="en" t={t} query={{ deal: "rent", city: "ბათუმი", page: "3" }} filters={all} />);
+    render(<FilterChips gelPerUsd={2.7} locale="en" t={t} query={{ deal: "rent", city: "ბათუმი", page: "3" }} filters={all} />);
     expect(screen.getAllByRole("link")).toHaveLength(12);
     expect(screen.getByRole("link", { name: "Remove filter: Floor from 3" })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Remove filter: Batumi" })).toHaveAttribute("href", "/en?deal=rent&city=&page=1");
@@ -371,7 +371,7 @@ describe("FilterChips", () => {
 describe("SearchBar", () => {
   const display = { sort: "new", view: "grid", cur: "usd", page: 1 } as const;
   const bar = (filters = {}, shown: typeof display | { sort: "asc"; view: "list"; cur: "gel"; page: 1 } = display) =>
-    render(<SearchBar locale="en" t={t} filters={filters} display={shown} />);
+    render(<SearchBar gelPerUsd={2.7} locale="en" t={t} filters={filters} display={shown} />);
   const box = (name: string) => screen.getByRole("combobox", { name });
   const keyword = () => screen.getByRole("textbox", { name: "ID, street or keyword" });
   const submit = () => fireEvent.submit(screen.getByRole("search"));
@@ -449,7 +449,7 @@ describe("SearchBar", () => {
   });
 
   describe("filter row", () => {
-    const row = (filters = {}) => render(<SearchBar locale="en" t={t} filters={filters} display={display} results />);
+    const row = (filters = {}) => render(<SearchBar gelPerUsd={2.7} locale="en" t={t} filters={filters} display={display} results />);
     const pillButton = (name: string) => screen.getByText(name, { selector: "button span" }).closest("button") as HTMLElement;
     const panel = () => within(document.querySelector(".pill-panel") as HTMLElement);
 
@@ -635,7 +635,7 @@ describe("SearchBar", () => {
     });
 
     it("shows money in lari when lari is on, but searches in dollars", async () => {
-      render(<SearchBar locale="en" t={t} filters={{ priceMin: 100 }} display={{ ...display, cur: "gel" }} />);
+      render(<SearchBar gelPerUsd={2.7} locale="en" t={t} filters={{ priceMin: 100 }} display={{ ...display, cur: "gel" }} />);
       openMore();
       expect(dialog().getByLabelText("Price from, ₾")).toHaveValue("270");
       fireEvent.change(dialog().getByLabelText("Price to, ₾"), { target: { value: "540" } });
@@ -645,7 +645,7 @@ describe("SearchBar", () => {
     });
 
     it("keeps a lari price intact while it is typed digit by digit", async () => {
-      render(<SearchBar locale="en" t={t} filters={{}} display={{ ...display, cur: "gel" }} />);
+      render(<SearchBar gelPerUsd={2.7} locale="en" t={t} filters={{}} display={{ ...display, cur: "gel" }} />);
       openMore();
       const field = dialog().getByLabelText("Price from, ₾");
       for (const typed of ["1", "15", "150", "1500", "15000", "150000"]) fireEvent.change(field, { target: { value: typed } });
@@ -933,7 +933,7 @@ describe("SearchBar", () => {
   });
 
   it("writes room counts in full, with the top one as a minimum, in the page language", () => {
-    render(<SearchBar locale="ru" t={getDictionary("ru")} filters={{}} display={display} />);
+    render(<SearchBar gelPerUsd={2.7} locale="ru" t={getDictionary("ru")} filters={{}} display={display} />);
     fireEvent.click(screen.getByRole("button", { name: /Другие фильтры/ }));
     const rooms = within(document.querySelector(`.ant-modal [aria-label="${getDictionary("ru").search.rooms}"]`) as HTMLElement);
     expect(rooms.getByText("10+")).toBeInTheDocument();
@@ -960,24 +960,24 @@ describe("ChoicePills", () => {
 
 describe("FilterChips details", () => {
   it("names details, bedrooms, floor position and features", () => {
-    render(<FilterChips locale="en" t={t} query={{}} filters={{ heating: ["central"], bedrooms: 2, floorPos: "last", features: ["lift", "sauna"] }} />);
+    render(<FilterChips gelPerUsd={2.7} locale="en" t={t} query={{}} filters={{ heating: ["central"], bedrooms: 2, floorPos: "last", features: ["lift", "sauna"] }} />);
     for (const name of ["Heating: Central heating", "Bedrooms 2", "Last", "Lift +1"]) {
       expect(screen.getByRole("link", { name: `Remove filter: ${name}` })).toBeInTheDocument();
     }
   });
 
   it("names a single feature on its own", () => {
-    render(<FilterChips locale="en" t={t} query={{}} filters={{ features: ["lift"] }} />);
+    render(<FilterChips gelPerUsd={2.7} locale="en" t={t} query={{}} filters={{ features: ["lift"] }} />);
     expect(screen.getByRole("link", { name: "Remove filter: Lift" })).toBeInTheDocument();
   });
 
   it("shows prices in lari when lari is on", () => {
-    render(<FilterChips locale="en" t={t} query={{ cur: "gel" }} filters={{ priceMin: 100, priceMax: undefined }} />);
+    render(<FilterChips gelPerUsd={2.7} locale="en" t={t} query={{ cur: "gel" }} filters={{ priceMin: 100, priceMax: undefined }} />);
     expect(screen.getByRole("link", { name: "Remove filter: Price from, ₾ 270" })).toBeInTheDocument();
   });
 
   it("names metro, building status, owners and price per m²", () => {
-    render(<FilterChips locale="en" t={t} query={{}} filters={{ metro: "დელისი", building: ["old", "new"], owner: true, belowMarket: true, sqmMin: 5, sqmMax: 9 }} />);
+    render(<FilterChips gelPerUsd={2.7} locale="en" t={t} query={{}} filters={{ metro: "დელისი", building: ["old", "new"], owner: true, belowMarket: true, sqmMin: 5, sqmMax: 9 }} />);
     for (const name of ["Metro: Delisi", "Old building, New building", "Owners only", "Below market price", "Price per m² from, $ 5", "Price per m² to, $ 9"]) {
       expect(screen.getByRole("link", { name: `Remove filter: ${name}` })).toBeInTheDocument();
     }
@@ -986,18 +986,18 @@ describe("FilterChips details", () => {
 
 describe("FilterChips districts", () => {
   it("names one district, and counts the rest", () => {
-    const { rerender } = render(<FilterChips locale="en" t={t} query={{ district: "ვაკე" }} filters={{ district: ["ვაკე"] }} />);
+    const { rerender } = render(<FilterChips gelPerUsd={2.7} locale="en" t={t} query={{ district: "ვაკე" }} filters={{ district: ["ვაკე"] }} />);
     expect(screen.getByRole("link", { name: "Remove filter: Vake" })).toHaveAttribute("href", "/en?district=&page=1&street=");
-    rerender(<FilterChips locale="en" t={t} query={{}} filters={{ district: ["ვაკე", "ვერა", "ისანი"] }} />);
+    rerender(<FilterChips gelPerUsd={2.7} locale="en" t={t} query={{}} filters={{ district: ["ვაკე", "ვერა", "ისანი"] }} />);
     expect(screen.getByRole("link", { name: "Remove filter: Vake +2" })).toBeInTheDocument();
-    rerender(<FilterChips locale="en" t={t} query={{ street: "ატენის ქ." }} filters={{ street: ["ატენის ქ."] }} />);
+    rerender(<FilterChips gelPerUsd={2.7} locale="en" t={t} query={{ street: "ატენის ქ." }} filters={{ street: ["ატენის ქ."] }} />);
     expect(screen.getByRole("link", { name: "Remove filter: Atenis St." })).toHaveAttribute("href", "/en?street=&page=1");
   });
 });
 
 describe("ListingCard", () => {
   it("leads with the price and builds its title from the facts", () => {
-    render(<ListingCard listing={fixtureListings[0]} locale="en" t={t} />);
+    render(<ListingCard gelPerUsd={2.7} listing={fixtureListings[0]} locale="en" t={t} />);
     expect(screen.getByText("$148,000")).toBeInTheDocument();
     expect(screen.getByText("$1,609 / m²")).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "For sale: 3-room apartment, Vake" })).toBeInTheDocument();
@@ -1006,68 +1006,73 @@ describe("ListingCard", () => {
   });
 
   it("shows the price in the chosen currency", () => {
-    render(<ListingCard listing={fixtureListings[0]} locale="en" t={t} cur="gel" />);
+    render(<ListingCard gelPerUsd={2.7} listing={fixtureListings[0]} locale="en" t={t} cur="gel" />);
     expect(screen.getByText("₾399,600")).toBeInTheDocument();
     expect(screen.getByText("₾4,343 / m²")).toBeInTheDocument();
   });
 
+  it("converts at the rate it is given", () => {
+    render(<ListingCard gelPerUsd={2.5} listing={fixtureListings[2]} locale="en" t={t} />);
+    expect(screen.getByText("$108,000")).toBeInTheDocument();
+  });
+
   it("converts a listing priced in another currency", () => {
-    render(<ListingCard listing={fixtureListings[2]} locale="en" t={t} />);
+    render(<ListingCard gelPerUsd={2.7} listing={fixtureListings[2]} locale="en" t={t} />);
     expect(screen.getByText("$100,000")).toBeInTheDocument();
   });
 
   it("titles property without rooms by its type alone and shows no price per m² on rentals", () => {
-    render(<ListingCard listing={{ ...fixtureListings[1], type: "land", rooms: 0 }} locale="en" t={t} />);
+    render(<ListingCard gelPerUsd={2.7} listing={{ ...fixtureListings[1], type: "land", rooms: 0 }} locale="en" t={t} />);
     expect(screen.getByRole("heading", { name: "For rent: land, Saburtalo" })).toBeInTheDocument();
     expect(screen.queryByText(/\/ m²/)).toBeNull();
   });
 
   it("writes the title in the page language", () => {
-    render(<ListingCard listing={fixtureListings[0]} locale="ka" t={getDictionary("ka")} />);
+    render(<ListingCard gelPerUsd={2.7} listing={fixtureListings[0]} locale="ka" t={getDictionary("ka")} />);
     expect(screen.getByRole("heading", { name: "იყიდება 3 ოთახიანი ბინა, ვაკე" })).toBeInTheDocument();
   });
 
   it("uses the city when a place has no districts", () => {
-    render(<ListingCard listing={{ ...fixtureListings[0], city: "რუსთავი", district: "" }} locale="en" t={t} />);
+    render(<ListingCard gelPerUsd={2.7} listing={{ ...fixtureListings[0], city: "რუსთავი", district: "" }} locale="en" t={t} />);
     expect(screen.getByRole("heading", { name: "For sale: 3-room apartment, Rustavi" })).toBeInTheDocument();
     expect(screen.getByText(fixtureListings[0].address)).toBeInTheDocument();
   });
 
   it("says who checked a verified listing and when", () => {
-    render(<ListingCard listing={{ ...fixtureListings[0], verification: { by: "Nino", at: "2026-11-02" } }} locale="en" t={t} />);
+    render(<ListingCard gelPerUsd={2.7} listing={{ ...fixtureListings[0], verification: { by: "Nino", at: "2026-11-02" } }} locale="en" t={t} />);
     expect(screen.getByText("Checked by Nino, Nov 2")).toBeInTheDocument();
   });
 
   it("keeps the chosen currency when the listing is opened", () => {
-    const { rerender } = render(<ListingCard listing={fixtureListings[0]} locale="en" t={t} cur="gel" />);
+    const { rerender } = render(<ListingCard gelPerUsd={2.7} listing={fixtureListings[0]} locale="en" t={t} cur="gel" />);
     expect(screen.getByRole("link")).toHaveAttribute("href", `/en/listings/${fixtureListings[0].id}?cur=gel`);
-    rerender(<ListingCard listing={fixtureListings[0]} locale="en" t={t} cur="usd" />);
+    rerender(<ListingCard gelPerUsd={2.7} listing={fixtureListings[0]} locale="en" t={t} cur="usd" />);
     expect(screen.getByRole("link")).toHaveAttribute("href", `/en/listings/${fixtureListings[0].id}`);
   });
 
   it("names the broker when there is one", () => {
-    render(<ListingCard listing={fixtureListings[0]} locale="en" t={t} />);
+    render(<ListingCard gelPerUsd={2.7} listing={fixtureListings[0]} locale="en" t={t} />);
     expect(screen.getByText(fixtureListings[0].agent?.name as string)).toBeInTheDocument();
   });
 
   it("shows bedrooms when given", () => {
-    render(<ListingCard listing={{ ...fixtureListings[0], bedrooms: 2 }} locale="en" t={t} />);
+    render(<ListingCard gelPerUsd={2.7} listing={{ ...fixtureListings[0], bedrooms: 2 }} locale="en" t={t} />);
     expect(screen.getByText("2 bedrooms")).toBeInTheDocument();
   });
 
   it("says photo for a single one", () => {
-    render(<ListingCard listing={{ ...fixtureListings[0], images: ["https://cdn/a.jpg"] }} locale="en" t={t} />);
+    render(<ListingCard gelPerUsd={2.7} listing={{ ...fixtureListings[0], images: ["https://cdn/a.jpg"] }} locale="en" t={t} />);
     expect(screen.getByText("1 photo")).toBeInTheDocument();
   });
 
   it("shows how many photos there are", () => {
-    render(<ListingCard listing={{ ...fixtureListings[0], images: ["https://cdn/a.jpg", "https://cdn/b.jpg"] }} locale="en" t={t} />);
+    render(<ListingCard gelPerUsd={2.7} listing={{ ...fixtureListings[0], images: ["https://cdn/a.jpg", "https://cdn/b.jpg"] }} locale="en" t={t} />);
     expect(screen.getByText("2 photos")).toBeInTheDocument();
   });
 
   it("shows a verified sale listing with floor", () => {
     const l = fixtureListings[0];
-    render(<ListingCard listing={l} locale="en" t={t} />);
+    render(<ListingCard gelPerUsd={2.7} listing={l} locale="en" t={t} />);
     expect(screen.getByRole("link")).toHaveAttribute("href", `/en/listings/${l.id}`);
     expect(screen.getByText("MTeam Verified")).toBeInTheDocument();
     expect(screen.getByText(/7\/12 floor/)).toBeInTheDocument();
@@ -1075,7 +1080,7 @@ describe("ListingCard", () => {
 
   it("shows a rent listing per month, without badge or floor", () => {
     const l: Listing = { ...fixtureListings[1], floor: undefined, verified: false };
-    render(<ListingCard listing={l} locale="en" t={t} />);
+    render(<ListingCard gelPerUsd={2.7} listing={l} locale="en" t={t} />);
     expect(screen.getByText("/ month")).toBeInTheDocument();
     expect(screen.queryByText("MTeam Verified")).toBeNull();
     expect(screen.queryByText(/floor/)).toBeNull();

@@ -3,7 +3,7 @@ import { render, screen } from "@testing-library/react";
 import { getDictionary } from "@mteam/shared";
 import { fixtureListings } from "@/test-fixtures";
 
-const db = vi.hoisted(() => ({ getBranch: vi.fn(), getBroker: vi.fn(), getFavoriteIds: vi.fn(), listBranches: vi.fn(), listBrokers: vi.fn() }));
+const db = vi.hoisted(() => ({ getGelPerUsd: async () => 2.7, getBranch: vi.fn(), getBroker: vi.fn(), getFavoriteIds: vi.fn(), listBranches: vi.fn(), listBrokers: vi.fn() }));
 const session = vi.hoisted(() => ({ currentUser: vi.fn(), hasSession: vi.fn() }));
 
 vi.mock("@mteam/db", () => db);

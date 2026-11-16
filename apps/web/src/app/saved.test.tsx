@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 import { getDictionary } from "@mteam/shared";
 
-const db = vi.hoisted(() => ({ PAGE_SIZE: 24, countListings: vi.fn(), deleteSavedSearch: vi.fn(), getFavoriteIds: vi.fn(), getHiddenIds: vi.fn(), isSearchSaved: vi.fn(), listSavedSearches: vi.fn(), openSavedSearch: vi.fn(), parseListingId: vi.fn(), saveSearch: vi.fn(), searchListings: vi.fn() }));
+const db = vi.hoisted(() => ({ getGelPerUsd: async () => 2.7, PAGE_SIZE: 24, countListings: vi.fn(), deleteSavedSearch: vi.fn(), getFavoriteIds: vi.fn(), getHiddenIds: vi.fn(), isSearchSaved: vi.fn(), listSavedSearches: vi.fn(), openSavedSearch: vi.fn(), parseListingId: vi.fn(), saveSearch: vi.fn(), searchListings: vi.fn() }));
 const session = vi.hoisted(() => ({ currentUser: vi.fn(), signInHere: async (locale: string) => `/${locale}/login?next=%2F${locale}%2Fhere` }));
 const cacheApi = vi.hoisted(() => ({ revalidatePath: vi.fn() }));
 

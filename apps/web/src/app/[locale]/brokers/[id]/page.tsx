@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import { getBroker, getFavoriteIds } from "@mteam/db";
+import { getGelPerUsd, getBroker, getFavoriteIds } from "@mteam/db";
 import { getDictionary } from "@mteam/shared";
 import { EmptyState } from "@/components/EmptyState";
 import { Header } from "@/components/Header";
@@ -17,6 +17,7 @@ export default async function BrokerPage({ params }: { params: Promise<{ locale:
   const t = getDictionary(locale);
   const user = await currentUser();
   const favoriteIds = user ? await getFavoriteIds(user.id) : [];
+  const gelPerUsd = await getGelPerUsd();
   return (
     <>
       <Header locale={locale} t={t} signedIn={user !== null} />
@@ -41,7 +42,7 @@ export default async function BrokerPage({ params }: { params: Promise<{ locale:
         {broker.listings.length === 0 ? (
           <EmptyState text={t.search.empty} />
         ) : (
-          <ListingGrid listings={broker.listings} locale={locale} t={t} cur="usd" signedIn={user !== null} favoriteIds={favoriteIds} />
+          <ListingGrid listings={broker.listings} locale={locale} t={t} cur="usd" gelPerUsd={gelPerUsd} signedIn={user !== null} favoriteIds={favoriteIds} />
         )}
       </main>
     </>

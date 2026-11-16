@@ -2,6 +2,8 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const prisma = vi.hoisted(() => ({
   listing: { findMany: vi.fn(), findFirst: vi.fn(), count: vi.fn(), create: vi.fn(), groupBy: vi.fn(), fields: { floors: "FLOORS" } },
+  // No stored rate, so the fallback of 2.7 lari per dollar applies.
+  exchangeRate: { findUnique: vi.fn(async () => null) },
 }));
 
 vi.mock("./client", () => ({ db: () => prisma }));

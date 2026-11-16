@@ -7,7 +7,7 @@ const MIN_COMPARABLES = 5;
 
 /**
  * Places every published listing against the typical price per m² of the same deal, type and district.
- * ponytail: stored and recalculated by `db:market`, so it lags new listings. Run it nightly once the site is live.
+ * Stored, so it lags new listings by up to a day: the nightly job (`/api/cron/nightly`) recalculates it, and `db:market` does so by hand.
  */
 export function refreshMarketLevels(): Promise<number> {
   return db().$executeRaw`

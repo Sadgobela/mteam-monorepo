@@ -18,13 +18,15 @@ export function ListingCard({
   locale,
   t,
   cur = "usd",
+  gelPerUsd,
 }: {
   listing: Listing;
   locale: Locale;
   t: Dict;
   cur?: DisplayCurrency;
+  gelPerUsd: number;
 }) {
-  const shown = convertPrice(listing.price, listing.currency, cur);
+  const shown = convertPrice(listing.price, listing.currency, cur, gelPerUsd);
   const currency = cur === "gel" ? "GEL" : "USD";
   const unit = priceUnit(listing.deal, t);
   return (

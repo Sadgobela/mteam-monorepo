@@ -14,6 +14,7 @@ import {
 } from "@mteam/shared";
 import { z } from "zod";
 import { db } from "./client";
+import { getGelPerUsd } from "./rates";
 
 export const PAGE_SIZE = 24;
 const POSTGRES_INT_MAX = 2147483647;
@@ -204,7 +205,7 @@ const SIMILAR_PRICE_SPREAD = 0.3;
 
 /** Same deal, type and city at a nearby price and size. */
 export async function listSimilarListings(listing: Listing, hiddenIds: number[] = []): Promise<Listing[]> {
-  const usd = priceInUsd(listing.price, listing.currency);
+  const usd = priceInUsd(listing.price, listing.currency, await getGelPerUsd());
   const rows = await db().listing.findMany({
     where: {
       status: "ACTIVE",
@@ -262,12 +263,13 @@ export async function getListing(rawId: string): Promise<Listing | undefined> {
   return row ? toListing(row) : undefined;
 }
 
-/** A validated draft as listing columns. */
-export function draftColumns(draft: ListingDraft) {
+/** A validated draft as listing columns, with dollar prices at the given rate. */
+export function draftColumns(draft: ListingDraft, gelPerUsd: number) {
+  const priceUsd = priceInUsd(draft.price, draft.currency, gelPerUsd);
   return {
     ...draft,
-    priceUsd: priceInUsd(draft.price, draft.currency),
-    pricePerSqmUsd: Math.round(priceInUsd(draft.price, draft.currency) / draft.area),
+    priceUsd,
+    pricePerSqmUsd: Math.round(priceUsd / draft.area),
     building: draft.building && dbBuildings[draft.building],
     deal: dbDeals[draft.deal],
     type: dbPropertyTypes[draft.type],
@@ -278,7 +280,7 @@ export function draftColumns(draft: ListingDraft) {
 export async function createListing(ownerId: string, draft: ListingDraft, imageUrls: string[]): Promise<number> {
   const { id } = await db().listing.create({
     data: {
-      ...draftColumns(draft),
+      ...draftColumns(draft, await getGelPerUsd()),
       status: "PENDING",
       verified: false,
       ownerId,
