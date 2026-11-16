@@ -46,7 +46,7 @@ describe("POST avatar", () => {
     expect(await send(post())).toEqual([200, { avatarUrl: "https://cdn.example/a.webp" }]);
     expect(db.claimAvatarUpload).toHaveBeenCalledWith("u1");
     const [stored] = upload.mock.calls[0];
-    expect(stored).toMatchObject({ type: "image/webp", ext: "webp" });
+    expect(stored).toMatchObject({ type: "image/webp", ext: "webp", folder: "avatars" });
     expect(await sharp(stored.bytes).metadata()).toMatchObject({ format: "webp", width: 256, height: 256 });
     expect(db.setAvatar).toHaveBeenCalledWith("u1", "https://cdn.example/a.webp");
   });

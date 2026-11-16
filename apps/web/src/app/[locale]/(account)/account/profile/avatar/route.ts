@@ -40,7 +40,7 @@ export async function POST(request: Request) {
 
   try {
     const square = await oneAtATime(() => sharp(photo.thumb).resize(SIDE_PX, SIDE_PX, { fit: "cover" }).webp({ quality: 82 }).toBuffer());
-    const url = await uploadPhoto({ bytes: new Uint8Array(square), thumb: new Uint8Array(square), type: "image/webp", ext: "webp" });
+    const url = await uploadPhoto({ bytes: new Uint8Array(square), type: "image/webp", ext: "webp", folder: "avatars" });
     await setAvatar(user.id, url);
     return NextResponse.json({ avatarUrl: url });
   } catch (error) {

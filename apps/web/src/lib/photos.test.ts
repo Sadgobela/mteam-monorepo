@@ -189,6 +189,14 @@ describe("uploadPhoto", () => {
     expect(storage.options[0]).toEqual({ accessKeyId: "id", secretAccessKey: "secret", service: "s3", region: "auto" });
   });
 
+  it("stores a profile photo in its own folder, without a small copy", async () => {
+    storage.fetch.mockResolvedValue({ ok: true });
+    const url = await uploadPhoto({ bytes: photo.bytes, type: "image/webp", ext: "webp", folder: "avatars" });
+    expect(url).toMatch(/^https:\/\/cdn\.example\.com\/avatars\/[0-9a-f-]{36}\.webp$/);
+    expect(storage.fetch).toHaveBeenCalledOnce();
+    expect(storage.fetch.mock.calls[0][0]).toMatch(/\/photos\/avatars\/[0-9a-f-]{36}\.webp$/);
+  });
+
   it("fails loudly when storage refuses", async () => {
     storage.fetch.mockResolvedValue({ ok: false, status: 403 });
     await expect(uploadPhoto(photo)).rejects.toThrow("403");

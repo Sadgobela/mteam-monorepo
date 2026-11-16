@@ -86,8 +86,10 @@ const storageEnvSchema = z.object({
 /**
  * Stores a photo and its small copy in S3-compatible storage (SeaweedFS locally, R2 later) and returns the photo's public URL.
  * The copy sits next to it as `<name>_thumb.webp`, which `thumbUrl` in `@mteam/shared` works out. A name is never reused, so both cache for good.
+ * A profile photo goes under `avatars/` without a copy, being small already. The folder rides on the photo, not a second
+ * argument, so `photos.map(uploadPhoto)` cannot pass its index as one.
  */
-export async function uploadPhoto(photo: Photo): Promise<string> {
+export async function uploadPhoto(photo: Photo | (Omit<Photo, "thumb"> & { folder: "avatars" })): Promise<string> {
   const env = storageEnvSchema.parse(process.env);
   const client = new AwsClient({
     accessKeyId: env.STORAGE_ACCESS_KEY_ID,
@@ -95,7 +97,7 @@ export async function uploadPhoto(photo: Photo): Promise<string> {
     service: "s3",
     region: "auto",
   });
-  const name = `listings/${randomUUID()}`;
+  const name = `${"folder" in photo ? photo.folder : "listings"}/${randomUUID()}`;
   const put = async (key: string, body: Uint8Array<ArrayBuffer>) => {
     const response = await client.fetch(`${env.STORAGE_ENDPOINT}/${env.STORAGE_BUCKET}/${key}`, {
       method: "PUT",
@@ -105,7 +107,7 @@ export async function uploadPhoto(photo: Photo): Promise<string> {
     if (!response.ok) throw new Error(`Photo upload failed with status ${response.status}`);
   };
   // The copy first: once the photo's URL exists, its copy should too.
-  await put(`${name}_thumb.${photo.ext}`, photo.thumb);
+  if ("thumb" in photo) await put(`${name}_thumb.${photo.ext}`, photo.thumb);
   await put(`${name}.${photo.ext}`, photo.bytes);
   return `${env.STORAGE_PUBLIC_URL}/${name}.${photo.ext}`;
 }
