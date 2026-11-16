@@ -3,9 +3,11 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const prisma = vi.hoisted(() => ({
   codeRequestLimit: { createMany: vi.fn(), updateMany: vi.fn() },
-  user: { findUnique: vi.fn(), findUniqueOrThrow: vi.fn(), create: vi.fn(), update: vi.fn(), updateMany: vi.fn() },
+  user: { findUnique: vi.fn(), findUniqueOrThrow: vi.fn(), findFirst: vi.fn(), create: vi.fn(), update: vi.fn() },
+  identity: { deleteMany: vi.fn() },
   session: { create: vi.fn(), deleteMany: vi.fn() },
   emailToken: { create: vi.fn(), findFirst: vi.fn(), updateMany: vi.fn(), count: vi.fn() },
+  $transaction: vi.fn(),
 }));
 
 vi.mock("./client", () => ({ db: () => prisma }));
@@ -50,6 +52,7 @@ beforeEach(() => {
   vi.stubEnv("LOGIN_CODE_SECRET", secret);
   prisma.codeRequestLimit.updateMany.mockResolvedValue({ count: 1 });
   prisma.session.create.mockResolvedValue({});
+  prisma.$transaction.mockImplementation(async (run: (tx: typeof prisma) => unknown) => run(prisma));
   prisma.emailToken.create.mockResolvedValue({});
 });
 
@@ -81,9 +84,9 @@ describe("hashPassword and checkPassword", () => {
 describe("signInWithPassword", () => {
   it("signs in with the right password, counting the attempt per address and per email", async () => {
     prisma.user.findUnique.mockResolvedValue({ id: "u1", passwordHash: await hashPassword("right password") });
-    const result = await signInWithPassword(email, "right password", ip);
+    const result = await signInWithPassword(email, "right password", ip, "Firefox");
     expect(result).toEqual({ token: expect.any(String) });
-    expect(prisma.session.create.mock.calls[0][0].data.userId).toBe("u1");
+    expect(prisma.session.create.mock.calls[0][0].data).toMatchObject({ userId: "u1", userAgent: "Firefox" });
     expect(quotaKeys()).toEqual([`pw:${keyed(`ip:${ip}`)}`, `pw-email:${keyed(`ip:email:${email}`)}`]);
     expect(prisma.user.findUnique).toHaveBeenCalledWith({ where: { email }, select: { id: true, passwordHash: true } });
   });
@@ -110,7 +113,8 @@ describe("signInWithPassword", () => {
 describe("registerWithPassword", () => {
   it("creates the user with a hashed password, a session and a 24-hour confirmation link", async () => {
     prisma.user.create.mockResolvedValue({ id: "u1" });
-    const result = await registerWithPassword(email, "a long password", ip);
+    const result = await registerWithPassword(email, "a long password", ip, "Firefox");
+    expect(prisma.session.create.mock.calls[0][0].data).toMatchObject({ userId: "u1", userAgent: "Firefox" });
     if ("error" in result) throw new Error("expected a registration");
     const { data } = prisma.user.create.mock.calls[0][0];
     expect(data.email).toBe(email);
@@ -197,26 +201,44 @@ describe("email links", () => {
     await expect(verifyEmail("tok")).rejects.toThrow("down");
   });
 
-  it("resets the password, confirms the email and replaces every session", async () => {
+  const reset = (emailVerifiedAt: Date | null) => {
     open();
-    prisma.user.updateMany.mockResolvedValue({ count: 1 });
-    expect(await resetPassword("tok", "a new password")).toEqual(expect.any(String));
-    const { where: userWhere, data } = prisma.user.updateMany.mock.calls[0][0];
-    expect(userWhere).toEqual({ id: "u1", email });
-    expect(data.emailVerifiedAt).toEqual(now);
+    prisma.user.findFirst.mockResolvedValue({ emailVerifiedAt });
+  };
+
+  it("resets the password of a confirmed account, keeping its other ways in, and replaces every session and link", async () => {
+    reset(new Date("2026-01-01T00:00:00Z"));
+    expect(await resetPassword("tok", "a new password", "Firefox")).toEqual(expect.any(String));
+    expect(prisma.user.findFirst).toHaveBeenCalledWith({ where: { id: "u1", email }, select: { emailVerifiedAt: true } });
+    const { where: userWhere, data } = prisma.user.update.mock.calls[0][0];
+    expect(userWhere).toEqual({ id: "u1" });
+    expect(data).toMatchObject({ emailVerifiedAt: now, phone: undefined });
     expect(await checkPassword("a new password", data.passwordHash)).toBe(true);
+    expect(prisma.identity.deleteMany).not.toHaveBeenCalled();
     expect(prisma.session.deleteMany).toHaveBeenCalledWith({ where: { userId: "u1" } });
     expect(prisma.emailToken.updateMany).toHaveBeenLastCalledWith({ where: { userId: "u1", usedAt: null }, data: { usedAt: now } });
-    expect(prisma.session.create.mock.calls[0][0].data.userId).toBe("u1");
+    expect(prisma.session.create.mock.calls[0][0].data).toMatchObject({ userId: "u1", userAgent: "Firefox" });
+  });
+
+  it("hands an unconfirmed account to the inbox owner: no phone, no Google, Facebook or Apple left", async () => {
+    reset(null);
+    expect(await resetPassword("tok", "a new password")).toEqual(expect.any(String));
+    expect(prisma.user.update.mock.calls[0][0].data).toMatchObject({ emailVerifiedAt: now, phone: null });
+    expect(prisma.identity.deleteMany).toHaveBeenCalledWith({ where: { userId: "u1" } });
+    expect(prisma.session.deleteMany).toHaveBeenCalledWith({ where: { userId: "u1" } });
+    expect(prisma.emailToken.updateMany).toHaveBeenLastCalledWith({ where: { userId: "u1", usedAt: null }, data: { usedAt: now } });
+    expect(prisma.$transaction).toHaveBeenCalledOnce();
   });
 
   it("does nothing for a bad link or one sent to an address the account no longer has", async () => {
     prisma.emailToken.findFirst.mockResolvedValueOnce(null);
     expect(await resetPassword("tok", "a new password")).toBeNull();
     open();
-    prisma.user.updateMany.mockResolvedValue({ count: 0 });
+    prisma.user.findFirst.mockResolvedValue(null);
     expect(await resetPassword("tok", "a new password")).toBeNull();
+    expect(prisma.user.update).not.toHaveBeenCalled();
     expect(prisma.session.deleteMany).not.toHaveBeenCalled();
+    expect(prisma.session.create).not.toHaveBeenCalled();
   });
 });
 
@@ -248,7 +270,8 @@ describe("requestEmailChange", () => {
 describe("changePassword", () => {
   it("sets a first password without asking for one, and replaces every session", async () => {
     prisma.user.findUniqueOrThrow.mockResolvedValue({ passwordHash: null });
-    expect(await changePassword("u1", "", "a new password")).toEqual({ token: expect.any(String) });
+    expect(await changePassword("u1", "", "a new password", "Firefox")).toEqual({ token: expect.any(String) });
+    expect(prisma.session.create.mock.calls[0][0].data).toMatchObject({ userId: "u1", userAgent: "Firefox" });
     expect(await checkPassword("a new password", prisma.user.update.mock.calls[0][0].data.passwordHash)).toBe(true);
     expect(prisma.session.deleteMany).toHaveBeenCalledWith({ where: { userId: "u1" } });
     expect(prisma.emailToken.updateMany).toHaveBeenLastCalledWith({ where: { userId: "u1", usedAt: null }, data: { usedAt: now } });

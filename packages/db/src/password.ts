@@ -57,13 +57,12 @@ const anyHash = () => (dummyHash ??= hashPassword(randomBytes(SALT_BYTES).toStri
 const isTaken = (error: unknown) => error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002";
 
 /**
- * Ends every session of the user and opens one fresh, after the password changed. Open email links end too:
- * a confirmation link kept by someone who had the account could otherwise still move its email to them.
+ * Ends every session and open email link of the user, after the password changed. A confirmation link kept by
+ * someone who had the account could otherwise still move its email to them.
  */
-async function restartSessions(userId: string): Promise<string> {
-  await db().session.deleteMany({ where: { userId } });
-  await db().emailToken.updateMany({ where: { userId, usedAt: null }, data: { usedAt: new Date() } });
-  return createSession(userId);
+async function endSessionsAndLinks(client: Prisma.TransactionClient, userId: string): Promise<void> {
+  await client.session.deleteMany({ where: { userId } });
+  await client.emailToken.updateMany({ where: { userId, usedAt: null }, data: { usedAt: new Date() } });
 }
 
 async function claimAttempt(email: string, ip: string, now: number): Promise<boolean> {
@@ -73,22 +72,22 @@ async function claimAttempt(email: string, ip: string, now: number): Promise<boo
 export type PasswordSignIn = { token: string } | { error: "wrong" | "limited" };
 
 /** Signs in with a normalized email and a password. An unknown email and a wrong password look the same, in answer and in time. */
-export async function signInWithPassword(email: string, password: string, ip: string): Promise<PasswordSignIn> {
+export async function signInWithPassword(email: string, password: string, ip: string, userAgent?: string): Promise<PasswordSignIn> {
   if (!(await claimAttempt(email, ip, Date.now()))) return { error: "limited" };
   const user = await db().user.findUnique({ where: { email }, select: { id: true, passwordHash: true } });
   const matches = await checkPassword(password, user?.passwordHash ?? (await anyHash()));
-  return user?.passwordHash && matches ? { token: await createSession(user.id) } : { error: "wrong" };
+  return user?.passwordHash && matches ? { token: await createSession(user.id, userAgent) } : { error: "wrong" };
 }
 
 export type Registration = { token: string; verifyToken: string } | { error: "taken" | "limited" };
 
 /** A new user with a normalized email and a password, signed in at once. The email is confirmed later by the link in `verifyToken`. */
-export async function registerWithPassword(email: string, password: string, ip: string): Promise<Registration> {
+export async function registerWithPassword(email: string, password: string, ip: string, userAgent?: string): Promise<Registration> {
   if (!(await claimQuota(addressKey("pw", ip), ATTEMPTS_PER_ADDRESS, Date.now()))) return { error: "limited" };
   const passwordHash = await hashPassword(password);
   try {
     const user = await db().user.create({ data: { email, passwordHash }, select: { id: true } });
-    return { token: await createSession(user.id), verifyToken: await createEmailToken(user.id, "VERIFY", email) };
+    return { token: await createSession(user.id, userAgent), verifyToken: await createEmailToken(user.id, "VERIFY", email) };
   } catch (error) {
     if (isTaken(error)) return { error: "taken" };
     throw error;
@@ -146,17 +145,27 @@ export async function verifyEmail(token: string): Promise<EmailVerification> {
 }
 
 /**
- * Sets a new password from a RESET link, ends every session and returns a fresh one, or null for a bad link.
- * Opening the link proves the inbox, so the email counts as confirmed. A link sent to an address the account no longer has does nothing.
- * ponytail: someone could register another person's address and add their own phone before that person resets it; checking
- * other sign-in methods on reset waits until it is seen.
+ * Sets a new password from a RESET link, ends every session and open email link, and returns a fresh session, or null
+ * for a bad link. Opening the link proves the inbox, so the email counts as confirmed. A link sent to an address the
+ * account no longer has does nothing.
+ * When the email was not confirmed yet, the inbox owner takes the account over cleanly: its phone and Google, Facebook
+ * and Apple sign-ins are removed, so whoever registered someone else's address cannot keep a way in.
  */
-export async function resetPassword(token: string, password: string): Promise<string | null> {
+export async function resetPassword(token: string, password: string, userAgent?: string): Promise<string | null> {
   const row = await useToken(token, "RESET");
   if (!row) return null;
   const passwordHash = await hashPassword(password);
-  const { count } = await db().user.updateMany({ where: { id: row.userId, email: row.email }, data: { passwordHash, emailVerifiedAt: new Date() } });
-  return count > 0 ? restartSessions(row.userId) : null;
+  const reset = await db().$transaction(async (tx) => {
+    const user = await tx.user.findFirst({ where: { id: row.userId, email: row.email }, select: { emailVerifiedAt: true } });
+    if (!user) return false;
+    const takeover = user.emailVerifiedAt === null;
+    // undefined leaves the phone as it is.
+    await tx.user.update({ where: { id: row.userId }, data: { passwordHash, emailVerifiedAt: new Date(), phone: takeover ? null : undefined } });
+    if (takeover) await tx.identity.deleteMany({ where: { userId: row.userId } });
+    await endSessionsAndLinks(tx, row.userId);
+    return true;
+  });
+  return reset ? createSession(row.userId, userAgent) : null;
 }
 
 export type EmailChange = { token: string } | { error: "taken" | "wrong" };
@@ -175,13 +184,14 @@ export async function requestEmailChange(userId: string, email: string, current:
 
 export type PasswordChange = { token: string } | { error: "wrong" | "limited" };
 
-/** Sets or changes a password. The current one is needed when there is one. Ends every session and returns a fresh one. */
-export async function changePassword(userId: string, current: string, next: string): Promise<PasswordChange> {
+/** Sets or changes a password. The current one is needed when there is one. Ends every session and open email link, and returns a fresh session. */
+export async function changePassword(userId: string, current: string, next: string, userAgent?: string): Promise<PasswordChange> {
   if (!(await claimQuota(`pw-user:${userId}`, ATTEMPTS_PER_USER, Date.now()))) return { error: "limited" };
   const user = await db().user.findUniqueOrThrow({ where: { id: userId }, select: { passwordHash: true } });
   if (user.passwordHash && !(await checkPassword(current, user.passwordHash))) return { error: "wrong" };
   await db().user.update({ where: { id: userId }, data: { passwordHash: await hashPassword(next) } });
-  return { token: await restartSessions(userId) };
+  await endSessionsAndLinks(db(), userId);
+  return { token: await createSession(userId, userAgent) };
 }
 
 export interface AccountSecurity {
