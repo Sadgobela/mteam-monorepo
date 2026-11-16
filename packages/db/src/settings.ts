@@ -58,7 +58,7 @@ export async function deleteAccount(userId: string): Promise<boolean> {
   return db().$transaction(async (tx) => {
     const { count } = await tx.user.updateMany({
       where: { id: userId, role: "USER" },
-      data: { name: null, phone: null, email: null, emailVerifiedAt: null, passwordHash: null, avatarUrl: null },
+      data: { name: null, phone: null, email: null, emailVerifiedAt: null, passwordHash: null, avatarUrl: null, deletedAt: new Date() },
     });
     if (count === 0) return false;
     const mine = { where: { userId } };

@@ -354,6 +354,17 @@ describe("sessions", () => {
     expect(prisma.session.updateMany).not.toHaveBeenCalled();
   });
 
+  it("never returns a deleted account, even from a live session", async () => {
+    prisma.session.findUnique.mockResolvedValue({ expiresAt: live, lastSeenAt: null, user: { ...user, deletedAt: new Date("2026-11-09T09:00:00Z") } });
+    expect(await getSessionUser("tok")).toBeNull();
+    expect(prisma.session.updateMany).not.toHaveBeenCalled();
+  });
+
+  it("leaves the deletion marker out of the user it returns", async () => {
+    prisma.session.findUnique.mockResolvedValue({ expiresAt: live, lastSeenAt: live, user: { ...user, deletedAt: null } });
+    expect(await getSessionUser("tok")).toEqual(user);
+  });
+
   it("ignores an unknown token", async () => {
     prisma.session.findUnique.mockResolvedValue(null);
     expect(await getSessionUser("tok")).toBeNull();
