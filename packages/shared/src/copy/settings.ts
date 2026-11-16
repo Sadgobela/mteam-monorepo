@@ -1,7 +1,7 @@
 // Copy for one part of the site, kept in its own file so parallel work does not collide in i18n.ts.
 const ka = {
   notificationsHeading: "შეტყობინებები",
-  notificationsNote: "ჯერჯერობით შეტყობინებები აქ, საიტზე მოდის. ელფოსტით და SMS-ით მოგვიანებით დაემატება.",
+  notificationsNote: "შეტყობინებები საიტზე მოდის, ხოლო ქვემოთ შეგიძლია ამ მოწყობილობაზეც ჩართო. ელფოსტით და SMS-ით მოგვიანებით დაემატება.",
   notifyMessages: "ახალი შეტყობინება ჩატში",
   notifySavedSearches: "ახალი განცხადებები შენახული ძიებებისთვის",
   notifyPriceDrops: "ფასის კლება რჩეულ განცხადებებზე",
@@ -36,7 +36,7 @@ const ka = {
 
 const en: typeof ka = {
   notificationsHeading: "Notifications",
-  notificationsNote: "For now notifications arrive here on the site. Email and SMS will follow later.",
+  notificationsNote: "Notifications arrive here on the site, and you can turn them on for this device below. Email and SMS will follow later.",
   notifyMessages: "New chat messages",
   notifySavedSearches: "New listings for my saved searches",
   notifyPriceDrops: "Price drops on my favourites",
@@ -71,7 +71,7 @@ const en: typeof ka = {
 
 const ru: typeof ka = {
   notificationsHeading: "Уведомления",
-  notificationsNote: "Пока уведомления приходят здесь, на сайте. Email и SMS появятся позже.",
+  notificationsNote: "Уведомления приходят здесь, на сайте, а ниже их можно включить и на этом устройстве. Email и SMS появятся позже.",
   notifyMessages: "Новые сообщения в чате",
   notifySavedSearches: "Новые объявления по сохранённым поискам",
   notifyPriceDrops: "Снижение цены в избранном",
