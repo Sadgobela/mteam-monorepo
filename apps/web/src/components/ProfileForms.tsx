@@ -49,9 +49,9 @@ export function OnboardingForm({ locale, t, next, name }: { locale: Locale; t: D
     <form className="profile-form" action={action}>
       <input type="hidden" name="locale" value={locale} />
       <input type="hidden" name="next" value={next} />
-      <ProfileFields t={t} name={name} />
+      <ProfileFields t={t} name={state.name ?? name} />
       <label className="profile-terms">
-        <input type="checkbox" name="terms" required />
+        <input type="checkbox" name="terms" required defaultChecked={state.terms} />
         {t.profile.terms}
       </label>
       {state.invalid && (
@@ -71,7 +71,7 @@ export function ProfileForm({ locale, t, name, intent }: { locale: Locale; t: Di
   return (
     <form className="profile-form" action={action}>
       <input type="hidden" name="locale" value={locale} />
-      <ProfileFields t={t} name={name} intent={intent} />
+      <ProfileFields t={t} name={state.name ?? name} intent={intent} />
       {state.invalid && (
         <p className="note" role="alert">
           {t.profile.invalid}

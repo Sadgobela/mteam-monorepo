@@ -84,8 +84,14 @@ describe("onboardAction", () => {
     ["the terms not accepted", { terms: "" }],
   ])("refuses %s", async (_, change) => {
     session.currentUser.mockResolvedValue(newUser);
-    expect(await onboardAction({}, form({ ...answers, ...change }))).toEqual({ invalid: true });
+    expect(await onboardAction({}, form({ ...answers, ...change }))).toMatchObject({ invalid: true });
     expect(db.completeOnboarding).not.toHaveBeenCalled();
+  });
+
+  it("gives back what was typed when refusing", async () => {
+    session.currentUser.mockResolvedValue(newUser);
+    expect(await onboardAction({}, form({ ...answers, name: "N" }))).toEqual({ invalid: true, name: "N", terms: true });
+    expect(await onboardAction({}, form({ intent: "OWNER" }))).toEqual({ invalid: true, name: "", terms: false });
   });
 
   it("sends a visitor to sign in, coming back here", async () => {
@@ -110,7 +116,7 @@ describe("saveProfileAction", () => {
 
   it("refuses a bad name, and sends a visitor to sign in", async () => {
     session.currentUser.mockResolvedValue(settled);
-    expect(await saveProfileAction({}, form({ name: "", intent: "OWNER" }))).toEqual({ invalid: true });
+    expect(await saveProfileAction({}, form({ name: "N", intent: "OWNER" }))).toEqual({ invalid: true, name: "N" });
     session.currentUser.mockResolvedValue(null);
     await expect(saveProfileAction({}, form({ name: "Nino", intent: "OWNER" }))).rejects.toThrow("REDIRECT /en/login?next=%2Fen%2Fhere");
     expect(db.updateProfile).not.toHaveBeenCalled();
@@ -140,6 +146,20 @@ describe("OnboardingPage", () => {
     await user.click(screen.getByRole("checkbox", { name: t.profile.terms }));
     await user.click(screen.getByRole("button", { name: t.profile.start }));
     expect(await screen.findByText(t.profile.invalid)).toBeInTheDocument();
+  });
+
+  it("keeps the name, the choice and the terms after a refusal", async () => {
+    const user = userEvent.setup();
+    session.currentUser.mockResolvedValue(newUser);
+    render(await open());
+    await user.type(screen.getByRole("textbox", { name: t.profile.name }), "Ni\u200bno");
+    await user.click(screen.getByRole("radio", { name: t.profile.intents.OWNER }));
+    await user.click(screen.getByRole("checkbox", { name: t.profile.terms }));
+    await user.click(screen.getByRole("button", { name: t.profile.start }));
+    expect(await screen.findByText(t.profile.invalid)).toBeInTheDocument();
+    expect(screen.getByRole("textbox", { name: t.profile.name })).toHaveValue("Ni\u200bno");
+    expect(screen.getByRole("radio", { name: t.profile.intents.OWNER })).toHaveAttribute("aria-checked", "true");
+    expect(screen.getByRole("checkbox", { name: t.profile.terms })).toBeChecked();
   });
 
   it("sends a visitor to sign in and an answered account straight on", async () => {
@@ -216,6 +236,7 @@ describe("ProfilePage", () => {
     await user.type(screen.getByRole("textbox", { name: t.profile.name }), "Nino");
     await user.click(screen.getByRole("button", { name: t.profile.save }));
     expect(await screen.findByText(t.profile.invalid)).toBeInTheDocument();
+    expect(screen.getByRole("textbox", { name: t.profile.name })).toHaveValue("Nino");
   });
 
   it("sends a visitor to sign in", async () => {
