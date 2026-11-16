@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 import { changePassword, claimEmailSend, createResetToken, registerWithPassword, requestEmailChange, resetPassword, signInWithPassword, verifyEmail } from "@mteam/db";
 import { getDictionary, type Locale } from "@mteam/shared";
-import { sendEmail } from "./email";
+import { assertCanSendEmail, sendEmail } from "./email";
 import { resolveLocale } from "./locale";
 import { safeNext } from "./login-path";
 import { clientIp, currentUser, signInHere, startSession, userAgent } from "./session";
@@ -54,6 +54,7 @@ export async function emailSignInAction(_previous: AuthState, form: FormData): P
 
 export async function registerAction(_previous: AuthState, form: FormData): Promise<AuthState> {
   const locale = localeOf(form);
+  assertCanSendEmail();
   const email = emailSchema.safeParse(form.get("email"));
   if (!email.success) return { error: "invalidEmail" };
   const password = newPasswordSchema.safeParse(form.get("password"));
@@ -70,6 +71,8 @@ export async function registerAction(_previous: AuthState, form: FormData): Prom
 /** Sends a reset link. The answer is the same whether or not an account has the email. */
 export async function forgotPasswordAction(_previous: AuthState, form: FormData): Promise<AuthState> {
   const locale = localeOf(form);
+  // Before the account lookup, so a missing provider fails the same way for every email.
+  assertCanSendEmail();
   const email = emailSchema.safeParse(form.get("email"));
   if (!email.success) return { error: "invalidEmail" };
   if (!(await claimEmailSend(await clientIp(), email.data, "RESET"))) return { error: "limited" };
@@ -103,6 +106,7 @@ export async function confirmEmailAction(_previous: AuthState, form: FormData): 
 export async function changeEmailAction(_previous: AuthState, form: FormData): Promise<AuthState> {
   const locale = localeOf(form);
   const user = await signedInUser(locale);
+  assertCanSendEmail();
   const email = emailSchema.safeParse(form.get("email"));
   if (!email.success) return { error: "invalidEmail" };
   // Missing for a resend, and for an account without a password.

@@ -65,6 +65,17 @@ describe("sendEmail", () => {
     expect(() => sendEmail({ to: email, subject: "Hi", link: "x" })).toThrow();
     expect(log).not.toHaveBeenCalled();
   });
+
+  it("stops registering, reset links and email changes before anything is made when no email can go out", async () => {
+    vi.stubEnv("NODE_ENV", "production");
+    await expect(registerAction({}, form({ locale: "en", email, password: strong }))).rejects.toThrow("EMAIL_PROVIDER is not set");
+    await expect(forgotPasswordAction({}, form({ locale: "en", email }))).rejects.toThrow("EMAIL_PROVIDER is not set");
+    await expect(changeEmailAction({}, form({ locale: "en", email }))).rejects.toThrow("EMAIL_PROVIDER is not set");
+    expect(db.registerWithPassword).not.toHaveBeenCalled();
+    expect(db.claimEmailSend).not.toHaveBeenCalled();
+    expect(db.createResetToken).not.toHaveBeenCalled();
+    expect(db.requestEmailChange).not.toHaveBeenCalled();
+  });
 });
 
 describe("emailSignInAction", () => {
