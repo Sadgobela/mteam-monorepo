@@ -196,12 +196,13 @@ describe("changeEmailAction", () => {
   it("refuses a bad or taken address, a wrong password, and stops when too many links went out", async () => {
     expect(await changeEmailAction({}, form({ locale: "en", email: "bad" }))).toEqual({ error: "invalidEmail" });
     expect(await changeEmailAction({}, form({ locale: "en", email, current: "x".repeat(129) }))).toEqual({ error: "wrongCurrent" });
-    db.requestEmailChange.mockResolvedValueOnce({ error: "taken" }).mockResolvedValueOnce({ error: "wrong" });
+    db.requestEmailChange.mockResolvedValueOnce({ error: "taken" }).mockResolvedValueOnce({ error: "wrong" }).mockResolvedValueOnce({ error: "limited" });
     expect(await changeEmailAction({}, form({ locale: "en", email }))).toEqual({ error: "taken" });
     expect(await changeEmailAction({}, form({ locale: "en", email, current: "nope" }))).toEqual({ error: "wrongCurrent" });
+    expect(await changeEmailAction({}, form({ locale: "en", email, current: "nope" }))).toEqual({ error: "limited" });
     db.claimEmailSend.mockResolvedValue(false);
     expect(await changeEmailAction({}, form({ locale: "en", email }))).toEqual({ error: "limited" });
-    expect(db.requestEmailChange).toHaveBeenCalledTimes(2);
+    expect(db.requestEmailChange).toHaveBeenCalledTimes(3);
     expect(log).not.toHaveBeenCalled();
   });
 });

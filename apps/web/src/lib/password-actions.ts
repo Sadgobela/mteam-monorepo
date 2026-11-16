@@ -110,7 +110,7 @@ export async function changeEmailAction(_previous: AuthState, form: FormData): P
   if (!current.success) return { error: "wrongCurrent" };
   if (!(await claimEmailSend(await clientIp(), email.data))) return { error: "limited" };
   const result = await requestEmailChange(user.id, email.data, current.data);
-  if ("error" in result) return { error: result.error === "wrong" ? "wrongCurrent" : "taken" };
+  if ("error" in result) return { error: result.error === "wrong" ? "wrongCurrent" : result.error };
   sendLink(locale, email.data, "verify", result.token);
   return { notice: "verifySent" };
 }

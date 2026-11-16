@@ -154,6 +154,7 @@ describe("createResetToken", () => {
   it("makes a one-hour link for an existing account and nothing for an unknown email", async () => {
     prisma.user.findUnique.mockResolvedValueOnce({ id: "u1" });
     const token = await createResetToken(email);
+    expect(prisma.user.findUnique).toHaveBeenCalledWith({ where: { email, deletedAt: null }, select: { id: true } });
     expect(prisma.emailToken.create).toHaveBeenCalledWith({
       data: { tokenHash: sha256(String(token)), userId: "u1", purpose: "RESET", email, expiresAt: new Date("2026-11-16T11:00:00Z") },
     });
@@ -228,10 +229,10 @@ describe("email links", () => {
   it("resets the password of a confirmed account, keeping its other ways in, and replaces every session and link", async () => {
     reset(new Date("2026-01-01T00:00:00Z"));
     expect(await resetPassword("tok", "a new password", "Firefox")).toEqual(expect.any(String));
-    expect(prisma.user.findFirst).toHaveBeenCalledWith({ where: { id: "u1", email }, select: { emailVerifiedAt: true } });
+    expect(prisma.user.findFirst).toHaveBeenCalledWith({ where: { id: "u1", email, deletedAt: null }, select: { emailVerifiedAt: true } });
     const { where: userWhere, data } = prisma.user.update.mock.calls[0][0];
     expect(userWhere).toEqual({ id: "u1" });
-    expect(data).toMatchObject({ emailVerifiedAt: now, phone: undefined });
+    expect(data).toMatchObject({ emailVerifiedAt: now, phone: undefined, name: undefined, avatarUrl: undefined });
     expect(await checkPassword("a new password", data.passwordHash)).toBe(true);
     expect(prisma.identity.deleteMany).not.toHaveBeenCalled();
     expect(prisma.session.deleteMany).toHaveBeenCalledWith({ where: { userId: "u1" } });
@@ -242,7 +243,7 @@ describe("email links", () => {
   it("hands an unconfirmed account to the inbox owner: no phone, no Google, Facebook or Apple left", async () => {
     reset(null);
     expect(await resetPassword("tok", "a new password")).toEqual(expect.any(String));
-    expect(prisma.user.update.mock.calls[0][0].data).toMatchObject({ emailVerifiedAt: now, phone: null });
+    expect(prisma.user.update.mock.calls[0][0].data).toMatchObject({ emailVerifiedAt: now, phone: null, name: null, avatarUrl: null });
     expect(prisma.identity.deleteMany).toHaveBeenCalledWith({ where: { userId: "u1" } });
     expect(prisma.session.deleteMany).toHaveBeenCalledWith({ where: { userId: "u1" } });
     expect(prisma.emailToken.updateMany).toHaveBeenLastCalledWith({ where: { userId: "u1", usedAt: null }, data: { usedAt: now } });
@@ -283,6 +284,15 @@ describe("requestEmailChange", () => {
     expect(await requestEmailChange("u1", email, "not it")).toEqual({ error: "wrong" });
     expect(prisma.emailToken.create).not.toHaveBeenCalled();
     expect(await requestEmailChange("u1", email, "the password")).toEqual({ token: expect.any(String) });
+    expect(quotaKeys()).toEqual(["pw-user:u1"]);
+  });
+
+  it("stops guessing the password after too many tries", async () => {
+    prisma.user.findUnique.mockResolvedValue(null);
+    prisma.user.findUniqueOrThrow.mockResolvedValue({ email: "old@example.com", passwordHash: "scrypt$1$1$1$c2FsdA==$x" });
+    refuseQuota(0);
+    expect(await requestEmailChange("u1", email, "guess")).toEqual({ error: "limited" });
+    expect(prisma.emailToken.create).not.toHaveBeenCalled();
   });
 
   it("refuses an address another account has", async () => {

@@ -108,7 +108,7 @@ export async function createEmailToken(userId: string, purpose: EmailTokenPurpos
 
 /** A reset link token for the account with this email, or null when there is none. */
 export async function createResetToken(email: string): Promise<string | null> {
-  const user = await db().user.findUnique({ where: { email }, select: { id: true } });
+  const user = await db().user.findUnique({ where: { email, deletedAt: null }, select: { id: true } });
   return user ? createEmailToken(user.id, "RESET", email) : null;
 }
 
@@ -163,19 +163,21 @@ export async function verifyEmail(token: string, userId: string): Promise<EmailV
  * Sets a new password from a RESET link, ends every session and open email link, and returns a fresh session, or null
  * for a bad link. Opening the link proves the inbox, so the email counts as confirmed. A link sent to an address the
  * account no longer has does nothing.
- * When the email was not confirmed yet, the inbox owner takes the account over cleanly: its phone and Google, Facebook
- * and Apple sign-ins are removed, so whoever registered someone else's address cannot keep a way in.
+ * When the email was not confirmed yet, the inbox owner takes the account over cleanly: its phone, Google, Facebook
+ * and Apple sign-ins, name and photo are removed, so whoever registered someone else's address keeps no way in and
+ * leaves nothing of theirs on it.
  */
 export async function resetPassword(token: string, password: string, userAgent?: string): Promise<string | null> {
   const row = await useToken(token, "RESET");
   if (!row) return null;
   const passwordHash = await hashPassword(password);
   const reset = await db().$transaction(async (tx) => {
-    const user = await tx.user.findFirst({ where: { id: row.userId, email: row.email }, select: { emailVerifiedAt: true } });
+    const user = await tx.user.findFirst({ where: { id: row.userId, email: row.email, deletedAt: null }, select: { emailVerifiedAt: true } });
     if (!user) return false;
     const takeover = user.emailVerifiedAt === null;
-    // undefined leaves the phone as it is.
-    await tx.user.update({ where: { id: row.userId }, data: { passwordHash, emailVerifiedAt: new Date(), phone: takeover ? null : undefined } });
+    // undefined leaves a field as it is.
+    const wiped = takeover ? null : undefined;
+    await tx.user.update({ where: { id: row.userId }, data: { passwordHash, emailVerifiedAt: new Date(), phone: wiped, name: wiped, avatarUrl: wiped } });
     if (takeover) await tx.identity.deleteMany({ where: { userId: row.userId } });
     await endSessionsAndLinks(tx, row.userId);
     return true;
@@ -183,7 +185,7 @@ export async function resetPassword(token: string, password: string, userAgent?:
   return reset ? createSession(row.userId, userAgent) : null;
 }
 
-export type EmailChange = { token: string } | { error: "taken" | "wrong" };
+export type EmailChange = { token: string } | { error: "taken" | "wrong" | "limited" };
 
 /**
  * Starts confirming a new address for a user, or a resend for the current one. Moving the email of an account with a
@@ -193,7 +195,11 @@ export async function requestEmailChange(userId: string, email: string, current:
   const owner = await db().user.findUnique({ where: { email }, select: { id: true } });
   if (owner && owner.id !== userId) return { error: "taken" };
   const user = await db().user.findUniqueOrThrow({ where: { id: userId }, select: { email: true, passwordHash: true } });
-  if (user.email !== email && user.passwordHash && !(await checkPassword(current, user.passwordHash))) return { error: "wrong" };
+  if (user.email !== email && user.passwordHash) {
+    // Counted with password changes, so a borrowed session cannot guess the password here either.
+    if (!(await claimQuota(`pw-user:${userId}`, ATTEMPTS_PER_USER, Date.now()))) return { error: "limited" };
+    if (!(await checkPassword(current, user.passwordHash))) return { error: "wrong" };
+  }
   // Only the newest confirmation link works, so an older one cannot move the email back to a former address.
   await db().emailToken.updateMany({ where: { userId, purpose: "VERIFY", usedAt: null }, data: { usedAt: new Date() } });
   return { token: await createEmailToken(userId, "VERIFY", email) };
