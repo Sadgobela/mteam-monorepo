@@ -1,6 +1,6 @@
 import Image from "next/image";
 import { notFound } from "next/navigation";
-import { getGelPerUsd, getBroker, getBrokerProfile, getFavoriteIds } from "@mteam/db";
+import { getGelPerUsd, getBroker, getFavoriteIds } from "@mteam/db";
 import { getDictionary } from "@mteam/shared";
 import { EmptyState } from "@/components/EmptyState";
 import { Header } from "@/components/Header";
@@ -20,7 +20,6 @@ export default async function BrokerPage({ params }: { params: Promise<{ locale:
   const user = await currentUser();
   const favoriteIds = user ? await getFavoriteIds(user.id) : [];
   const gelPerUsd = await getGelPerUsd();
-  const profile = await getBrokerProfile(broker.id);
   return (
     <>
       <Header locale={locale} t={t} signedIn={user !== null} />
@@ -28,7 +27,7 @@ export default async function BrokerPage({ params }: { params: Promise<{ locale:
         <div className="agent profile">
           <div className="who">
             <span className="av broker-photo" aria-hidden="true">
-              {profile?.photoUrl ? <Image src={profile.photoUrl} alt="" fill unoptimized /> : broker.name.slice(0, 1)}
+              {broker.photoUrl ? <Image src={broker.photoUrl} alt="" fill unoptimized /> : broker.name.slice(0, 1)}
             </span>
             <div>
               <h1 className="heading">{broker.name}</h1>
@@ -44,7 +43,7 @@ export default async function BrokerPage({ params }: { params: Promise<{ locale:
             </a>
           </div>
         </div>
-        {profile?.bio && <p className="broker-bio">{profile.bio}</p>}
+        {broker.bio && <p className="broker-bio">{broker.bio}</p>}
         {broker.listings.length === 0 ? (
           <EmptyState text={t.search.empty} />
         ) : (

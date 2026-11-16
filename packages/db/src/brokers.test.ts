@@ -57,9 +57,9 @@ describe("listBrokers", () => {
 
 describe("getBroker", () => {
   it("returns a named broker and only published listings", async () => {
-    prisma.agent.findFirst.mockResolvedValue({ ...named, listings: [listing] });
+    prisma.agent.findFirst.mockResolvedValue({ ...named, photoUrl: "https://img.example/nino.jpg", bio: "Ten years in Vake.", listings: [listing] });
     const broker = await getBroker("a1");
-    expect(broker).toMatchObject({ id: "a1", name: "Nino", branch: "Vake", phone: "+995" });
+    expect(broker).toMatchObject({ id: "a1", name: "Nino", branch: "Vake", phone: "+995", photoUrl: "https://img.example/nino.jpg", bio: "Ten years in Vake." });
     expect(broker?.listings.map((l) => l.id)).toEqual([7]);
     const args = prisma.agent.findFirst.mock.calls[0][0];
     expect(args.where).toEqual({ id: "a1", user: { name: { not: null }, phone: { not: null }, role: "AGENT" } });

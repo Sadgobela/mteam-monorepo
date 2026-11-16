@@ -71,7 +71,7 @@ export async function getBranch(id: string): Promise<(Omit<BranchCard, "brokerCo
   return { id: row.id, name: row.name, city: row.city, brokers: row.agents.map(toCard), listings: listings.map(toListing) };
 }
 
-export async function getBroker(id: string): Promise<(Broker & { listings: Listing[] }) | null> {
+export async function getBroker(id: string): Promise<(Broker & { photoUrl: string | null; bio: string | null; listings: Listing[] }) | null> {
   if (!ID_FORMAT.test(id)) return null;
   const row = await db().agent.findFirst({
     where: { id, ...publicBroker },
@@ -87,6 +87,8 @@ export async function getBroker(id: string): Promise<(Broker & { listings: Listi
     name: row.user.name ?? "",
     branch: row.branch?.name ?? "",
     phone: row.user.phone ?? "",
+    photoUrl: row.photoUrl,
+    bio: row.bio,
     listings: row.listings.map(toListing),
   };
 }
