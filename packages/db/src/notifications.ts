@@ -86,11 +86,10 @@ async function announce(ids: string[]): Promise<void> {
   }
 }
 
-/** Saves a batch and announces it. Returns how many were created. */
-async function createAll(data: Prisma.NotificationCreateManyInput[]): Promise<number> {
+/** Saves a batch and returns the new ids, for announcing once the whole nightly run is saved. */
+async function createAll(data: Prisma.NotificationCreateManyInput[]): Promise<string[]> {
   const created = await db().notification.createManyAndReturn({ data, select: { id: true } });
-  await announce(created.map((row) => row.id));
-  return created.length;
+  return created.map((row) => row.id);
 }
 
 /** For the bell. */
@@ -163,14 +162,14 @@ export async function notifyListingReviewed(listingId: number, decision: "ACTIVE
 }
 
 /** Owners' published listings ending within a few days, told once per expiry date: renewing sets a new one. */
-async function notifyExpiring(now: Date): Promise<number> {
+async function notifyExpiring(now: Date): Promise<string[]> {
   const client = db();
   const warnFrom = (expiresAt: Date) => expiresAt.getTime() - EXPIRY_WARNING_DAYS * DAY_MS;
   const listings = await client.listing.findMany({
     where: { status: "ACTIVE", expiresAt: { gt: now, lte: new Date(now.getTime() + EXPIRY_WARNING_DAYS * DAY_MS) }, owner: wants("LISTING_EXPIRING") },
     select: { id: true, ownerId: true, expiresAt: true },
   });
-  if (listings.length === 0) return 0;
+  if (listings.length === 0) return [];
   const told = await client.notification.findMany({
     where: { userId: { in: listings.map((listing) => listing.ownerId) }, createdAt: { gte: new Date(now.getTime() - EXPIRY_WARNING_DAYS * DAY_MS) }, type: "LISTING_EXPIRING", listingId: { in: listings.map((listing) => listing.id) } },
     select: { listingId: true, createdAt: true },
@@ -185,7 +184,7 @@ async function notifyExpiring(now: Date): Promise<number> {
 }
 
 /** Users whose favourite got cheaper since the last run, told once per change. */
-async function notifyPriceDrops(now: Date): Promise<number> {
+async function notifyPriceDrops(now: Date): Promise<string[]> {
   const client = db();
   const changes = await client.listingPriceChange.findMany({
     where: { createdAt: { gte: new Date(now.getTime() - LOOKBACK_MS) }, listing: { status: "ACTIVE" } },
@@ -198,9 +197,9 @@ async function notifyPriceDrops(now: Date): Promise<number> {
     drops.set(change.listingId, { oldPriceUsd: drops.get(change.listingId)?.oldPriceUsd ?? change.oldPriceUsd, newPriceUsd: change.newPriceUsd, at: change.createdAt });
   }
   for (const [listingId, drop] of drops) if (drop.newPriceUsd >= drop.oldPriceUsd) drops.delete(listingId);
-  if (drops.size === 0) return 0;
+  if (drops.size === 0) return [];
   const fans = await client.favorite.findMany({ where: { listingId: { in: [...drops.keys()] }, user: wants("PRICE_DROP") }, select: { userId: true, listingId: true } });
-  if (fans.length === 0) return 0;
+  if (fans.length === 0) return [];
   const told = await client.notification.findMany({
     where: { userId: { in: fans.map((fan) => fan.userId) }, createdAt: { gte: new Date(now.getTime() - LOOKBACK_MS) }, type: "PRICE_DROP", listingId: { in: [...drops.keys()] } },
     select: { userId: true, listingId: true, createdAt: true },
@@ -216,12 +215,12 @@ async function notifyPriceDrops(now: Date): Promise<number> {
 const savedSearchOf = z.object({ savedSearchId: z.string() }).catch({ savedSearchId: "" });
 
 /** Saved searches with new published listings since the last run, or since the user last opened them if that is later. */
-async function notifySearchMatches(now: Date): Promise<number> {
+async function notifySearchMatches(now: Date): Promise<string[]> {
   const client = db();
   const lookbackFrom = new Date(now.getTime() - LOOKBACK_MS);
   // ponytail: one count per saved search, one after another; batch them if the nightly job gets slow.
   const searches = await client.savedSearch.findMany({ where: { user: wants("SEARCH_MATCHES") }, select: { id: true, userId: true, query: true, seenAt: true } });
-  if (searches.length === 0) return 0;
+  if (searches.length === 0) return [];
   const told = await client.notification.findMany({
     where: { userId: { in: [...new Set(searches.map((search) => search.userId))] }, createdAt: { gte: lookbackFrom }, type: "SEARCH_MATCHES" },
     orderBy: { createdAt: "asc" },
@@ -245,7 +244,9 @@ async function notifySearchMatches(now: Date): Promise<number> {
 /** Nightly, after expiry: expiring listings, price drops and saved-search matches. Returns how many were created. Safe to run twice. */
 export async function runNightlyNotifications(): Promise<number> {
   const now = new Date();
-  const created = (await notifyExpiring(now)) + (await notifyPriceDrops(now)) + (await notifySearchMatches(now));
+  const created = [...(await notifyExpiring(now)), ...(await notifyPriceDrops(now)), ...(await notifySearchMatches(now))];
   await db().notification.deleteMany({ where: { readAt: { lt: new Date(now.getTime() - KEEP_READ_DAYS * DAY_MS) } } });
-  return created;
+  // Delivered last, so a slow push run never keeps the steps above from finishing.
+  await announce(created);
+  return created.length;
 }

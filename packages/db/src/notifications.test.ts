@@ -289,6 +289,8 @@ describe("announcing new notifications", () => {
     prisma.notification.findMany.mockResolvedValueOnce([]).mockResolvedValueOnce([expiring]);
     expect(await runNightlyNotifications()).toBe(1);
     expect(listener).toHaveBeenCalledWith([{ id: "new0", userId: "o1", type: "LISTING_EXPIRING", listingId: 7, listingTitle: "Flat", expiresAt: daysAhead(2).toISOString() }]);
+    // Once every step and the clean-up are done, so slow delivery cannot cut the run short.
+    expect(prisma.notification.deleteMany.mock.invocationCallOrder[0]).toBeLessThan(listener.mock.invocationCallOrder[0]);
 
     listener.mockClear();
     prisma.listing.findMany.mockResolvedValue([]);
