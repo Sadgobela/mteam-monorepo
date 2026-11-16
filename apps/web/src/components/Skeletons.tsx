@@ -1,3 +1,5 @@
+"use client";
+
 import { Skeleton } from "antd";
 import { Logo } from "./Logo";
 
