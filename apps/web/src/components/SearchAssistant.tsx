@@ -118,7 +118,8 @@ export function SearchAssistant({ locale, t, gelPerUsd, ai = false }: { locale: 
       )}
       {search && (
         <div className="assistant-actions">
-          <Link href={`/${locale}?${search}`} className="btn">
+          {/* Spins while the matches are counted; the link works all along. */}
+          <Link href={`/${locale}?${search}`} className="btn" aria-busy={count?.search !== search || undefined}>
             {count?.search === search ? t.assistant.show.replace("{count}", String(count.total)) : t.assistant.showResults}
           </Link>
           <button type="button" className="btn ghost" onClick={() => answer([])}>

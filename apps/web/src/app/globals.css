@@ -430,6 +430,11 @@ html:has(.viewer[open]) { overflow: hidden; }
   .tile:hover { transform: translateY(-2px); }
   .fav:hover { transform: scale(1.1); }
 }
+/* A press is felt: buttons give a little under the finger, on phones too. */
+.btn:not(:disabled):active, .ant-btn:not(:disabled):active, .fav:not(:disabled):active, .tile:active, .chips a:active, .assistant-choices button:active, .choice-pills button:active { transform: scale(0.98); }
+/* Each new page fades in. Opacity only, and not held after: a transform would break the fixed photo viewer inside. */
+@keyframes fade-in { from { opacity: 0; } }
+main { animation: fade-in 0.25s ease-out; }
 /* A thin bar at the top from a click until the next page has rendered. Still shown, without moving, under reduced motion. */
 .nav-progress { position: fixed; top: 0; left: 0; right: 0; z-index: 1100; height: 3px; background: var(--brand); transform-origin: left; transform: scaleX(0); opacity: 0; pointer-events: none; }
 .nav-progress[data-phase="loading"] { opacity: 1; transform: scaleX(0.85); animation: nav-progress 8s cubic-bezier(0.1, 0.6, 0.2, 1); }
