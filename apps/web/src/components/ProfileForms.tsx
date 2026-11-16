@@ -1,12 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState, useEffect, useId, useState, type ChangeEvent } from "react";
-import { useRouter } from "next/navigation";
+import { useActionState, useEffect, useId, useState, type ChangeEvent, type ReactNode } from "react";
+import { usePathname, useRouter } from "next/navigation";
 import type { Dict, Locale } from "@mteam/shared";
 import { z } from "zod";
 import { loginPath } from "@/lib/login-path";
-import { onboardingPath } from "@/lib/onboarding";
+import { onboardingPath, skipsOnboarding } from "@/lib/onboarding";
 import { shrinkPhoto } from "@/lib/shrink-photo";
 import { onboardAction, saveProfileAction } from "@/lib/profile-actions";
 import { Avatar } from "./Avatar";
@@ -149,12 +149,18 @@ export function AvatarUpload({ locale, t, name, url, joined }: { locale: Locale;
   );
 }
 
-/** Shown in the account area instead of the page until the first-visit questions are answered, coming back here after. */
-export function OnboardingRedirect({ locale, t }: { locale: Locale; t: Dict }) {
+/**
+ * The account area's page, or, until the first-visit questions are answered, a redirect to them that comes back here
+ * after. Sign-in and security stays open, since an email link or a password reset lands there.
+ */
+export function OnboardingGate({ locale, t, needed, children }: { locale: Locale; t: Dict; needed: boolean; children: ReactNode }) {
   const router = useRouter();
+  const path = usePathname();
+  const redirect = needed && !skipsOnboarding(path ?? "");
   useEffect(() => {
-    router.replace(onboardingPath(locale, location.pathname + location.search));
-  }, [router, locale]);
+    if (redirect) router.replace(onboardingPath(locale, location.pathname + location.search));
+  }, [redirect, router, locale]);
+  if (!redirect) return children;
   return (
     <main className="account-main">
       <Link className="btn" href={`/${locale}/onboarding`}>

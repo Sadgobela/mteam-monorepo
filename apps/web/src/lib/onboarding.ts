@@ -1,8 +1,14 @@
 import type { Locale } from "@mteam/shared";
 import { safeNext } from "./login-path";
 
-/** Pages a new account may open before onboarding: onboarding itself, and a broker invite (it has its own flow). */
-const UNGUARDED = /^\/[a-z]{2}\/(?:onboarding|invite)(?:[/?#]|$)/;
+/**
+ * Pages a new account may open before onboarding: onboarding itself, a broker invite (it has its own flow), the email
+ * links under /auth, and sign-in and security, where an email link or a password reset lands.
+ */
+const UNGUARDED = /^\/[a-z]{2}\/(?:onboarding|invite|auth|account\/security)(?:[/?#]|$)/;
+
+/** Whether a new account may open this page (path, optionally with its query) before answering the first-visit questions. */
+export const skipsOnboarding = (path: string) => UNGUARDED.test(path);
 
 /** The first-visit questions, continuing to `next` afterwards. */
 export const onboardingPath = (locale: Locale, next: string) => `/${locale}/onboarding?next=${encodeURIComponent(next)}`;
@@ -18,5 +24,5 @@ export function onboardingNext(value: unknown, locale: Locale): string {
  * sign-in path calls this with the user its new session belongs to.
  */
 export function pathAfterSignIn(user: { onboardedAt: Date | null } | null, next: string, locale: Locale): string {
-  return user && !user.onboardedAt && !UNGUARDED.test(next) ? onboardingPath(locale, next) : next;
+  return user && !user.onboardedAt && !skipsOnboarding(next) ? onboardingPath(locale, next) : next;
 }

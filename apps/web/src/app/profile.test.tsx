@@ -7,13 +7,14 @@ const db = vi.hoisted(() => ({ completeOnboarding: vi.fn(), updateProfile: vi.fn
 const session = vi.hoisted(() => ({ currentUser: vi.fn(), hasSession: vi.fn(), signInHere: vi.fn() }));
 const router = vi.hoisted(() => ({ replace: vi.fn(), refresh: vi.fn(), push: vi.fn() }));
 const cache = vi.hoisted(() => ({ revalidatePath: vi.fn() }));
+const nav = vi.hoisted(() => ({ path: "/en/saved" as string | null }));
 
 vi.mock("@mteam/db", () => db);
 vi.mock("@/lib/session", () => session);
 vi.mock("@/lib/auth-actions", () => ({ logoutAction: vi.fn() }));
 vi.mock("next/cache", () => cache);
 vi.mock("next/navigation", () => ({
-  usePathname: () => "/en/saved",
+  usePathname: () => nav.path,
   useSearchParams: () => null,
   useRouter: () => router,
   redirect: (url: string) => {
@@ -51,8 +52,11 @@ describe("where sign-in continues", () => {
     expect(pathAfterSignIn(null, "/en/saved", "en")).toBe("/en/saved");
   });
 
-  it("lets a broker invite and onboarding itself through", () => {
+  it("lets a broker invite, the email links, sign-in and security, and onboarding itself through", () => {
     expect(pathAfterSignIn({ onboardedAt: null }, "/ka/invite/abc", "ka")).toBe("/ka/invite/abc");
+    expect(pathAfterSignIn({ onboardedAt: null }, "/en/auth/verify?token=t", "en")).toBe("/en/auth/verify?token=t");
+    expect(pathAfterSignIn({ onboardedAt: null }, "/en/account/security", "en")).toBe("/en/account/security");
+    expect(pathAfterSignIn({ onboardedAt: null }, "/en/account/securityx", "en")).toBe("/en/onboarding?next=%2Fen%2Faccount%2Fsecurityx");
     expect(pathAfterSignIn({ onboardedAt: null }, "/en/onboarding?next=%2Fen", "en")).toBe("/en/onboarding?next=%2Fen");
   });
 
@@ -178,7 +182,10 @@ describe("OnboardingPage", () => {
 });
 
 describe("account guard", () => {
-  afterEach(() => window.history.replaceState(null, "", "/"));
+  afterEach(() => {
+    window.history.replaceState(null, "", "/");
+    nav.path = "/en/saved";
+  });
 
   it("sends a new account to onboarding from any account page, coming back to it", async () => {
     window.history.replaceState(null, "", "/en/messages?x=1");
@@ -187,6 +194,21 @@ describe("account guard", () => {
     expect(screen.queryByText("inside")).toBeNull();
     expect(screen.getByRole("link", { name: t.profile.finish })).toHaveAttribute("href", "/en/onboarding");
     expect(router.replace).toHaveBeenCalledWith("/en/onboarding?next=%2Fen%2Fmessages%3Fx%3D1");
+  });
+
+  it("keeps sign-in and security open to a new account, where email links and resets land", async () => {
+    nav.path = "/en/account/security";
+    session.currentUser.mockResolvedValue(newUser);
+    render(await AccountLayout({ children: <main>security</main>, params }));
+    expect(screen.getByText("security")).toBeInTheDocument();
+    expect(router.replace).not.toHaveBeenCalled();
+  });
+
+  it("guards a page whose path is not known yet", async () => {
+    nav.path = null;
+    session.currentUser.mockResolvedValue(newUser);
+    render(await AccountLayout({ children: <main>inside</main>, params }));
+    expect(screen.queryByText("inside")).toBeNull();
   });
 
   it("shows the page to an answered account and to visitors, whom the page sends to sign in", async () => {

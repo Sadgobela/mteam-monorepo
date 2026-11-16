@@ -2,7 +2,7 @@ import type { ReactNode } from "react";
 import { getDictionary } from "@mteam/shared";
 import { AccountNav } from "@/components/AccountNav";
 import { Header } from "@/components/Header";
-import { OnboardingRedirect } from "@/components/ProfileForms";
+import { OnboardingGate } from "@/components/ProfileForms";
 import { resolveLocale } from "@/lib/locale";
 import { currentUser } from "@/lib/session";
 
@@ -19,14 +19,10 @@ export default async function AccountLayout({ children, params }: { children: Re
     <>
       <Header locale={locale} t={t} signedIn={user !== null} />
       <div className="page account-layout">
-        {user && !user.onboardedAt ? (
-          <OnboardingRedirect locale={locale} t={t} />
-        ) : (
-          <>
-            <AccountNav locale={locale} t={t} role={user?.role} />
-            {children}
-          </>
-        )}
+        <OnboardingGate locale={locale} t={t} needed={Boolean(user && !user.onboardedAt)}>
+          <AccountNav locale={locale} t={t} role={user?.role} />
+          {children}
+        </OnboardingGate>
       </div>
     </>
   );

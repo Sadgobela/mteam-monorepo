@@ -13,6 +13,7 @@ const db = vi.hoisted(() => ({
   verifyEmail: vi.fn(),
   isResetTokenOpen: vi.fn(),
   getAccountSecurity: vi.fn(),
+  getSessionUser: vi.fn(async () => ({ onboardedAt: new Date() })),
 }));
 const session = vi.hoisted(() => ({ startSession: vi.fn(), currentUser: vi.fn(), hasSession: vi.fn(), clientIp: vi.fn(), userAgent: vi.fn() }));
 
