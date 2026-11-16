@@ -9,6 +9,7 @@ const db = vi.hoisted(() => ({
   resetPassword: vi.fn(),
   requestEmailChange: vi.fn(),
   changePassword: vi.fn(),
+  verifyEmail: vi.fn(),
 }));
 const session = vi.hoisted(() => ({ startSession: vi.fn(), currentUser: vi.fn(), clientIp: vi.fn(), signInHere: vi.fn(), userAgent: vi.fn() }));
 
@@ -24,7 +25,7 @@ vi.mock("next/navigation", () => ({
 }));
 
 import { sendEmail } from "./email";
-import { changeEmailAction, changePasswordAction, emailSignInAction, forgotPasswordAction, registerAction, resetPasswordAction } from "./password-actions";
+import { changeEmailAction, changePasswordAction, confirmEmailAction, emailSignInAction, forgotPasswordAction, registerAction, resetPasswordAction } from "./password-actions";
 
 const t = getDictionary("en");
 const email = "ana@example.com";
@@ -152,6 +153,26 @@ describe("resetPasswordAction", () => {
     db.resetPassword.mockResolvedValue(null);
     expect(await resetPasswordAction({}, form({ locale: "en", token: "rt", password: strong }))).toEqual({ error: "badLink" });
     expect(session.startSession).not.toHaveBeenCalled();
+  });
+});
+
+describe("confirmEmailAction", () => {
+  it("sends someone signed out to sign in, leaving the link unused", async () => {
+    session.currentUser.mockResolvedValue(null);
+    session.signInHere.mockResolvedValue("/en/login");
+    await expect(confirmEmailAction({}, form({ locale: "en", token: "vt" }))).rejects.toThrow("REDIRECT /en/login");
+    expect(db.verifyEmail).not.toHaveBeenCalled();
+  });
+
+  it("confirms for the signed-in account and says what went wrong otherwise", async () => {
+    db.verifyEmail.mockResolvedValueOnce("verified").mockResolvedValueOnce("otherUser").mockResolvedValueOnce("taken").mockResolvedValueOnce("invalid");
+    expect(await confirmEmailAction({}, form({ locale: "en", token: "vt" }))).toEqual({ notice: "emailConfirmed" });
+    expect(db.verifyEmail).toHaveBeenCalledWith("vt", "u1");
+    expect(await confirmEmailAction({}, form({ locale: "en", token: "vt" }))).toEqual({ error: "otherAccount" });
+    expect(await confirmEmailAction({}, form({ locale: "en", token: "vt" }))).toEqual({ error: "taken" });
+    expect(await confirmEmailAction({}, form({ locale: "en", token: "vt" }))).toEqual({ error: "badLink" });
+    expect(await confirmEmailAction({}, form({ locale: "en" }))).toEqual({ error: "badLink" });
+    expect(db.verifyEmail).toHaveBeenCalledTimes(4);
   });
 });
 

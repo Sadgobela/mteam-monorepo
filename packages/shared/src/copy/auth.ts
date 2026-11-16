@@ -17,7 +17,9 @@ const ka = {
   resetHeading: "ახალი პაროლი",
   savePassword: "პაროლის შენახვა",
   verifyHeading: "ელფოსტის დადასტურება",
-  verified: "ელფოსტა დადასტურდა.",
+  confirmLead: "დაადასტურე, რომ ეს ელფოსტა შენი ანგარიშისაა.",
+  confirmEmail: "ელფოსტის დადასტურება",
+  signInToConfirm: "დასადასტურებლად შედი იმ ანგარიშით, რომელსაც ეს ელფოსტა ეკუთვნის.",
   toSecurity: "უსაფრთხოების გვერდზე",
   home: "მთავარზე",
   errors: {
@@ -28,11 +30,13 @@ const ka = {
     limited: "ძალიან ბევრი მცდელობაა. სცადე ერთ საათში.",
     taken: "ამ ელფოსტას უკვე აქვს ანგარიში. შედი ან აღადგინე პაროლი.",
     badLink: "ბმული არასწორია ან ვადა გაუვიდა. მოითხოვე ახალი.",
+    otherAccount: "ეს ბმული სხვა ანგარიშისაა. დასადასტურებლად შედი იმ ანგარიშით.",
   },
   notices: {
     linkSent: "თუ ამ ელფოსტით ანგარიში არსებობს, ბმული გამოგზავნილია. შეამოწმე ფოსტა.",
     verifySent: "დადასტურების ბმული გამოგზავნილია. ელფოსტა შეიცვლება, როცა ბმულს გახსნი.",
     passwordSaved: "პაროლი შენახულია. სხვა მოწყობილობებზე ანგარიშიდან გამოხვედი.",
+    emailConfirmed: "ელფოსტა დადასტურდა.",
   },
   mail: { verifySubject: "დაადასტურე ელფოსტა MTeam-ზე", resetSubject: "ახალი პაროლი MTeam-ზე" },
   security: {
@@ -74,7 +78,9 @@ const en: typeof ka = {
   resetHeading: "New password",
   savePassword: "Save password",
   verifyHeading: "Confirm your email",
-  verified: "Your email is confirmed.",
+  confirmLead: "Confirm that this email belongs to your account.",
+  confirmEmail: "Confirm email",
+  signInToConfirm: "To confirm, sign in to the account this email belongs to.",
   toSecurity: "Go to security",
   home: "Go home",
   errors: {
@@ -85,11 +91,13 @@ const en: typeof ka = {
     limited: "Too many tries. Try again in an hour.",
     taken: "This email already has an account. Sign in or reset the password.",
     badLink: "This link is wrong or has expired. Ask for a new one.",
+    otherAccount: "This link belongs to another account. Sign in to that account to confirm.",
   },
   notices: {
     linkSent: "If an account has this email, a link is on its way. Check your inbox.",
     verifySent: "We sent a confirmation link. Your email changes once you open it.",
     passwordSaved: "Password saved. You are signed out on your other devices.",
+    emailConfirmed: "Your email is confirmed.",
   },
   mail: { verifySubject: "Confirm your email at MTeam", resetSubject: "Your new MTeam password" },
   security: {
@@ -131,7 +139,9 @@ const ru: typeof ka = {
   resetHeading: "Новый пароль",
   savePassword: "Сохранить пароль",
   verifyHeading: "Подтверждение почты",
-  verified: "Почта подтверждена.",
+  confirmLead: "Подтвердите, что эта почта принадлежит вашему аккаунту.",
+  confirmEmail: "Подтвердить почту",
+  signInToConfirm: "Чтобы подтвердить, войдите в аккаунт, которому принадлежит эта почта.",
   toSecurity: "К безопасности",
   home: "На главную",
   errors: {
@@ -142,11 +152,13 @@ const ru: typeof ka = {
     limited: "Слишком много попыток. Попробуйте через час.",
     taken: "У этой почты уже есть аккаунт. Войдите или восстановите пароль.",
     badLink: "Ссылка неверная или устарела. Запросите новую.",
+    otherAccount: "Эта ссылка от другого аккаунта. Войдите в него, чтобы подтвердить.",
   },
   notices: {
     linkSent: "Если аккаунт с этой почтой есть, ссылка уже отправлена. Проверьте почту.",
     verifySent: "Мы отправили ссылку для подтверждения. Почта сменится, когда вы её откроете.",
     passwordSaved: "Пароль сохранён. На других устройствах вы вышли из аккаунта.",
+    emailConfirmed: "Почта подтверждена.",
   },
   mail: { verifySubject: "Подтвердите почту на MTeam", resetSubject: "Новый пароль на MTeam" },
   security: {

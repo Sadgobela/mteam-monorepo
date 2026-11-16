@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { render, screen, waitFor } from "@testing-library/react";
+import { cleanup, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { getDictionary } from "@mteam/shared";
 
@@ -104,28 +104,42 @@ describe("email sign-in form", () => {
 describe("VerifyEmailPage", () => {
   const page = async (token?: string | string[]) => render(await VerifyEmailPage({ params, searchParams: Promise.resolve({ token }) }));
 
-  it("confirms the email from the link", async () => {
+  it("confirms nothing on opening; the signed-in owner confirms with the button", async () => {
+    const user = userEvent.setup();
     db.verifyEmail.mockResolvedValue("verified");
     await page("vt");
-    expect(db.verifyEmail).toHaveBeenCalledWith("vt");
-    expect(screen.getByRole("status")).toHaveTextContent(t.auth.verified);
+    expect(db.verifyEmail).not.toHaveBeenCalled();
+    expect(screen.getByText(t.auth.confirmLead)).toBeInTheDocument();
     expect(screen.getByRole("link", { name: t.auth.toSecurity })).toHaveAttribute("href", "/en/account/security");
+    await user.click(screen.getByRole("button", { name: t.auth.confirmEmail }));
+    expect(await screen.findByRole("status")).toHaveTextContent(t.auth.notices.emailConfirmed);
+    expect(db.verifyEmail).toHaveBeenCalledWith("vt", "u1");
   });
 
-  it("says when the address was taken meanwhile", async () => {
-    db.verifyEmail.mockResolvedValue("taken");
+  it("says when the link belongs to another account", async () => {
+    const user = userEvent.setup();
+    db.verifyEmail.mockResolvedValue("otherUser");
     await page("vt");
-    expect(screen.getByRole("alert")).toHaveTextContent(t.auth.errors.taken);
+    await user.click(screen.getByRole("button", { name: t.auth.confirmEmail }));
+    expect(await screen.findByRole("alert")).toHaveTextContent(t.auth.errors.otherAccount);
   });
 
-  it("refuses a bad, missing or doubled token", async () => {
-    db.verifyEmail.mockResolvedValue("invalid");
+  it("asks a visitor to sign in first, coming back to the link", async () => {
+    session.currentUser.mockResolvedValue(null);
     await page("vt");
-    expect(screen.getByRole("alert")).toHaveTextContent(t.auth.errors.badLink);
+    expect(screen.getByText(t.auth.signInToConfirm)).toBeInTheDocument();
+    expect(within(screen.getByRole("main")).getByRole("link", { name: t.auth.signIn })).toHaveAttribute("href", "/en/login?next=%2Fen%2Fauth%2Fverify%3Ftoken%3Dvt");
+    expect(screen.queryByRole("button", { name: t.auth.confirmEmail })).toBeNull();
+    expect(db.verifyEmail).not.toHaveBeenCalled();
+  });
+
+  it("refuses a missing or doubled token", async () => {
     for (const token of [undefined, ["a", "b"]]) {
       await page(token);
+      expect(screen.getByRole("alert")).toHaveTextContent(t.auth.errors.badLink);
+      expect(screen.queryByRole("button", { name: t.auth.confirmEmail })).toBeNull();
+      cleanup();
     }
-    expect(db.verifyEmail).toHaveBeenCalledOnce();
   });
 });
 

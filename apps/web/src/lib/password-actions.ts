@@ -2,7 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { z } from "zod";
-import { changePassword, claimEmailSend, createResetToken, registerWithPassword, requestEmailChange, resetPassword, signInWithPassword } from "@mteam/db";
+import { changePassword, claimEmailSend, createResetToken, registerWithPassword, requestEmailChange, resetPassword, signInWithPassword, verifyEmail } from "@mteam/db";
 import { getDictionary, type Locale } from "@mteam/shared";
 import { sendEmail } from "./email";
 import { resolveLocale } from "./locale";
@@ -10,8 +10,8 @@ import { safeNext } from "./login-path";
 import { clientIp, currentUser, signInHere, startSession, userAgent } from "./session";
 import { siteUrl } from "./site-url";
 
-export type AuthError = "invalidEmail" | "weakPassword" | "wrong" | "wrongCurrent" | "limited" | "taken" | "badLink";
-export type AuthNotice = "linkSent" | "verifySent" | "passwordSaved";
+export type AuthError = "invalidEmail" | "weakPassword" | "wrong" | "wrongCurrent" | "limited" | "taken" | "badLink" | "otherAccount";
+export type AuthNotice = "linkSent" | "verifySent" | "passwordSaved" | "emailConfirmed";
 
 export interface AuthState {
   error?: AuthError;
@@ -91,6 +91,15 @@ export async function resetPasswordAction(_previous: AuthState, form: FormData):
 }
 
 /** Sends a confirmation link to a new address (the password is needed when there is one), or again to the current one. The account's email changes when it is opened. */
+/** Confirms an email from its link, only for the signed-in account the link belongs to. Anyone else leaves the link unused. */
+export async function confirmEmailAction(_previous: AuthState, form: FormData): Promise<AuthState> {
+  const user = await signedInUser(localeOf(form));
+  const token = tokenSchema.safeParse(form.get("token"));
+  const result = token.success ? await verifyEmail(token.data, user.id) : "invalid";
+  if (result === "verified") return { notice: "emailConfirmed" };
+  return { error: result === "otherUser" ? "otherAccount" : result === "taken" ? "taken" : "badLink" };
+}
+
 export async function changeEmailAction(_previous: AuthState, form: FormData): Promise<AuthState> {
   const locale = localeOf(form);
   const user = await signedInUser(locale);

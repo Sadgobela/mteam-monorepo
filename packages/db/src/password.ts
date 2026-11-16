@@ -128,15 +128,30 @@ export async function isResetTokenOpen(token: string): Promise<boolean> {
   return (await db().emailToken.count({ where: openToken(token, "RESET") })) > 0;
 }
 
-export type EmailVerification = "verified" | "invalid" | "taken";
+export type EmailVerification = "verified" | "invalid" | "taken" | "otherUser";
 
-/** Confirms the address a VERIFY link was sent to, making it the account's email: a changed address only takes over once confirmed. */
-export async function verifyEmail(token: string): Promise<EmailVerification> {
-  const row = await useToken(token, "VERIFY");
+/**
+ * Confirms the address a VERIFY link was sent to, making it the account's email: a changed address only takes over once
+ * confirmed. Only the account the link belongs to may confirm, signed in: a mail scanner, or the inbox owner while someone
+ * else holds the account, must not confirm it, or a later reset would no longer hand the account to the inbox owner.
+ * Another user's attempt leaves the link unused. Confirming ends the account's other open links, so an older one cannot
+ * move the email back.
+ */
+export async function verifyEmail(token: string, userId: string): Promise<EmailVerification> {
+  const where = openToken(token, "VERIFY");
+  const row = await db().emailToken.findFirst({ where, select: { userId: true, email: true } });
   if (!row) return "invalid";
+  if (row.userId !== userId) return "otherUser";
   try {
-    await db().user.update({ where: { id: row.userId }, data: { email: row.email, emailVerifiedAt: new Date() } });
-    return "verified";
+    return await db().$transaction(async (tx) => {
+      const now = new Date();
+      const { count: used } = await tx.emailToken.updateMany({ where, data: { usedAt: now } });
+      if (used === 0) return "invalid";
+      const { count: updated } = await tx.user.updateMany({ where: { id: userId, deletedAt: null }, data: { email: row.email, emailVerifiedAt: now } });
+      if (updated === 0) return "invalid";
+      await tx.emailToken.updateMany({ where: { userId, usedAt: null }, data: { usedAt: now } });
+      return "verified";
+    });
   } catch (error) {
     // Someone else confirmed or registered this address in the meantime.
     if (isTaken(error)) return "taken";
@@ -179,6 +194,8 @@ export async function requestEmailChange(userId: string, email: string, current:
   if (owner && owner.id !== userId) return { error: "taken" };
   const user = await db().user.findUniqueOrThrow({ where: { id: userId }, select: { email: true, passwordHash: true } });
   if (user.email !== email && user.passwordHash && !(await checkPassword(current, user.passwordHash))) return { error: "wrong" };
+  // Only the newest confirmation link works, so an older one cannot move the email back to a former address.
+  await db().emailToken.updateMany({ where: { userId, purpose: "VERIFY", usedAt: null }, data: { usedAt: new Date() } });
   return { token: await createEmailToken(userId, "VERIFY", email) };
 }
 

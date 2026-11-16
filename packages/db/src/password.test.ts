@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const prisma = vi.hoisted(() => ({
   codeRequestLimit: { createMany: vi.fn(), updateMany: vi.fn() },
-  user: { findUnique: vi.fn(), findUniqueOrThrow: vi.fn(), findFirst: vi.fn(), create: vi.fn(), update: vi.fn() },
+  user: { findUnique: vi.fn(), findUniqueOrThrow: vi.fn(), findFirst: vi.fn(), create: vi.fn(), update: vi.fn(), updateMany: vi.fn() },
   identity: { deleteMany: vi.fn() },
   session: { create: vi.fn(), deleteMany: vi.fn() },
   emailToken: { create: vi.fn(), findFirst: vi.fn(), updateMany: vi.fn(), count: vi.fn() },
@@ -176,29 +176,48 @@ describe("email links", () => {
     expect(prisma.emailToken.count).toHaveBeenCalledWith({ where: where("RESET") });
   });
 
-  it("confirms the address the link went to, once", async () => {
+  it("confirms the address the link went to, once, for its own account, and ends the account's other links", async () => {
     open();
-    expect(await verifyEmail("tok")).toBe("verified");
+    prisma.user.updateMany.mockResolvedValue({ count: 1 });
+    expect(await verifyEmail("tok", "u1")).toBe("verified");
     expect(prisma.emailToken.findFirst).toHaveBeenCalledWith({ where: where("VERIFY"), select: { userId: true, email: true } });
-    expect(prisma.emailToken.updateMany).toHaveBeenCalledWith({ where: where("VERIFY"), data: { usedAt: now } });
-    expect(prisma.user.update).toHaveBeenCalledWith({ where: { id: "u1" }, data: { email, emailVerifiedAt: now } });
+    expect(prisma.emailToken.updateMany).toHaveBeenNthCalledWith(1, { where: where("VERIFY"), data: { usedAt: now } });
+    expect(prisma.user.updateMany).toHaveBeenCalledWith({ where: { id: "u1", deletedAt: null }, data: { email, emailVerifiedAt: now } });
+    expect(prisma.emailToken.updateMany).toHaveBeenNthCalledWith(2, { where: { userId: "u1", usedAt: null }, data: { usedAt: now } });
+    expect(prisma.$transaction).toHaveBeenCalledOnce();
   });
 
-  it("refuses an unknown or old link, and one used by a request racing this one", async () => {
+  it("leaves the link unused and the email unconfirmed when another account tries it, so a reset still hands the account over", async () => {
+    open();
+    expect(await verifyEmail("tok", "u2")).toBe("otherUser");
+    expect(prisma.emailToken.updateMany).not.toHaveBeenCalled();
+    expect(prisma.user.updateMany).not.toHaveBeenCalled();
+
+    prisma.user.findFirst.mockResolvedValue({ emailVerifiedAt: null });
+    expect(await resetPassword("tok", "a new password")).toEqual(expect.any(String));
+    expect(prisma.user.update.mock.calls[0][0].data).toMatchObject({ phone: null });
+    expect(prisma.identity.deleteMany).toHaveBeenCalledWith({ where: { userId: "u1" } });
+  });
+
+  it("refuses an unknown or old link, one used by a racing request, and a deleted account", async () => {
     prisma.emailToken.findFirst.mockResolvedValueOnce(null);
-    expect(await verifyEmail("tok")).toBe("invalid");
-    prisma.emailToken.findFirst.mockResolvedValueOnce({ userId: "u1", email });
+    expect(await verifyEmail("tok", "u1")).toBe("invalid");
+    open();
     prisma.emailToken.updateMany.mockResolvedValueOnce({ count: 0 });
-    expect(await verifyEmail("tok")).toBe("invalid");
-    expect(prisma.user.update).not.toHaveBeenCalled();
+    expect(await verifyEmail("tok", "u1")).toBe("invalid");
+    expect(prisma.user.updateMany).not.toHaveBeenCalled();
+    prisma.user.updateMany.mockResolvedValueOnce({ count: 0 });
+    expect(await verifyEmail("tok", "u1")).toBe("invalid");
+    // The account's other links stay as they were.
+    expect(prisma.emailToken.updateMany).toHaveBeenCalledTimes(2);
   });
 
   it("says when another account has taken the address meanwhile, and passes other failures on", async () => {
     open();
-    prisma.user.update.mockRejectedValueOnce(taken);
-    expect(await verifyEmail("tok")).toBe("taken");
-    prisma.user.update.mockRejectedValueOnce(new Error("down"));
-    await expect(verifyEmail("tok")).rejects.toThrow("down");
+    prisma.user.updateMany.mockRejectedValueOnce(taken);
+    expect(await verifyEmail("tok", "u1")).toBe("taken");
+    prisma.user.updateMany.mockRejectedValueOnce(new Error("down"));
+    await expect(verifyEmail("tok", "u1")).rejects.toThrow("down");
   });
 
   const reset = (emailVerifiedAt: Date | null) => {
@@ -234,6 +253,9 @@ describe("email links", () => {
     prisma.emailToken.findFirst.mockResolvedValueOnce(null);
     expect(await resetPassword("tok", "a new password")).toBeNull();
     open();
+    // Used by a request racing this one.
+    prisma.emailToken.updateMany.mockResolvedValueOnce({ count: 0 });
+    expect(await resetPassword("tok", "a new password")).toBeNull();
     prisma.user.findFirst.mockResolvedValue(null);
     expect(await resetPassword("tok", "a new password")).toBeNull();
     expect(prisma.user.update).not.toHaveBeenCalled();
@@ -249,6 +271,9 @@ describe("requestEmailChange", () => {
     expect(await requestEmailChange("u1", email, "")).toEqual({ token: expect.any(String) });
     expect(await requestEmailChange("u1", email, "")).toEqual({ token: expect.any(String) });
     expect(prisma.emailToken.create.mock.calls[0][0].data).toMatchObject({ userId: "u1", purpose: "VERIFY", email });
+    // Each new link ends the user's older confirmation links.
+    expect(prisma.emailToken.updateMany).toHaveBeenCalledWith({ where: { userId: "u1", purpose: "VERIFY", usedAt: null }, data: { usedAt: now } });
+    expect(prisma.emailToken.updateMany.mock.invocationCallOrder[0]).toBeLessThan(prisma.emailToken.create.mock.invocationCallOrder[0]);
   });
 
   it("needs the password to move the email of an account that has one", async () => {
