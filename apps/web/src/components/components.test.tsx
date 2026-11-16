@@ -71,23 +71,13 @@ describe("Header", () => {
       expect(menu()).toHaveAttribute("aria-expanded", "true");
     });
 
-    it("closes on submit rather than on the click, so sign out still reaches the server", () => {
+    it("closes with its own close button and keeps account pages and sign-out out of it", () => {
       render(<Header locale="en" t={t} signedIn />);
       fireEvent.click(menu());
-      const signOut = within(panel()).getByRole("button", { name: "Sign out" });
-      // Cancelled so only the click is seen here; removing the form on the click is what used to lose the submit.
-      panel().addEventListener("click", (event) => event.preventDefault());
-      fireEvent.click(signOut);
-      expect(menu()).toHaveAttribute("aria-expanded", "true");
-      fireEvent.submit(signOut.closest("form") as HTMLFormElement);
-      expectClosed();
-    });
-
-    it("closes with its own close button and offers the signed-in links", () => {
-      render(<Header locale="en" t={t} signedIn />);
-      fireEvent.click(menu());
-      expect(within(panel()).getByRole("link", { name: "My listings" })).toBeInTheDocument();
-      expect(within(panel()).getByRole("button", { name: "Sign out" })).toBeInTheDocument();
+      expect(within(panel()).getByRole("link", { name: "For rent" })).toBeInTheDocument();
+      expect(within(panel()).queryByRole("link", { name: "My listings" })).toBeNull();
+      expect(within(panel()).queryByRole("button", { name: "Sign out" })).toBeNull();
+      expect(within(panel()).queryByRole("link", { name: "Sign in" })).toBeNull();
       fireEvent.click(document.querySelector(".ant-drawer-close") as HTMLElement);
       expectClosed();
     });

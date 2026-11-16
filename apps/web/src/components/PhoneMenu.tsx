@@ -17,7 +17,7 @@ export function PhoneMenu({ label, children }: { label: string; children: ReactN
     <div className="phone-menu">
       <Button aria-label={label} aria-expanded={open} icon={<MenuOutlined />} onClick={() => setOpen(!open)} />
       <Drawer open={open} onClose={() => setOpen(false)} title={label} size={320}>
-        <div className="menu-panel" onClick={closeAfterLeaving} onSubmit={() => setOpen(false)}>
+        <div className="menu-panel" onClick={closeAfterLeaving}>
           {children}
         </div>
       </Drawer>
