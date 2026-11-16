@@ -11,6 +11,7 @@ const prisma = vi.hoisted(() => {
     hiddenListing: { deleteMany: vi.fn() },
     emailToken: { deleteMany: vi.fn() },
     notification: { deleteMany: vi.fn() },
+    pushSubscription: { deleteMany: vi.fn() },
     agent: { updateMany: vi.fn() },
     listing: { updateMany: vi.fn() },
     $transaction: vi.fn(),
@@ -33,13 +34,13 @@ beforeEach(() => {
 afterEach(() => vi.useRealTimers());
 
 describe("preferences", () => {
-  it("reads all five switches of the user", async () => {
-    const stored = { notifyMessages: true, notifySavedSearches: false, notifyPriceDrops: true, notifyListingUpdates: true, hidePhoneDefault: false };
+  it("reads all six switches of the user", async () => {
+    const stored = { notifyMessages: true, notifySavedSearches: false, notifyPriceDrops: true, notifyListingUpdates: true, notifyPush: true, hidePhoneDefault: false };
     prisma.user.findUniqueOrThrow.mockResolvedValue(stored);
     expect(await getPreferences("u1")).toEqual(stored);
     expect(prisma.user.findUniqueOrThrow).toHaveBeenCalledWith({
       where: { id: "u1" },
-      select: { notifyMessages: true, notifySavedSearches: true, notifyPriceDrops: true, notifyListingUpdates: true, hidePhoneDefault: true },
+      select: { notifyMessages: true, notifySavedSearches: true, notifyPriceDrops: true, notifyListingUpdates: true, notifyPush: true, hidePhoneDefault: true },
     });
   });
 
@@ -78,7 +79,7 @@ describe("devices", () => {
 });
 
 describe("deleteAccount", () => {
-  it("clears personal details, removes sign-ins and saved things, and archives listings, in one transaction", async () => {
+  it("clears personal details, removes sign-ins, saved things and push subscriptions, and archives listings, in one transaction", async () => {
     prisma.user.updateMany.mockResolvedValue({ count: 1 });
     expect(await deleteAccount("u1")).toBe(true);
 
@@ -87,7 +88,7 @@ describe("deleteAccount", () => {
       where: { id: "u1", role: "USER" },
       data: { name: null, phone: null, email: null, emailVerifiedAt: null, passwordHash: null, avatarUrl: null, deletedAt: expect.any(Date) },
     });
-    for (const table of [prisma.identity, prisma.session, prisma.savedSearch, prisma.favorite, prisma.hiddenListing, prisma.emailToken, prisma.notification]) {
+    for (const table of [prisma.identity, prisma.session, prisma.savedSearch, prisma.favorite, prisma.hiddenListing, prisma.emailToken, prisma.notification, prisma.pushSubscription]) {
       expect(table.deleteMany).toHaveBeenCalledWith({ where: { userId: "u1" } });
     }
     expect(prisma.listing.updateMany).toHaveBeenCalledWith({ where: { ownerId: "u1", status: { not: "ARCHIVED" } }, data: { status: "ARCHIVED" } });
