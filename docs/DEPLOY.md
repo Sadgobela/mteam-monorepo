@@ -25,6 +25,7 @@ Only members of the fixitge team can open the site, through Vercel Authenticatio
 | `STORAGE_ACCESS_KEY_ID`, `STORAGE_SECRET_ACCESS_KEY` | An R2 API token with Object Read & Write on that bucket. |
 | `STORAGE_PUBLIC_URL` | The bucket's public address: its `r2.dev` URL, or a custom domain later. |
 | `GOOGLE_*`, `FACEBOOK_*`, `APPLE_*` | Optional; see `SOCIAL_LOGIN.md`. Add the live return address at each provider. |
+| `ANTHROPIC_API_KEY` | Optional; console.anthropic.com → API Keys. Without it the search assistant offers buttons only. Set a monthly spend limit in the Console; each address may send 30 typed questions an hour. |
 
 The secrets go only into Vercel, never into the code or chat.
 

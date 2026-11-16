@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { isFeature, specKeys, type SpecName } from "./details";
 import { cityDistricts, isCity, isMetro, METRO_CITY } from "./places";
-import { buildingStatuses, currencies, dealTypes, MAX_PRICE, priceInUsd, propertyTypes } from "./search";
+import { buildingStatuses, canonicalSearch, currencies, dealTypes, MAX_PRICE, priceInUsd, propertyTypes } from "./search";
 
 /** Georgian mobile numbers only, in any common spelling. Returns +9955XXXXXXXX, or null. */
 export function parsePhone(input: string): string | null {
@@ -163,12 +163,20 @@ const leadSchema = z.object({
     if (!phone) context.addIssue({ code: "custom", message: "invalid phone" });
     return phone ?? "";
   }),
-  deal: z.enum(["sale", "rent"]),
-});
+  deal: z.enum(["sale", "rent", "daily"]),
+  /** Set when someone looking for a property asks a broker to find it: the search they made. */
+  search: z
+    .string()
+    .max(2000)
+    .optional()
+    .transform((value) => (value && canonicalSearch(Object.fromEntries(new URLSearchParams(value)))) || undefined),
+})
+  // Owners hand over a sale or a rental; daily stays only come from a search.
+  .refine((lead) => lead.search !== undefined || lead.deal !== "daily");
 
 export type LeadDraft = z.infer<typeof leadSchema>;
 
-/** Validates a "Give it to MTeam" request. */
+/** Validates a "Give it to MTeam" request, or a request for a broker to find a property. */
 export function parseLead(fields: Record<string, unknown>): LeadDraft | null {
   const result = leadSchema.safeParse(fields);
   return result.success ? result.data : null;

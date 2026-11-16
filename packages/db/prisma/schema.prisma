@@ -294,6 +294,8 @@ model Lead {
   deal      DealType
   city      String?
   note      String?
+  /// Set when someone looking for a property asked a broker to find it: their search's URL parameters.
+  search    String?
   status    LeadStatus @default(NEW)
   agent     Agent?     @relation(fields: [agentId], references: [id])
   agentId   String?

@@ -2,18 +2,8 @@ import Link from "next/link";
 import { priceInLari, featureLabel, placeLabel, specLabel, specNames, specTitles, type Dict, type ListingFilters, type Locale, type SpecName } from "@mteam/shared";
 import { resultsHref, type Query } from "@/lib/url";
 
-/** The active filters as links that remove themselves, so a search can be widened one step at a time. */
-export function FilterChips({
-  locale,
-  t,
-  query,
-  filters,
-}: {
-  locale: Locale;
-  t: Dict;
-  query: Query;
-  filters: ListingFilters;
-}) {
+/** The active filters as [parameter, label] pairs, in the page language. */
+export function filterLabels(locale: Locale, t: Dict, query: Query, filters: ListingFilters): [string, string][] {
   const number = (value: number | undefined, label: string) => (value === undefined ? undefined : `${label} ${value}`);
   const list = (names: string[] | undefined) => names && placeLabel(names[0], locale) + (names.length > 1 ? ` +${names.length - 1}` : "");
   // Prices are stored in dollars; shown in the currency the visitor chose.
@@ -48,7 +38,22 @@ export function FilterChips({
     ["floorMin", number(filters.floorMin, t.search.floorMin)],
     ["floorMax", number(filters.floorMax, t.search.floorMax)],
   ];
-  const active = chips.filter((chip): chip is [string, string] => chip[1] !== undefined);
+  return chips.filter((chip): chip is [string, string] => chip[1] !== undefined);
+}
+
+/** The active filters as links that remove themselves, so a search can be widened one step at a time. */
+export function FilterChips({
+  locale,
+  t,
+  query,
+  filters,
+}: {
+  locale: Locale;
+  t: Dict;
+  query: Query;
+  filters: ListingFilters;
+}) {
+  const active = filterLabels(locale, t, query, filters);
   if (active.length === 0) return null;
   return (
     <div className="chips">
