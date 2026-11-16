@@ -175,12 +175,13 @@ describe("SecurityPage", () => {
   it("shows the email, a resend link, the password change and the ways to sign in", async () => {
     const user = userEvent.setup();
     db.getAccountSecurity.mockResolvedValue(security);
-    db.requestEmailChange.mockResolvedValue("vt");
+    db.requestEmailChange.mockResolvedValue({ token: "vt" });
     render(await SecurityPage({ params }));
     expect(db.getAccountSecurity).toHaveBeenCalledWith("u1");
     expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent(t.auth.security.heading);
     expect(screen.getByText(t.auth.security.unverifiedTag)).toBeInTheDocument();
-    expect(screen.getByLabelText(t.auth.currentPassword)).toBeInTheDocument();
+    // Both the email change and the password change ask for the current password.
+    expect(screen.getAllByLabelText(t.auth.currentPassword)).toHaveLength(2);
     expect(screen.getByRole("button", { name: t.auth.security.changePassword })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: t.auth.security.changeEmail })).toBeInTheDocument();
 
@@ -195,7 +196,7 @@ describe("SecurityPage", () => {
 
     await user.click(screen.getByRole("button", { name: t.auth.security.resend }));
     expect(await screen.findByRole("status")).toHaveTextContent(t.auth.notices.verifySent);
-    expect(db.requestEmailChange).toHaveBeenCalledWith("u1", email);
+    expect(db.requestEmailChange).toHaveBeenCalledWith("u1", email, "");
   });
 
   it("marks a confirmed email and offers no resend", async () => {

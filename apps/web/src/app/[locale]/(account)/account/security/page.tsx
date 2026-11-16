@@ -49,6 +49,7 @@ export default async function SecurityPage({ params }: { params: Promise<{ local
         <AuthForm action={changeEmailAction} t={t} submit={security.email ? copy.changeEmail : copy.addEmail}>
           {hidden}
           <EmailField id="security-new-email" label={copy.newEmail} />
+          {security.hasPassword && <PasswordField id="security-email-password" name="current" label={t.auth.currentPassword} />}
         </AuthForm>
       </section>
 

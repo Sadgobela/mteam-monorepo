@@ -206,6 +206,7 @@ describe("email links", () => {
     expect(data.emailVerifiedAt).toEqual(now);
     expect(await checkPassword("a new password", data.passwordHash)).toBe(true);
     expect(prisma.session.deleteMany).toHaveBeenCalledWith({ where: { userId: "u1" } });
+    expect(prisma.emailToken.updateMany).toHaveBeenLastCalledWith({ where: { userId: "u1", usedAt: null }, data: { usedAt: now } });
     expect(prisma.session.create.mock.calls[0][0].data.userId).toBe("u1");
   });
 
@@ -220,16 +221,26 @@ describe("email links", () => {
 });
 
 describe("requestEmailChange", () => {
-  it("makes a confirmation link for a free address or the user's own", async () => {
+  it("makes a confirmation link for a free address, and resends to the user's own without a password", async () => {
     prisma.user.findUnique.mockResolvedValueOnce(null).mockResolvedValueOnce({ id: "u1" });
-    expect(await requestEmailChange("u1", email)).toEqual(expect.any(String));
-    expect(await requestEmailChange("u1", email)).toEqual(expect.any(String));
+    prisma.user.findUniqueOrThrow.mockResolvedValueOnce({ email: null, passwordHash: null }).mockResolvedValueOnce({ email, passwordHash: "h" });
+    expect(await requestEmailChange("u1", email, "")).toEqual({ token: expect.any(String) });
+    expect(await requestEmailChange("u1", email, "")).toEqual({ token: expect.any(String) });
     expect(prisma.emailToken.create.mock.calls[0][0].data).toMatchObject({ userId: "u1", purpose: "VERIFY", email });
+  });
+
+  it("needs the password to move the email of an account that has one", async () => {
+    const passwordHash = await hashPassword("the password");
+    prisma.user.findUnique.mockResolvedValue(null);
+    prisma.user.findUniqueOrThrow.mockResolvedValue({ email: "old@example.com", passwordHash });
+    expect(await requestEmailChange("u1", email, "not it")).toEqual({ error: "wrong" });
+    expect(prisma.emailToken.create).not.toHaveBeenCalled();
+    expect(await requestEmailChange("u1", email, "the password")).toEqual({ token: expect.any(String) });
   });
 
   it("refuses an address another account has", async () => {
     prisma.user.findUnique.mockResolvedValueOnce({ id: "u2" });
-    expect(await requestEmailChange("u1", email)).toBeNull();
+    expect(await requestEmailChange("u1", email, "")).toEqual({ error: "taken" });
     expect(prisma.emailToken.create).not.toHaveBeenCalled();
   });
 });
@@ -240,6 +251,7 @@ describe("changePassword", () => {
     expect(await changePassword("u1", "", "a new password")).toEqual({ token: expect.any(String) });
     expect(await checkPassword("a new password", prisma.user.update.mock.calls[0][0].data.passwordHash)).toBe(true);
     expect(prisma.session.deleteMany).toHaveBeenCalledWith({ where: { userId: "u1" } });
+    expect(prisma.emailToken.updateMany).toHaveBeenLastCalledWith({ where: { userId: "u1", usedAt: null }, data: { usedAt: now } });
     expect(quotaKeys()).toEqual(["pw-user:u1"]);
   });
 

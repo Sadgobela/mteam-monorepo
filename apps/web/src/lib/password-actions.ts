@@ -58,9 +58,11 @@ export async function registerAction(_previous: AuthState, form: FormData): Prom
   if (!email.success) return { error: "invalidEmail" };
   const password = newPasswordSchema.safeParse(form.get("password"));
   if (!password.success) return { error: "weakPassword" };
-  const result = await registerWithPassword(email.data, password.data, await clientIp());
+  const ip = await clientIp();
+  const result = await registerWithPassword(email.data, password.data, ip);
   if ("error" in result) return { error: result.error };
-  sendLink(locale, email.data, "verify", result.verifyToken);
+  // Over the email limit the account still opens; the security page can send the link again.
+  if (await claimEmailSend(ip, email.data)) sendLink(locale, email.data, "verify", result.verifyToken);
   await startSession(result.token);
   return { done: safeNext(form.get("next"), locale) };
 }
@@ -88,16 +90,19 @@ export async function resetPasswordAction(_previous: AuthState, form: FormData):
   return { done: `/${locale}/account/security` };
 }
 
-/** Sends a confirmation link to a new address, or again to the current one. The account's email changes when it is opened. */
+/** Sends a confirmation link to a new address (the password is needed when there is one), or again to the current one. The account's email changes when it is opened. */
 export async function changeEmailAction(_previous: AuthState, form: FormData): Promise<AuthState> {
   const locale = localeOf(form);
   const user = await signedInUser(locale);
   const email = emailSchema.safeParse(form.get("email"));
   if (!email.success) return { error: "invalidEmail" };
+  // Missing for a resend, and for an account without a password.
+  const current = typedPasswordSchema.safeParse(form.get("current") ?? "");
+  if (!current.success) return { error: "wrongCurrent" };
   if (!(await claimEmailSend(await clientIp(), email.data))) return { error: "limited" };
-  const token = await requestEmailChange(user.id, email.data);
-  if (!token) return { error: "taken" };
-  sendLink(locale, email.data, "verify", token);
+  const result = await requestEmailChange(user.id, email.data, current.data);
+  if ("error" in result) return { error: result.error === "wrong" ? "wrongCurrent" : "taken" };
+  sendLink(locale, email.data, "verify", result.token);
   return { notice: "verifySent" };
 }
 

@@ -91,6 +91,15 @@ describe("registerAction", () => {
     expect(await registerAction({}, form({ locale: "ka", email, password: strong, next: "/ka/listings/new" }))).toEqual({ done: "/ka/listings/new" });
     expect(db.registerWithPassword).toHaveBeenCalledWith(email, strong, "203.0.113.7");
     expect(log).toHaveBeenCalledWith(`[email] ${email}: ${getDictionary("ka").auth.mail.verifySubject} http://localhost:3111/ka/auth/verify?token=vt`);
+    expect(db.claimEmailSend).toHaveBeenCalledWith("203.0.113.7", email);
+    expect(session.startSession).toHaveBeenCalledWith("tok");
+  });
+
+  it("still opens the account, without the email, when too many emails went out", async () => {
+    db.registerWithPassword.mockResolvedValue({ token: "tok", verifyToken: "vt" });
+    db.claimEmailSend.mockResolvedValue(false);
+    expect(await registerAction({}, form({ locale: "en", email, password: strong }))).toEqual({ done: "/en" });
+    expect(log).not.toHaveBeenCalled();
     expect(session.startSession).toHaveBeenCalledWith("tok");
   });
 
@@ -153,20 +162,24 @@ describe("changeEmailAction", () => {
     expect(db.requestEmailChange).not.toHaveBeenCalled();
   });
 
-  it("emails a confirmation link to the new address", async () => {
-    db.requestEmailChange.mockResolvedValue("vt");
-    expect(await changeEmailAction({}, form({ locale: "en", email: "New@Example.com" }))).toEqual({ notice: "verifySent" });
-    expect(db.requestEmailChange).toHaveBeenCalledWith("u1", "new@example.com");
+  it("emails a confirmation link to the new address, passing the password on", async () => {
+    db.requestEmailChange.mockResolvedValue({ token: "vt" });
+    expect(await changeEmailAction({}, form({ locale: "en", email: "New@Example.com", current: "the password" }))).toEqual({ notice: "verifySent" });
+    expect(db.requestEmailChange).toHaveBeenCalledWith("u1", "new@example.com", "the password");
     expect(log).toHaveBeenCalledWith(`[email] new@example.com: ${t.auth.mail.verifySubject} http://localhost:3111/en/auth/verify?token=vt`);
+    expect(await changeEmailAction({}, form({ locale: "en", email }))).toEqual({ notice: "verifySent" });
+    expect(db.requestEmailChange).toHaveBeenLastCalledWith("u1", email, "");
   });
 
-  it("refuses a bad or taken address and stops when too many links went out", async () => {
+  it("refuses a bad or taken address, a wrong password, and stops when too many links went out", async () => {
     expect(await changeEmailAction({}, form({ locale: "en", email: "bad" }))).toEqual({ error: "invalidEmail" });
-    db.requestEmailChange.mockResolvedValue(null);
+    expect(await changeEmailAction({}, form({ locale: "en", email, current: "x".repeat(129) }))).toEqual({ error: "wrongCurrent" });
+    db.requestEmailChange.mockResolvedValueOnce({ error: "taken" }).mockResolvedValueOnce({ error: "wrong" });
     expect(await changeEmailAction({}, form({ locale: "en", email }))).toEqual({ error: "taken" });
+    expect(await changeEmailAction({}, form({ locale: "en", email, current: "nope" }))).toEqual({ error: "wrongCurrent" });
     db.claimEmailSend.mockResolvedValue(false);
     expect(await changeEmailAction({}, form({ locale: "en", email }))).toEqual({ error: "limited" });
-    expect(db.requestEmailChange).toHaveBeenCalledOnce();
+    expect(db.requestEmailChange).toHaveBeenCalledTimes(2);
     expect(log).not.toHaveBeenCalled();
   });
 });

@@ -56,9 +56,13 @@ const anyHash = () => (dummyHash ??= hashPassword(randomBytes(SALT_BYTES).toStri
 
 const isTaken = (error: unknown) => error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002";
 
-/** Ends every session of the user and opens one fresh, after the password changed. */
+/**
+ * Ends every session of the user and opens one fresh, after the password changed. Open email links end too:
+ * a confirmation link kept by someone who had the account could otherwise still move its email to them.
+ */
 async function restartSessions(userId: string): Promise<string> {
   await db().session.deleteMany({ where: { userId } });
+  await db().emailToken.updateMany({ where: { userId, usedAt: null }, data: { usedAt: new Date() } });
   return createSession(userId);
 }
 
@@ -155,10 +159,18 @@ export async function resetPassword(token: string, password: string): Promise<st
   return count > 0 ? restartSessions(row.userId) : null;
 }
 
-/** Starts confirming a new address for a user, or a resend for the current one. Null when another account has it. */
-export async function requestEmailChange(userId: string, email: string): Promise<string | null> {
+export type EmailChange = { token: string } | { error: "taken" | "wrong" };
+
+/**
+ * Starts confirming a new address for a user, or a resend for the current one. Moving the email of an account with a
+ * password needs that password, or a borrowed session could take the account over through a reset.
+ */
+export async function requestEmailChange(userId: string, email: string, current: string): Promise<EmailChange> {
   const owner = await db().user.findUnique({ where: { email }, select: { id: true } });
-  return owner && owner.id !== userId ? null : createEmailToken(userId, "VERIFY", email);
+  if (owner && owner.id !== userId) return { error: "taken" };
+  const user = await db().user.findUniqueOrThrow({ where: { id: userId }, select: { email: true, passwordHash: true } });
+  if (user.email !== email && user.passwordHash && !(await checkPassword(current, user.passwordHash))) return { error: "wrong" };
+  return { token: await createEmailToken(userId, "VERIFY", email) };
 }
 
 export type PasswordChange = { token: string } | { error: "wrong" | "limited" };
