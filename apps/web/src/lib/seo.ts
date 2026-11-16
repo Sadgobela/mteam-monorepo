@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { countListings } from "@mteam/db";
-import { getDictionary, locales, parseListingFilters, placeLabel, type Listing, type ListingFilters, type Locale } from "@mteam/shared";
+import { getDictionary, listingDescription, locales, parseListingFilters, placeLabel, type Listing, type ListingFilters, type Locale } from "@mteam/shared";
 import { cardTitle } from "@/components/ListingCard";
 import type { Query } from "@/lib/url";
 
@@ -39,7 +39,7 @@ export async function searchMetadata(locale: Locale, query: Query): Promise<Meta
 
 export function listingMetadata(listing: Listing, locale: Locale): Metadata {
   const title = cardTitle(listing, locale, getDictionary(locale));
-  const description = listing.description.slice(0, DESCRIPTION_LENGTH);
+  const description = listingDescription(listing, locale).slice(0, DESCRIPTION_LENGTH);
   return {
     title,
     description,

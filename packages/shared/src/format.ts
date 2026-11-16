@@ -1,4 +1,5 @@
 import type { Dict, Locale } from "./i18n";
+import type { Listing } from "./types";
 import type { Currency, DealType } from "./search";
 
 const symbols: Record<Currency, string> = { USD: "$", GEL: "₾" };
@@ -11,6 +12,12 @@ export function formatPrice(value: number, currency: Currency): string {
 export function priceUnit(deal: DealType, t: Dict): string | undefined {
   const units: Partial<Record<DealType, string>> = { rent: t.perMonth, lease: t.perMonth, daily: t.perDay };
   return units[deal];
+}
+
+/** The description in the page language when the owner wrote one, else the Georgian original. */
+export function listingDescription(listing: Pick<Listing, "description" | "descriptionEn" | "descriptionRu">, locale: Locale): string {
+  const translated = { ka: undefined, en: listing.descriptionEn, ru: listing.descriptionRu }[locale];
+  return translated?.trim() ? translated : listing.description;
 }
 
 /** Typical terms for a first estimate. Visitors can change them; the bank sets the real ones. */

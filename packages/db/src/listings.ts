@@ -91,6 +91,8 @@ export function toListing(row: ListingRow): Listing {
     ceiling: row.ceiling ?? undefined,
     yearBuilt: row.yearBuilt ?? undefined,
     description: row.description,
+    descriptionEn: row.descriptionEn ?? undefined,
+    descriptionRu: row.descriptionRu ?? undefined,
     verified: row.verified,
     marketLevel: row.marketLevel ?? undefined,
     agent: agent

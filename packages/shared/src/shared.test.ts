@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { featureLabel, groupKeys, groupNames, isFeature, specKeys, specLabel, specNames } from "./details";
 import { streetsIn } from "./streets";
-import { cities, cityAreas, cityDistricts, defaultLocale, formatDay, formatPrice, getDictionary, isCity, isLocale, isMetro, locales, maskPhone, monthlyPayment, metroStations, placeLabel, placeName, popularCities, priceUnit } from "./index";
+import { cities, cityAreas, cityDistricts, defaultLocale, formatDay, formatPrice, getDictionary, isCity, isLocale, isMetro, listingDescription, locales, maskPhone, monthlyPayment, metroStations, placeLabel, placeName, popularCities, priceUnit } from "./index";
 
 describe("formatDay", () => {
   it("writes a short date in the page language, independent of time zone", () => {
@@ -45,6 +45,16 @@ describe("monthlyPayment", () => {
   it("is zero when nothing is borrowed or there is no term", () => {
     expect(monthlyPayment(1000, 100, 20, 11)).toBe(0);
     expect(monthlyPayment(1000, 20, 0, 11)).toBe(0);
+  });
+});
+
+describe("listingDescription", () => {
+  const listing = { description: "ქართული", descriptionEn: "English", descriptionRu: "  " };
+  it("uses the owner's version in the page language, else the Georgian original", () => {
+    expect(listingDescription(listing, "en")).toBe("English");
+    expect(listingDescription(listing, "ka")).toBe("ქართული");
+    expect(listingDescription(listing, "ru")).toBe("ქართული");
+    expect(listingDescription({ description: "ქართული" }, "en")).toBe("ქართული");
   });
 });
 

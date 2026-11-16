@@ -4,7 +4,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { ReactNode } from "react";
 import { countSellerListings, getFavoriteIds, getGelPerUsd, getHiddenIds, listSimilarListings, getListing } from "@mteam/db";
-import { LOAN_DEFAULTS, maskPhone, monthlyPayment, placeLabel, priceUnit, convertPrice, formatDay, formatPrice, getDictionary, parseListingDisplay } from "@mteam/shared";
+import { LOAN_DEFAULTS, listingDescription, maskPhone, monthlyPayment, placeLabel, priceUnit, convertPrice, formatDay, formatPrice, getDictionary, parseListingDisplay } from "@mteam/shared";
 import { Gallery } from "@/components/Gallery";
 import { ListingDetails } from "@/components/ListingDetails";
 import { Header } from "@/components/Header";
@@ -230,7 +230,7 @@ export default async function ListingPage({
               </Fact>
             )}
           </dl>
-          <p>{listing.description}</p>
+          <p>{listingDescription(listing, locale)}</p>
           <ListingDetails listing={listing} locale={locale} t={t} />
           {listing.lat !== undefined && listing.lng !== undefined && (
             <ListingMap
