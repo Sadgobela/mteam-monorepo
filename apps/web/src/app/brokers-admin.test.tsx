@@ -29,6 +29,7 @@ vi.mock("next/navigation", () => ({
   usePathname: () => "/en/account/broker",
   useSearchParams: () => null,
   useRouter: () => ({ push: vi.fn() }),
+  unstable_rethrow: vi.fn(),
   notFound: () => {
     throw new Error("NEXT_NOT_FOUND");
   },
@@ -237,6 +238,19 @@ describe("BrokerProfilePage", () => {
     render(await BrokerProfilePage({ params }));
     await user.click(screen.getByRole("button", { name: copy.save }));
     expect(await screen.findByRole(role)).toHaveTextContent(text);
+  });
+});
+
+describe("BrokerProfileForm sending", () => {
+  it("says so when the request itself fails, instead of breaking the page", async () => {
+    const user = userEvent.setup();
+    session.currentUser.mockResolvedValue(broker);
+    db.getBrokerProfile.mockResolvedValue({ photoUrl: null, bio: null, branch: "" });
+    actions.saveBrokerProfileAction.mockRejectedValue(new Error("Body exceeded 4mb limit"));
+    render(await BrokerProfilePage({ params }));
+    await user.click(screen.getByRole("button", { name: copy.save }));
+    expect(await screen.findByRole("alert")).toHaveTextContent(copy.saveFailed);
+    expect(actions.saveBrokerProfileAction).toHaveBeenCalledOnce();
   });
 });
 
