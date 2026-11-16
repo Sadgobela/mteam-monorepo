@@ -52,19 +52,19 @@ describe("pushMessage", () => {
     [{ ...about, type: "PRICE_DROP", oldPriceUsd: 100_000, newPriceUsd: 90_000 }, "A favourite got cheaper: $100,000 → $90,000", "/en/listings/7"],
     [{ ...about, type: "LISTING_REJECTED" }, "Your listing was not approved", "/en/my-listings"],
     [{ ...about, type: "LISTING_EXPIRING", expiresAt: "2026-11-20T10:00:00.000Z" }, "Your listing ends on", "/en/my-listings"],
-  ])("writes %#: the line as the title, the listing as the body, and where to go", (notice, title, url) => {
+  ])("writes %#: the listing as the title, the line as the body, and where to go", (notice, body, url) => {
     const pushed = pushMessage(notice, "en");
-    expect(pushed.title).toContain(title);
-    expect(pushed).toMatchObject({ body: "Flat in Vake", url, tag: "n1" });
+    expect(pushed.body).toContain(body);
+    expect(pushed).toMatchObject({ title: "Flat in Vake", url, tag: "n1" });
   });
 
   it("names a saved search and opens its results", () => {
     const notice: CreatedNotification = { id: "n2", userId: "u1", type: "SEARCH_MATCHES", savedSearchId: "s1", query: "", count: 3 };
-    expect(pushMessage(notice, "en")).toEqual({ title: "New listings for your saved search: 3", body: "All listings", url: "/en?", tag: "n2" });
+    expect(pushMessage(notice, "en")).toEqual({ title: "All listings", body: "New listings for your saved search: 3", url: "/en?", tag: "n2" });
   });
 
   it("writes in Georgian when the stored language is unknown", () => {
-    expect(pushMessage(message, "de")).toMatchObject({ title: "ახალი წერილი: 2", url: "/ka/messages/c1" });
+    expect(pushMessage(message, "de")).toMatchObject({ body: "ახალი წერილი: 2", url: "/ka/messages/c1" });
   });
 });
 
@@ -82,10 +82,10 @@ describe("sendPush", () => {
     expect(db.listPushTargets).toHaveBeenCalledWith("u1");
     expect(webpush.sendNotification).toHaveBeenCalledWith(
       { endpoint: "https://a.test", keys: { p256dh: "p256dh", auth: "auth" } },
-      JSON.stringify({ title: "New messages: 2", body: "Flat in Vake", url: "/en/messages/c1", tag: "n1" }),
+      JSON.stringify({ title: "Flat in Vake", body: "New messages: 2", url: "/en/messages/c1", tag: "n1" }),
       { vapidDetails: { subject: env.VAPID_SUBJECT, publicKey: "public-key", privateKey: "private-key" }, TTL: 86_400, timeout: 10_000 },
     );
-    expect(JSON.parse(webpush.sendNotification.mock.calls[1][1]).title).toBe("ახალი წერილი: 2");
+    expect(JSON.parse(webpush.sendNotification.mock.calls[1][1]).body).toBe("ახალი წერილი: 2");
     expect(db.deleteExpiredPushSubscriptions).toHaveBeenCalledWith(["https://b.test", "https://c.test"]);
     expect(db.markPushSubscriptionsUsed).toHaveBeenCalledWith(["https://a.test"]);
     expect(console.error).toHaveBeenCalledWith(failure(500));

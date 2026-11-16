@@ -2,7 +2,7 @@ import type { NotificationDetails } from "@mteam/db";
 import { formatDay, formatPrice, parseListingFilters, type Dict, type Locale } from "@mteam/shared";
 import { searchName } from "./seo";
 
-/** What happened, in a line: the notifications page's text and a push notification's title. */
+/** What happened, in a line: the notifications page's text and a push notification's body. */
 export function noticeText(notice: NotificationDetails, t: Dict, locale: Locale): string {
   const copy = t.notifications;
   switch (notice.type) {
@@ -21,7 +21,7 @@ export function noticeText(notice: NotificationDetails, t: Dict, locale: Locale)
   }
 }
 
-/** What it is about: the listing, or the saved search by name. */
+/** What it is about: the listing, or the saved search by name. A push notification's title. */
 export function noticeSubject(notice: NotificationDetails, t: Dict, locale: Locale): string {
   if (notice.type !== "SEARCH_MATCHES") return notice.listingTitle;
   return searchName(parseListingFilters(Object.fromEntries(new URLSearchParams(notice.query))), locale) || t.saved.allListings;

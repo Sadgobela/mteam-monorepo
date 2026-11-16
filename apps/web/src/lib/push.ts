@@ -61,14 +61,14 @@ function pushPath(notice: CreatedNotification, locale: Locale): string {
 }
 
 /**
- * What the service worker shows, in the language of the page that turned push on: the notifications page's line as the
- * title and what it is about as the body. The tag is the notification's id, so a chat bumped by more messages replaces
+ * What the service worker shows, in the language of the page that turned push on: what it is about (the listing or the
+ * saved search) as the short title, and the notifications page's line as the body. The tag is the notification's id, so a chat bumped by more messages replaces
  * its notification instead of piling up.
  */
 export function pushMessage(notice: CreatedNotification, language: string): PushMessage {
   const locale = isLocale(language) ? language : defaultLocale;
   const t = getDictionary(locale);
-  return { title: noticeText(notice, t, locale), body: noticeSubject(notice, t, locale), url: pushPath(notice, locale), tag: notice.id };
+  return { title: noticeSubject(notice, t, locale), body: noticeText(notice, t, locale), url: pushPath(notice, locale), tag: notice.id };
 }
 
 async function deliver(notices: CreatedNotification[]): Promise<void> {
