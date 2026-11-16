@@ -31,16 +31,17 @@ export function getProfile(userId: string): Promise<Profile> {
 /** The first-visit answers. Choosing BROKER only records the wish; the role comes from an invite. */
 export async function completeOnboarding(userId: string, fields: ProfileFields): Promise<void> {
   const now = new Date();
-  await db().user.update({ where: { id: userId }, data: { ...fields, onboardedAt: now, termsAcceptedAt: now } });
+  // Only the first answers count, so a second tab cannot move the date the terms were accepted.
+  await db().user.updateMany({ where: { id: userId, deletedAt: null, onboardedAt: null }, data: { ...fields, onboardedAt: now, termsAcceptedAt: now } });
 }
 
 export async function updateProfile(userId: string, fields: ProfileFields): Promise<void> {
-  await db().user.update({ where: { id: userId }, data: fields });
+  await db().user.updateMany({ where: { id: userId, deletedAt: null }, data: fields });
 }
 
 // ponytail: the old photo stays in storage. Delete it here once storage has a delete call.
 export async function setAvatar(userId: string, avatarUrl: string): Promise<void> {
-  await db().user.update({ where: { id: userId }, data: { avatarUrl } });
+  await db().user.updateMany({ where: { id: userId, deletedAt: null }, data: { avatarUrl } });
 }
 
 /** A seller's name and photo, for their public page. */

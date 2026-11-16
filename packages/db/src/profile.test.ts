@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const prisma = vi.hoisted(() => ({
-  user: { findUniqueOrThrow: vi.fn(), findUnique: vi.fn(), update: vi.fn() },
+  user: { findUniqueOrThrow: vi.fn(), findUnique: vi.fn(), updateMany: vi.fn() },
   conversation: { findFirst: vi.fn() },
   codeRequestLimit: { updateMany: vi.fn(), createMany: vi.fn() },
 }));
@@ -24,16 +24,16 @@ describe("own profile", () => {
     expect(prisma.user.findUniqueOrThrow).toHaveBeenCalledWith({ where: { id: "u1" }, select: { name: true, avatarUrl: true, intent: true, createdAt: true } });
   });
 
-  it("finishes onboarding with the answers, the terms and the time, never a role", async () => {
+  it("finishes onboarding once, for a live account, with the answers, the terms and the time, never a role", async () => {
     await completeOnboarding("u1", { name: "Nino", intent: "BROKER" });
-    expect(prisma.user.update).toHaveBeenCalledWith({ where: { id: "u1" }, data: { name: "Nino", intent: "BROKER", onboardedAt: now, termsAcceptedAt: now } });
+    expect(prisma.user.updateMany).toHaveBeenCalledWith({ where: { id: "u1", deletedAt: null, onboardedAt: null }, data: { name: "Nino", intent: "BROKER", onboardedAt: now, termsAcceptedAt: now } });
   });
 
-  it("saves a new name, intent and photo", async () => {
+  it("saves a new name, intent and photo, never on a deleted account", async () => {
     await updateProfile("u1", { name: "Nino B", intent: "OWNER" });
-    expect(prisma.user.update).toHaveBeenCalledWith({ where: { id: "u1" }, data: { name: "Nino B", intent: "OWNER" } });
+    expect(prisma.user.updateMany).toHaveBeenCalledWith({ where: { id: "u1", deletedAt: null }, data: { name: "Nino B", intent: "OWNER" } });
     await setAvatar("u1", "https://cdn/a.webp");
-    expect(prisma.user.update).toHaveBeenLastCalledWith({ where: { id: "u1" }, data: { avatarUrl: "https://cdn/a.webp" } });
+    expect(prisma.user.updateMany).toHaveBeenLastCalledWith({ where: { id: "u1", deletedAt: null }, data: { avatarUrl: "https://cdn/a.webp" } });
   });
 });
 
