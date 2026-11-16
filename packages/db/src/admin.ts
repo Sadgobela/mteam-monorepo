@@ -2,6 +2,7 @@ import type { Listing } from "@mteam/shared";
 import type { Prisma } from "@prisma/client";
 import { db } from "./client";
 import { publicInclude, toListing } from "./listings";
+import { expiryFrom } from "./my-listings";
 
 const QUEUE_LIMIT = 50;
 
@@ -20,7 +21,11 @@ export async function listPendingListings(): Promise<Listing[]> {
 }
 
 /** Only a listing still pending can be decided, so two moderators cannot overwrite each other. */
-export async function reviewListing(id: number, decision: "ACTIVE" | "REJECTED"): Promise<void> {
+export async function reviewListing(id: number, decision: "ACTIVE" | "REJECTED", now = new Date()): Promise<void> {
+  // An owner's listing starts its 60 days on approval. When this matches, the update below finds nothing left to do.
+  if (decision === "ACTIVE") {
+    await db().listing.updateMany({ where: { id, status: "PENDING", agentId: null }, data: { status: decision, expiresAt: expiryFrom(now) } });
+  }
   await db().listing.updateMany({ where: { id, status: "PENDING" }, data: { status: decision } });
 }
 
