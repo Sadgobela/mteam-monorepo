@@ -6,6 +6,7 @@ import { Header } from "@/components/Header";
 import { ListingForm } from "@/components/ListingForm";
 import { resolveLocale } from "@/lib/locale";
 import { loginPath } from "@/lib/login-path";
+import { onboardingPath } from "@/lib/onboarding";
 import { currentUser } from "@/lib/session";
 
 export const dynamic = "force-dynamic";
@@ -21,7 +22,10 @@ export default async function EditListingPage({
   const { locale: raw, id } = await params;
   const locale = resolveLocale(raw);
   const user = await currentUser();
-  if (!user) redirect(loginPath(locale, `/${locale}/listings/${encodeURIComponent(id)}/edit`));
+  const here = `/${locale}/listings/${encodeURIComponent(id)}/edit`;
+  if (!user) redirect(loginPath(locale, here));
+  // Posting accepts the terms, which the first-visit questions ask for. Accounts from before them answer once.
+  if (!user.onboardedAt) redirect(onboardingPath(locale, here));
   const t = getDictionary(locale);
   const listing = await getEditableListing(user.id, id);
   if (!listing) notFound();

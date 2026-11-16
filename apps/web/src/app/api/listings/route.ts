@@ -36,6 +36,8 @@ export async function POST(request: Request) {
   if (!user) return fail("signedOut", 401);
   // The phone is the listing's contact number. The posting page asks for one first, so this only stops a crafted request.
   if (!user.phone) return fail("noPhone", 403);
+  // Posting accepts the terms, which onboarding asks for. The pages send there first, so this only stops a crafted request.
+  if (!user.onboardedAt) return fail("noOnboarding", 403);
 
   const length = Number(request.headers.get("content-length"));
   if (!(length > 0) || length > MAX_BODY_BYTES) return fail("invalid", 413);

@@ -9,6 +9,7 @@ import { addPhoneAction } from "@/lib/auth-actions";
 import { resolveLocale } from "@/lib/locale";
 import { currentUser } from "@/lib/session";
 import { loginPath } from "@/lib/login-path";
+import { onboardingPath } from "@/lib/onboarding";
 
 export const dynamic = "force-dynamic";
 
@@ -36,6 +37,8 @@ export default async function NewListingPage({
       </>
     );
   }
+  // Posting accepts the terms, which the first-visit questions ask for.
+  if (!user.onboardedAt) redirect(onboardingPath(locale, `/${locale}/listings/new`));
   const { sent } = await searchParams;
   return (
     <>

@@ -45,7 +45,7 @@ const send = async (request: Request) => {
 
 beforeEach(() => {
   vi.resetAllMocks();
-  session.currentUser.mockResolvedValue({ id: "u1", phone: "+995555123456", role: "USER", agent: null });
+  session.currentUser.mockResolvedValue({ id: "u1", phone: "+995555123456", role: "USER", agent: null, onboardedAt: new Date() });
   photos.isUploadedPhoto.mockImplementation((url: string) => url.startsWith("https://cdn/listings/"));
   db.createListing.mockResolvedValue(7);
   db.getEditableListing.mockResolvedValue({ id: 9, status: "ACTIVE", fields: {}, images: ["https://old.test/x.jpg"] });
@@ -60,13 +60,13 @@ describe("POST /api/listings", () => {
   });
 
   it("posts a broker's listing as the broker's, but not for someone who lost the role", async () => {
-    session.currentUser.mockResolvedValue({ id: "u1", phone: "+995555123456", role: "AGENT", agent: { id: "a1" } });
+    session.currentUser.mockResolvedValue({ id: "u1", phone: "+995555123456", role: "AGENT", agent: { id: "a1" }, onboardedAt: new Date() });
     await send(post());
     expect(db.createListing.mock.calls[0][3]).toBe("a1");
-    session.currentUser.mockResolvedValue({ id: "u1", phone: "+995555123456", role: "USER", agent: { id: "a1" } });
+    session.currentUser.mockResolvedValue({ id: "u1", phone: "+995555123456", role: "USER", agent: { id: "a1" }, onboardedAt: new Date() });
     await send(post(form({ intent: "draft" })));
     expect(db.saveDraft.mock.calls[0][4]).toBeNull();
-    session.currentUser.mockResolvedValue({ id: "u1", phone: "+995555123456", role: "AGENT", agent: null });
+    session.currentUser.mockResolvedValue({ id: "u1", phone: "+995555123456", role: "AGENT", agent: null, onboardedAt: new Date() });
     await send(post());
     expect(db.createListing.mock.calls[1][3]).toBeNull();
   });
@@ -86,6 +86,7 @@ describe("POST /api/listings", () => {
   it.each([
     ["a visitor", null, 401, "signedOut"],
     ["someone without a phone, which the listing needs as its contact", { id: "u1", phone: null }, 403, "noPhone"],
+    ["someone who has not accepted the terms in onboarding", { id: "u1", phone: "+995555123456", onboardedAt: null }, 403, "noOnboarding"],
   ])("turns away %s without reading the body", async (_name, user, status, error) => {
     session.currentUser.mockResolvedValue(user);
     const request = post();
