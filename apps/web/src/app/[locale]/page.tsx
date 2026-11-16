@@ -11,6 +11,7 @@ import { GiveBand } from "@/components/LeadForm";
 import { ListingGrid } from "@/components/ListingGrid";
 import { Pager } from "@/components/Pager";
 import { SaveSearch } from "@/components/SaveSearch";
+import { SearchAssistant } from "@/components/SearchAssistant";
 import { SearchBar } from "@/components/SearchBar";
 import { Segmented } from "@/components/Segmented";
 import { resolveLocale } from "@/lib/locale";
@@ -66,7 +67,17 @@ export default async function HomePage({
       <Header locale={locale} t={t} signedIn={user !== null} />
       <main className="page">
         {/* Keyed so that header links, which navigate without a reload, reset the form. */}
-        <SearchBar key={JSON.stringify([filters, display])} results={isResults} locale={locale} t={t} filters={filters} display={display} />
+        {isResults ? (
+          <SearchBar key={JSON.stringify([filters, display])} results locale={locale} t={t} filters={filters} display={display} />
+        ) : (
+          <>
+            <SearchAssistant locale={locale} t={t} />
+            <details className="classic-search">
+              <summary>{t.assistant.filters}</summary>
+              <SearchBar key={JSON.stringify([filters, display])} locale={locale} t={t} filters={filters} display={display} />
+            </details>
+          </>
+        )}
 
         {isResults && <FilterChips locale={locale} t={t} query={query} filters={filters} />}
 
@@ -109,7 +120,7 @@ export default async function HomePage({
         )}
 
         <div className="row">
-          <h1 className="heading">{isResults ? t.search.results : t.home.heading}</h1>
+          {isResults ? <h1 className="heading">{t.search.results}</h1> : <h2 className="heading">{t.home.heading}</h2>}
           {savedQuery && <SaveSearch locale={locale} t={t} query={savedQuery} signedIn={user !== null} saved={alreadySaved} />}
           <Segmented
             label={t.results.currency}

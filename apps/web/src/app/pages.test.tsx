@@ -35,6 +35,7 @@ vi.mock("@mteam/db", async () => {
 vi.mock("@/lib/session", () => ({ hasSession: async () => false, currentUser: async () => null }));
 vi.mock("@/lib/account-actions", () => ({ setFavoriteAction: vi.fn() }));
 vi.mock("@/lib/auth-actions", () => ({ logoutAction: vi.fn() }));
+vi.mock("@/lib/search-actions", () => ({ countSearchAction: vi.fn() }));
 
 const circleMarker = vi.hoisted(() => vi.fn(() => ({ bindPopup: () => ({ addTo: () => undefined }), addTo: () => undefined })));
 
@@ -78,7 +79,9 @@ describe("home page", () => {
   it("shows verified listings and the main entry points", async () => {
     await home();
     expect(searchListings).toHaveBeenLastCalledWith({ verified: true }, { limit: 4, hiddenIds: [] });
-    expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("Verified by MTeam");
+    expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("Tell me what you are looking for");
+    expect(screen.getByRole("heading", { level: 2, name: "Verified by MTeam" })).toBeInTheDocument();
+    expect(screen.getByText("Or search with the usual filters")).toBeInTheDocument();
     expect(screen.getAllByRole("link", { name: /m²/ })).toHaveLength(fixtureListings.length);
     expect(screen.getByRole("link", { name: /Give it to MTeam/ })).toHaveAttribute("href", "#give");
     expect(screen.getByRole("heading", { level: 2, name: /Give it to MTeam/ })).toBeInTheDocument();
@@ -88,7 +91,7 @@ describe("home page", () => {
 
   it("treats only invalid filters as the home page", async () => {
     await home({ type: "projects" });
-    expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("Verified by MTeam");
+    expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("Tell me what you are looking for");
   });
 
   it("passes filters and display options to the query and reflects them", async () => {
@@ -185,7 +188,7 @@ describe("home page", () => {
 
   it("treats a repeated deal as no search, because its links could not keep it", async () => {
     render(await HomePage({ params: p({ locale: "en" }), searchParams: p({ deal: ["a", "b"] }) }));
-    expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("Verified by MTeam");
+    expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("Tell me what you are looking for");
   });
 
   it("has no pager when everything fits on one page", async () => {
