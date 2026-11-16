@@ -118,6 +118,8 @@ export function ListingForm({
   // The draft this form autosaves into, once there is one. Saves run one after another, so two never start two drafts.
   const draftId = useRef(initial?.status === "DRAFT" ? initial.id : null);
   const saving = useRef<Promise<void>>(Promise.resolve());
+  // Each chosen photo's address once it is uploaded, by its preview, so no save uploads it twice.
+  const uploaded = useRef(new Map<string, string>());
   const [writing, setWriting] = useState(false);
   const [aiNote, setAiNote] = useState<string | null>(null);
 
@@ -139,11 +141,17 @@ export function ListingForm({
         urls.push(item.url);
         continue;
       }
+      const known = uploaded.current.get(item.preview);
+      if (known) {
+        urls.push(known);
+        continue;
+      }
       const body = new FormData();
       body.set("photo", await shrinkPhoto(item.file, LISTING_PHOTO_EDGE), item.file.name);
       const { url } = uploadedSchema.parse(await send("/api/listings/photos", body));
       urls.push(url);
-      // Remembered, so a later save does not upload this one twice.
+      // Remembered at once, as a save queued earlier still holds the photos from before this upload.
+      uploaded.current.set(item.preview, url);
       setPhotos((list) => list.map((other) => (other.preview === item.preview ? { url, preview: item.preview } : other)));
     }
     return urls;

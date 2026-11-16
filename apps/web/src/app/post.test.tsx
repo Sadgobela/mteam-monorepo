@@ -455,6 +455,27 @@ describe("ListingForm", () => {
       expect([sentTo("/api/listings")[2].get("intent"), sentTo("/api/listings")[2].get("id")]).toEqual(["submit", "12"]);
     });
 
+    it("uploads a photo once when the listing is sent while a draft save is still uploading it", async () => {
+      let finish: () => void = () => undefined;
+      let uploads = 0;
+      server.mockImplementation(async (path: string) => {
+        if (path !== "/api/listings/photos") return answer(200, { id: 12, status: "DRAFT" });
+        uploads++;
+        await new Promise<void>((resolve) => (finish = resolve));
+        return answer(200, { url: "https://cdn/u1.webp" });
+      });
+      render(<ListingForm gelPerUsd={2.7} locale="en" t={t} />);
+      start();
+      choose("a.jpg");
+      next();
+      fireEvent.submit(formOf(t.post.fields.title));
+      await waitFor(() => expect(uploads).toBe(1));
+      finish();
+      await waitFor(() => expect(router.push).toHaveBeenCalledWith("/en/listings/new?sent=1"));
+      expect(uploads).toBe(1);
+      expect(sentTo("/api/listings").map((body) => body.getAll("photos"))).toEqual([["https://cdn/u1.webp"], ["https://cdn/u1.webp"]]);
+    });
+
     it("carries on quietly when a draft cannot be saved", async () => {
       server.mockRejectedValue(new Error("offline"));
       render(<ListingForm gelPerUsd={2.7} locale="en" t={t} />);
