@@ -3,7 +3,6 @@ import { redirect } from "next/navigation";
 import { listConversations } from "@mteam/db";
 import { getDictionary } from "@mteam/shared";
 import { EmptyState } from "@/components/EmptyState";
-import { Header } from "@/components/Header";
 import { resolveLocale } from "@/lib/locale";
 import { currentUser } from "@/lib/session";
 import { loginPath } from "@/lib/login-path";
@@ -18,8 +17,7 @@ export default async function MessagesPage({ params }: { params: Promise<{ local
   const conversations = await listConversations(user.id);
   return (
     <>
-      <Header locale={locale} t={t} signedIn />
-      <main className="page">
+      <main className="account-main">
         <h1 className="heading">{t.chat.heading}</h1>
         {conversations.length === 0 && <EmptyState text={t.chat.empty} />}
         <div className="chat-list">

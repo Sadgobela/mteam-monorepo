@@ -23,7 +23,7 @@ vi.mock("next/navigation", () => ({
 import { SaveSearch } from "@/components/SaveSearch";
 import { deleteSavedSearchAction, openSavedSearchAction, saveSearchAction } from "@/lib/account-actions";
 import HomePage from "./[locale]/page";
-import SavedSearchesPage from "./[locale]/saved/page";
+import SavedSearchesPage from "./[locale]/(account)/saved/page";
 
 const t = getDictionary("en");
 const params = Promise.resolve({ locale: "en" });

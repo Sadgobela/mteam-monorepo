@@ -4,7 +4,6 @@ import { listMyListings } from "@mteam/db";
 import { formatPrice, getDictionary } from "@mteam/shared";
 import { ConfirmSubmit } from "@/components/ConfirmSubmit";
 import { EmptyState } from "@/components/EmptyState";
-import { Header } from "@/components/Header";
 import { archiveListingAction } from "@/lib/account-actions";
 import { resolveLocale } from "@/lib/locale";
 import { currentUser } from "@/lib/session";
@@ -20,8 +19,7 @@ export default async function MyListingsPage({ params }: { params: Promise<{ loc
   const mine = await listMyListings(user.id);
   return (
     <>
-      <Header locale={locale} t={t} signedIn />
-      <main className="page narrow">
+      <main className="account-main narrow">
         <div className="row">
           <h1 className="heading">{t.my.heading}</h1>
           <span className="sp" />

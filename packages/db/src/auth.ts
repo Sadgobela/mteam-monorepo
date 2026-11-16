@@ -141,7 +141,8 @@ async function useCode(phone: string, code: string): Promise<boolean> {
 }
 
 /** A new session for the user. Only a hash of the token is stored. */
-async function createSession(userId: string): Promise<string> {
+/** Starts a session for a user who has just proved who they are, and returns the token for the cookie. */
+export async function createSession(userId: string): Promise<string> {
   const token = randomBytes(32).toString("base64url");
   await db().session.create({
     data: { tokenHash: sha256(token), userId, expiresAt: new Date(Date.now() + SESSION_TTL_MS) },
@@ -193,7 +194,7 @@ export async function addPhone(userId: string, phone: string, code: string): Pro
 export async function getSessionUser(token: string) {
   const session = await db().session.findUnique({
     where: { tokenHash: sha256(token) },
-    select: { expiresAt: true, user: { select: { id: true, phone: true, role: true, agent: { select: { id: true } } } } },
+    select: { expiresAt: true, user: { select: { id: true, phone: true, role: true, name: true, avatarUrl: true, onboardedAt: true, agent: { select: { id: true } } } } },
   });
   return session && session.expiresAt > new Date() ? session.user : null;
 }

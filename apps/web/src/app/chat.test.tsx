@@ -39,8 +39,8 @@ vi.mock("next/navigation", () => ({
 import { LiveRefresh } from "@/components/ChatForm";
 import { sendChatAction, startChatAction } from "@/lib/chat-actions";
 import ListingPage from "./[locale]/listings/[id]/page";
-import ConversationPage from "./[locale]/messages/[id]/page";
-import MessagesPage from "./[locale]/messages/page";
+import ConversationPage from "./[locale]/(account)/messages/[id]/page";
+import MessagesPage from "./[locale]/(account)/messages/page";
 
 const t = getDictionary("en");
 const params = Promise.resolve({ locale: "en" });
