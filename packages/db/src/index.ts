@@ -3,7 +3,12 @@ export {
   archiveListing,
   countListings,
   createListing,
+  getEditableListing,
   getListing,
+  hidesPhoneByDefault,
+  saveDraft,
+  updateListing,
+  type EditableListing,
   listMyListings,
   listSellerListings,
   listSimilarListings,
@@ -31,7 +36,7 @@ export { getFavoriteIds, listFavorites, setFavorite } from "./favorites";
 export { createLead } from "./leads";
 export { getHiddenIds, setHidden } from "./hidden";
 export { listOpenReports, reportListing, resolveReport } from "./reports";
-export { addPhone, claimAssistantQuery, claimPhoneLookup, createSession, deleteSession, getSessionUser, requestLoginCode, signInWithIdentity, verifyLoginCode, type AddPhoneResult } from "./auth";
+export { addPhone, claimAssistantQuery, claimPhoneLookup, claimPhotoUpload, createSession, deleteSession, getSessionUser, requestLoginCode, signInWithIdentity, verifyLoginCode, type AddPhoneResult } from "./auth";
 export type { IdentityProvider } from "@prisma/client";
 // One module per track of docs/ACCOUNT_PLAN.md, wired here once so parallel tracks do not collide in this file.
 export * from "./profile";

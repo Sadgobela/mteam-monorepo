@@ -44,6 +44,8 @@ export interface Listing {
   verification?: { by: string; at: string };
   /** The number to call: the broker's if there is one, otherwise the owner's. */
   contactPhone: string;
+  /** The owner chose chat only: the number is never shown or given out. */
+  hidePhone?: boolean;
   sellerId: string;
   /** Public photo URLs in display order. */
   images: string[];

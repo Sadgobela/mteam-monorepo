@@ -12,7 +12,7 @@ const prisma = vi.hoisted(() => ({
 vi.mock("./client", () => ({ db: () => prisma }));
 
 import { Prisma } from "@prisma/client";
-import { addPhone, claimAssistantQuery, claimPhoneLookup, deleteSession, getSessionUser, requestLoginCode, signInWithIdentity, verifyLoginCode } from "./index";
+import { addPhone, claimAssistantQuery, claimPhoneLookup, claimPhotoUpload, deleteSession, getSessionUser, requestLoginCode, signInWithIdentity, verifyLoginCode } from "./index";
 
 const phone = "+995555123456";
 const sha256 = (value: string) => createHash("sha256").update(value).digest("hex");
@@ -386,6 +386,18 @@ describe("claimAssistantQuery", () => {
     prisma.codeRequestLimit.updateMany.mockResolvedValue({ count: 0 });
     prisma.codeRequestLimit.createMany.mockResolvedValue({ count: 0 });
     expect(await claimAssistantQuery("1.2.3.4", 1000)).toBe(false);
+  });
+});
+
+describe("claimPhotoUpload", () => {
+  it("counts uploads per account, and refuses past the limit", async () => {
+    prisma.codeRequestLimit.updateMany.mockReset();
+    prisma.codeRequestLimit.updateMany.mockResolvedValue({ count: 1 });
+    expect(await claimPhotoUpload("u1")).toBe(true);
+    expect(prisma.codeRequestLimit.updateMany.mock.calls[0][0].where.ipHash).toBe("photo:u1");
+    prisma.codeRequestLimit.updateMany.mockResolvedValue({ count: 0 });
+    prisma.codeRequestLimit.createMany.mockResolvedValue({ count: 0 });
+    expect(await claimPhotoUpload("u1", 1000)).toBe(false);
   });
 });
 

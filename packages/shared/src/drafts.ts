@@ -12,6 +12,17 @@ export function parsePhone(input: string): string | null {
 export const MAX_PHOTOS = 10;
 export const MAX_PHOTO_BYTES = 5 * 1024 * 1024;
 
+/** How the server names a stored photo, `listings/<uuid>.webp`, and its small copy, `listings/<uuid>_thumb.webp`. */
+const storedPhoto = /(\/listings\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})\.webp$/;
+
+/**
+ * The small copy of a photo, for cards and previews. Photos stored before copies were made, and imported ones on other hosts,
+ * have none, so anything not named like ours comes back unchanged; an older photo of ours that has no copy needs an image's onError fallback.
+ */
+export function thumbUrl(url: string): string {
+  return url.replace(storedPhoto, "$1_thumb.webp");
+}
+
 /** Postgres text columns cannot hold a NUL byte. */
 const text = (max: number) =>
   z
@@ -46,8 +57,9 @@ const coordinate = (limit: number) =>
 /** One of a detail's fixed choices, or blank. */
 const spec = (name: SpecName) => z.union([z.literal("").transform(() => undefined), z.enum(specKeys(name) as [string, ...string[]])]).optional();
 
-const draftSchema = z
-  .object({
+const blankOr = <T extends z.ZodType>(schema: T) => z.union([z.literal("").transform(() => undefined), schema]).optional();
+
+const draftObject = z.object({
     deal: z.enum(dealTypes),
     type: z.enum(propertyTypes),
     city: z.string().refine(isCity),
@@ -85,6 +97,12 @@ const draftSchema = z
       .optional(),
     title: text(120),
     description: text(5000),
+    descriptionEn: blankOr(text(5000)),
+    descriptionRu: blankOr(text(5000)),
+    /** The public registry's number, digits in dot-separated groups. Kept for MTeam, never shown on the site. */
+    cadastralCode: blankOr(z.string().trim().max(40).regex(/^\d+(\.\d+)*$/)),
+    /** A ticked box posts "on"; an unticked one posts nothing. */
+    hidePhone: z.literal("on").optional().transform((value) => value === "on"),
     price: whole(1, 2_000_000_000),
     currency: z.enum(currencies),
     area: z
@@ -97,7 +115,9 @@ const draftSchema = z
     floors: optionalWhole(1, 200),
     lat: coordinate(90),
     lng: coordinate(180),
-  })
+});
+
+const draftSchema = draftObject
   // Exact names, or searching by district would miss the listing. Places without districts have none to give.
   .refine((d) => (cityDistricts(d.city).length === 0 ? d.district === undefined : cityDistricts(d.city).includes(d.district ?? "")))
   .refine((d) => d.metro === undefined || d.city === METRO_CITY)
@@ -116,7 +136,19 @@ export function parseListingDraft(fields: Record<string, unknown>): ListingDraft
 }
 
 /** The columns a listing can be given. */
-export const draftFields = Object.keys(draftSchema.shape);
+export const draftFields = Object.keys(draftObject.shape);
+
+/** An unfinished form, saved as a draft: each field filled in must be valid, but only the deal, type and city must be there. */
+const progressSchema = draftObject.partial().required({ deal: true, type: true, city: true });
+
+export type DraftProgress = z.infer<typeof progressSchema>;
+
+/** Validates a form part way through, for an autosaved draft. A draft is checked in full with `parseListingDraft` before it is sent for review. */
+export function parseDraftProgress(fields: Record<string, unknown>): DraftProgress | null {
+  // Blank means not filled in yet, which a required field like the price would otherwise refuse.
+  const result = progressSchema.safeParse(Object.fromEntries(Object.entries(fields).filter(([, value]) => value !== "")));
+  return result.success ? result.data : null;
+}
 
 /** Which fields of a draft are wrong, for a bulk import's report. A rule across several fields has no single name. */
 export function draftProblems(fields: Record<string, unknown>): string[] {
