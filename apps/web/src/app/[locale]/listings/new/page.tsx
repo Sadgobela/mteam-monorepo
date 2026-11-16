@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { hidesPhoneByDefault } from "@mteam/db";
 import { getDictionary } from "@mteam/shared";
 import { Header } from "@/components/Header";
 import { ListingForm } from "@/components/ListingForm";
@@ -47,7 +48,7 @@ export default async function NewListingPage({
             <Link href={`/${locale}/listings/new`}>{t.post.another}</Link>
           </>
         ) : (
-          <ListingForm locale={locale} t={t} />
+          <ListingForm locale={locale} t={t} hidePhoneDefault={await hidesPhoneByDefault(user.id)} />
         )}
       </main>
     </>

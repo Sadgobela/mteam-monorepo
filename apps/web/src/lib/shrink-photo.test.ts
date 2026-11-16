@@ -30,6 +30,12 @@ describe("shrinkPhoto", () => {
     expect(close).toHaveBeenCalled();
   });
 
+  it("takes a longer edge when asked, as listing photos do", async () => {
+    decodes(4000, 3000);
+    await shrinkPhoto(original, 2560);
+    expect(drawImage).toHaveBeenCalledWith(expect.anything(), 0, 0, 2560, 1920);
+  });
+
   it("does not enlarge a small photo", async () => {
     decodes(900, 1200);
     await shrinkPhoto(original);

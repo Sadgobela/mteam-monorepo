@@ -1,0 +1,7 @@
+/* The posting and editing form. */
+.photo-list { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
+.photo-list li { display: grid; gap: 6px; }
+.photo-list .ph { border-radius: 10px; overflow: hidden; }
+.photo-cover { position: absolute; left: 6px; top: 6px; padding: 2px 8px; border-radius: 999px; background: var(--action); color: var(--on-action); font-size: 12px; font-weight: 600; }
+.photo-tools { display: flex; gap: 4px; }
+.photo-tools .btn { flex: 1; min-height: 44px; padding: 0; }

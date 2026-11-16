@@ -37,7 +37,7 @@ Development runs entirely locally for now. These must be done before real users 
 - Real SMS provider (Georgia only; compare smsoffice.ge and others on price). Production refuses to issue codes until then.
 - Cloudflare R2 instead of local SeaweedFS (R2 needs a payment method on the account; change the `STORAGE_` values). If uploads ever go straight to R2, photos still need a server step that removes their metadata.
 - Set `LOGIN_CODE_SECRET` to the output of `openssl rand -hex 32`, never the example value.
-- Hosting: the proxy in front of the site must add the visitor's address as the last `x-forwarded-for` entry, because the limit on login codes trusts only that entry. It must also allow 55 MB requests to `/api/listings`.
+- Hosting: the proxy in front of the site must add the visitor's address as the last `x-forwarded-for` entry, because the limit on login codes trusts only that entry. It must also allow 4.5 MB requests to `/api/listings/photos`, which takes one photo at a time.
 - A map tile provider: the free OpenStreetMap tile server is for development only.
 - Set `SITE_URL` to the real address, or the sitemap and page links will point at localhost.
 - Sign in with Apple: needs the paid Apple Developer Program and the real HTTPS address, since Apple refuses localhost. Steps in `SOCIAL_LOGIN.md`. Google and Facebook need their production return address added too.

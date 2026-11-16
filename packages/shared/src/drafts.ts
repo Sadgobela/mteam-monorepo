@@ -9,8 +9,9 @@ export function parsePhone(input: string): string | null {
   return /^5\d{8}$/.test(national) ? `+995${national}` : null;
 }
 
-export const MAX_PHOTOS = 10;
-export const MAX_PHOTO_BYTES = 5 * 1024 * 1024;
+export const MAX_PHOTOS = 16;
+/** Photos go up one per request, and a Vercel function refuses a body over 4.5 MB, so one photo plus the form's framing must stay below that. */
+export const MAX_PHOTO_BYTES = 4 * 1024 * 1024;
 
 /** How the server names a stored photo, `listings/<uuid>.webp`, and its small copy, `listings/<uuid>_thumb.webp`. */
 const storedPhoto = /(\/listings\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})\.webp$/;

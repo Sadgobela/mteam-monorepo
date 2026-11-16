@@ -13,11 +13,11 @@ vi.mock("aws4fetch", () => ({
 }));
 
 import sharp from "sharp";
-import { oneAtATime, readPhotos, uploadPhoto } from "./photos";
+import { isUploadedPhoto, oneAtATime, readPhotos, uploadPhoto } from "./photos";
 
 const blank = (width = 8, height = 6) => sharp({ create: { width, height, channels: 3, background: "#986dc6" } });
 const file = (bytes: Uint8Array | number[], name = "a.jpg", type = "image/jpeg") => new File([new Uint8Array(bytes)], name, { type });
-const FIVE_MB = 5 * 1024 * 1024;
+const FOUR_MB = 4 * 1024 * 1024;
 
 let jpeg: Buffer;
 let png: Buffer;
@@ -30,15 +30,37 @@ beforeAll(async () => {
 });
 
 describe("readPhotos", () => {
-  it("recognises each format from its content and keeps it", async () => {
+  it("stores every format it recognises as WebP, with a small copy", async () => {
     const photos = (await readPhotos([file(jpeg), file(png), file(webp)])) ?? [];
     expect(photos.map((p) => [p.type, p.ext])).toEqual([
-      ["image/jpeg", "jpg"],
-      ["image/png", "png"],
+      ["image/webp", "webp"],
+      ["image/webp", "webp"],
       ["image/webp", "webp"],
     ]);
-    const decoded = await Promise.all(photos.map((p) => sharp(p.bytes).metadata()));
-    expect(decoded.map((d) => d.format)).toEqual(["jpeg", "png", "webp"]);
+    const decoded = await Promise.all(photos.flatMap((p) => [sharp(p.bytes).metadata(), sharp(p.thumb).metadata()]));
+    expect(new Set(decoded.map((d) => d.format))).toEqual(new Set(["webp"]));
+  });
+
+  it("brings a large photo down to 2048 pixels and its copy to 640, and never enlarges a small one", async () => {
+    // A camera-sized photo with edges and grain, so the sizes say something about real ones: about 1.1 MB as a JPEG,
+    // 330 KB as the stored WebP and 60 KB as its copy when this was written.
+    const width = 4032;
+    const height = 3024;
+    const pixels = Buffer.alloc(width * height * 3);
+    for (let i = 0; i < pixels.length; i++) {
+      const pixel = (i / 3) | 0;
+      pixels[i] = ((((pixel % width) >> 4) ^ ((pixel / width) >> 4)) * 5 + (i % 3) * 40 + (Math.imul(i, 2654435761) >>> 29)) & 255;
+    }
+    const camera = await sharp(pixels, { raw: { width, height, channels: 3 } }).jpeg({ quality: 90 }).toBuffer();
+    const [photo] = (await readPhotos([file(camera)])) ?? [];
+    const [main, thumb] = await Promise.all([sharp(photo.bytes).metadata(), sharp(photo.thumb).metadata()]);
+    expect([main.width, main.height]).toEqual([2048, 1536]);
+    expect([thumb.width, thumb.height]).toEqual([640, 480]);
+    expect(photo.bytes.length).toBeLessThan(camera.length / 2);
+    expect(photo.thumb.length).toBeLessThan(photo.bytes.length / 4);
+
+    const [small] = (await readPhotos([file(jpeg)])) ?? [];
+    expect((await sharp(small.bytes).metadata()).width).toBe(8);
   });
 
   it.each(["jpeg", "png", "webp"] as const)("leaves no GPS position or other metadata in a %s", async (format) => {
@@ -52,6 +74,7 @@ describe("readPhotos", () => {
     const [photo] = (await readPhotos([file(tagged)])) ?? [];
     expect((await sharp(photo.bytes).metadata()).exif).toBeUndefined();
     expect(Buffer.from(photo.bytes).includes("hidden-owner-note")).toBe(false);
+    expect((await sharp(photo.thumb).metadata()).exif).toBeUndefined();
   });
 
   it("applies a photo's rotation before dropping it", async () => {
@@ -79,7 +102,7 @@ describe("readPhotos", () => {
 
   it("rejects an image with too many pixels to decode safely", async () => {
     const huge = await blank(8000, 8000).png().toBuffer();
-    expect(huge.length).toBeLessThan(FIVE_MB);
+    expect(huge.length).toBeLessThan(FOUR_MB);
     expect(await readPhotos([file(huge)])).toBeNull();
   });
 
@@ -99,13 +122,13 @@ describe("readPhotos", () => {
     expect(await readPhotos([])).toBeNull();
   });
 
-  it("allows ten photos and no more", async () => {
-    expect(await readPhotos(Array.from({ length: 10 }, () => file(jpeg)))).toHaveLength(10);
-    expect(await readPhotos(Array.from({ length: 11 }, () => file(jpeg)))).toBeNull();
+  it("allows sixteen photos and no more", async () => {
+    expect(await readPhotos(Array.from({ length: 16 }, () => file(jpeg)))).toHaveLength(16);
+    expect(await readPhotos(Array.from({ length: 17 }, () => file(jpeg)))).toBeNull();
   });
 
-  it("allows 5 MB and no more", async () => {
-    const atLimit = Buffer.concat([jpeg, Buffer.alloc(FIVE_MB - jpeg.length)]);
+  it("allows 4 MB and no more", async () => {
+    const atLimit = Buffer.concat([jpeg, Buffer.alloc(FOUR_MB - jpeg.length)]);
     expect(await readPhotos([file(atLimit)])).toHaveLength(1);
     expect(await readPhotos([file(Buffer.concat([atLimit, Buffer.alloc(1)]))])).toBeNull();
   });
@@ -137,7 +160,7 @@ describe("oneAtATime", () => {
 });
 
 describe("uploadPhoto", () => {
-  const photo = { bytes: new Uint8Array([1, 2, 3]), type: "image/jpeg", ext: "jpg" };
+  const photo = { bytes: new Uint8Array([1, 2, 3]), thumb: new Uint8Array([4]), type: "image/webp", ext: "webp" } as const;
 
   beforeEach(() => {
     storage.fetch.mockReset();
@@ -151,15 +174,18 @@ describe("uploadPhoto", () => {
 
   afterEach(() => vi.unstubAllEnvs());
 
-  it("stores under a random key with the detected type and returns the public URL", async () => {
+  it("stores the copy and then the photo under one random name, cached for good, and returns the photo's public URL", async () => {
     storage.fetch.mockResolvedValue({ ok: true });
     const url = await uploadPhoto(photo);
 
-    const [target, init] = storage.fetch.mock.calls[0];
-    const key = /^http:\/\/localhost:8333\/photos\/(listings\/[0-9a-f-]{36}\.jpg)$/.exec(target)?.[1];
+    const [[thumbTarget, thumbInit], [target, init]] = storage.fetch.mock.calls;
+    const key = /^http:\/\/localhost:8333\/photos\/(listings\/[0-9a-f-]{36})\.webp$/.exec(target)?.[1];
     expect(key).toBeDefined();
-    expect(url).toBe(`https://cdn.example.com/${key}`);
-    expect(init).toEqual({ method: "PUT", body: photo.bytes, headers: { "content-type": "image/jpeg" } });
+    expect(thumbTarget).toBe(`http://localhost:8333/photos/${key}_thumb.webp`);
+    expect(url).toBe(`https://cdn.example.com/${key}.webp`);
+    const headers = { "content-type": "image/webp", "cache-control": "public, max-age=31536000, immutable" };
+    expect(init).toEqual({ method: "PUT", body: photo.bytes, headers });
+    expect(thumbInit).toEqual({ method: "PUT", body: photo.thumb, headers });
     expect(storage.options[0]).toEqual({ accessKeyId: "id", secretAccessKey: "secret", service: "s3", region: "auto" });
   });
 
@@ -172,5 +198,19 @@ describe("uploadPhoto", () => {
     vi.stubEnv("STORAGE_BUCKET", "");
     await expect(uploadPhoto(photo)).rejects.toThrow();
     expect(storage.fetch).not.toHaveBeenCalled();
+  });
+});
+
+describe("isUploadedPhoto", () => {
+  beforeEach(() => vi.stubEnv("STORAGE_PUBLIC_URL", "https://cdn.example.com"));
+  afterEach(() => vi.unstubAllEnvs());
+
+  it("accepts only addresses of our own uploads", () => {
+    expect(isUploadedPhoto("https://cdn.example.com/listings/0f8fad5b-d9cb-469f-a165-70867728950e.webp")).toBe(true);
+    expect(isUploadedPhoto("https://cdn.example.com/listings/0f8fad5b-d9cb-469f-a165-70867728950e_thumb.webp")).toBe(false);
+    expect(isUploadedPhoto("https://cdn.example.com/listings/0f8fad5b-d9cb-469f-a165-70867728950e.jpg")).toBe(false);
+    expect(isUploadedPhoto("https://cdn.example.com/listings/../avatars/x.jpg")).toBe(false);
+    expect(isUploadedPhoto("https://evil.test/listings/0f8fad5b-d9cb-469f-a165-70867728950e.jpg")).toBe(false);
+    expect(isUploadedPhoto("https://cdn.example.com.evil.test/listings/0f8fad5b-d9cb-469f-a165-70867728950e.jpg")).toBe(false);
   });
 });

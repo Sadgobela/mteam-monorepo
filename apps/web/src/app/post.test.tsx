@@ -9,11 +9,15 @@ const db = vi.hoisted(() => ({ getGelPerUsd: async () => 2.7,
   getFavoriteIds: vi.fn(async () => []),
   getHiddenIds: vi.fn(async () => []),
   listSimilarListings: vi.fn(async () => []),
+  hidesPhoneByDefault: vi.fn(),
+  getEditableListing: vi.fn(),
 }));
 const session = vi.hoisted(() => ({ currentUser: vi.fn(), hasSession: vi.fn() }));
 const router = vi.hoisted(() => ({ push: vi.fn() }));
 
 vi.mock("@mteam/db", () => db);
+// The browser redraw is tested on its own; here a chosen file goes up as it is.
+vi.mock("@/lib/shrink-photo", () => ({ shrinkPhoto: async (file: File) => file }));
 vi.mock("@/lib/session", () => session);
 vi.mock("@/lib/auth-actions", () => ({ logoutAction: vi.fn(), addPhoneAction: vi.fn(), loginAction: vi.fn() }));
 vi.mock("next/navigation", () => ({
@@ -59,41 +63,67 @@ import { ListingCard } from "@/components/ListingCard";
 import { ListingForm } from "@/components/ListingForm";
 import ListingPage from "./[locale]/listings/[id]/page";
 import NewListingPage from "./[locale]/listings/new/page";
+import EditListingPage from "./[locale]/listings/[id]/edit/page";
 
 const t = getDictionary("en");
 const server = vi.fn();
-const reply = (status: number, body: unknown = {}) => server.mockResolvedValue({ ok: status < 400, status, json: async () => body });
+const answer = (status: number, body: unknown) => ({ ok: status < 400, status, json: async () => body });
+/** The listing endpoint answers with `status` and `body`; each photo upload succeeds with the next address. */
+const reply = (status: number, body: unknown = { id: 7, status: "PENDING" }) => {
+  let uploads = 0;
+  server.mockImplementation(async (path: string) => (path === "/api/listings/photos" ? answer(200, { url: `https://cdn/u${++uploads}.webp` }) : answer(status, body)));
+};
+const sentTo = (path: string) => server.mock.calls.filter(([to]) => to === path).map(([, init]) => init.body as FormData);
+let previews = 0;
 beforeEach(() => {
   vi.resetAllMocks();
+  previews = 0;
   session.currentUser.mockResolvedValue({ id: "u1", phone: "+995555123456" });
   vi.stubGlobal("fetch", server);
+  vi.stubGlobal("URL", Object.assign(URL, { createObjectURL: () => `blob:${++previews}`, revokeObjectURL: vi.fn() }));
 });
 
 afterEach(() => vi.unstubAllGlobals());
+
+const choose = (...names: string[]) =>
+  fireEvent.change(screen.getByLabelText(t.post.fields.photos), { target: { files: names.map((name) => new File(["x"], name, { type: "image/jpeg" })) } });
+const formOf = (label: string) => screen.getByLabelText(label).closest("form") as HTMLFormElement;
 
 describe("ListingForm", () => {
   it("keeps what was typed and shows the error when the server rejects it", async () => {
     reply(422, { error: "invalid" });
     render(<ListingForm locale="en" t={t} />);
+    choose("a.jpg");
     const title = screen.getByLabelText(t.post.fields.title);
     fireEvent.change(title, { target: { value: "My flat" } });
-    fireEvent.submit(title.closest("form") as HTMLFormElement);
+    fireEvent.submit(formOf(t.post.fields.title));
 
     expect(await screen.findByRole("alert")).toHaveTextContent(t.post.errors.invalid);
     await waitFor(() => expect(title).toHaveValue("My flat"));
-    expect(server).toHaveBeenCalledWith("/api/listings", expect.objectContaining({ method: "POST" }));
+  });
+
+  it("asks for a photo before sending anything", async () => {
+    render(<ListingForm locale="en" t={t} />);
+    fireEvent.submit(formOf(t.post.fields.title));
+    expect(await screen.findByRole("alert")).toHaveTextContent(t.post.errors.photos);
+    expect(server).not.toHaveBeenCalled();
   });
 
   describe("sending", () => {
-    const send = () => {
+    const send = (...photos: string[]) => {
       render(<ListingForm locale="ka" t={t} />);
-      fireEvent.submit(screen.getByLabelText(t.post.fields.title).closest("form") as HTMLFormElement);
+      choose(...(photos.length ? photos : ["a.jpg"]));
+      fireEvent.submit(formOf(t.post.fields.title));
     };
 
-    it("confirms a listing the server accepted", async () => {
+    it("uploads each photo on its own, then sends the listing with their addresses in order, and confirms it", async () => {
       reply(200);
-      send();
+      send("a.jpg", "b.jpg");
       await waitFor(() => expect(router.push).toHaveBeenCalledWith("/ka/listings/new?sent=1"));
+      expect(sentTo("/api/listings/photos").map((body) => (body.get("photo") as File).name)).toEqual(["a.jpg", "b.jpg"]);
+      const [listing] = sentTo("/api/listings");
+      expect(listing.getAll("photos")).toEqual(["https://cdn/u1.webp", "https://cdn/u2.webp"]);
+      expect([listing.get("intent"), listing.get("id"), listing.get("hidePhone")]).toEqual(["submit", null, null]);
     });
 
     it("sends someone whose session ended to sign in", async () => {
@@ -115,43 +145,63 @@ describe("ListingForm", () => {
       expect(await screen.findByRole("alert")).toHaveTextContent(t.post.errors.save);
     });
 
-    it("shows the photo error from the server", async () => {
-      reply(422, { error: "photos" });
+    it.each([["photos"], ["tooMany"], ["missing"]] as const)("shows the %s error from the server", async (error) => {
+      reply(422, { error });
       send();
+      expect(await screen.findByRole("alert")).toHaveTextContent(t.post.errors[error]);
+    });
+
+    it("does not upload a photo twice when trying again after a failed upload", async () => {
+      let uploads = 0;
+      server.mockImplementation(async (path: string) =>
+        path === "/api/listings/photos" ? (++uploads === 2 ? answer(413, { error: "photos" }) : answer(200, { url: `https://cdn/u${uploads}.webp` })) : answer(200, { id: 7, status: "PENDING" }),
+      );
+      send("a.jpg", "b.jpg");
       expect(await screen.findByRole("alert")).toHaveTextContent(t.post.errors.photos);
+      fireEvent.submit(formOf(t.post.fields.title));
+      await waitFor(() => expect(router.push).toHaveBeenCalled());
+      expect(sentTo("/api/listings/photos").map((body) => (body.get("photo") as File).name)).toEqual(["a.jpg", "b.jpg", "b.jpg"]);
+      expect(sentTo("/api/listings")[0].getAll("photos")).toEqual(["https://cdn/u1.webp", "https://cdn/u3.webp"]);
     });
   });
 
-  it.each([
-    ["too many photos", Array.from({ length: 11 }, () => new File(["x"], "a.jpg"))],
-    ["an oversized photo", [new File([new Uint8Array(5 * 1024 * 1024 + 1)], "a.jpg")]],
-  ])("rejects %s in the browser without sending anything", async (_name, files) => {
-    render(<ListingForm locale="en" t={t} />);
-    // jsdom leaves assigned files out of FormData, so the submitted photos are supplied directly.
-    const getAll = vi.spyOn(FormData.prototype, "getAll").mockReturnValue(files);
-    fireEvent.submit(screen.getByLabelText(t.post.fields.photos).closest("form") as HTMLFormElement);
+  describe("photos", () => {
+    const shown = () => Array.from(document.querySelectorAll(".photo-list img")).map((image) => image.getAttribute("src"));
 
-    expect(await screen.findByRole("alert")).toHaveTextContent(t.post.errors.photos);
-    expect(server).not.toHaveBeenCalled();
-    getAll.mockRestore();
-  });
+    it("adds chosen photos after the ones there, marks the first as the main one, and reorders and removes them", () => {
+      render(<ListingForm locale="en" t={t} />);
+      choose("a.jpg", "b.jpg");
+      choose("c.jpg");
+      expect(shown()).toEqual(["blob:1", "blob:2", "blob:3"]);
+      expect(screen.getAllByText(t.post.fields.cover)).toHaveLength(1);
+      expect(screen.getByRole("button", { name: `${t.post.fields.photoEarlier} 1` })).toBeDisabled();
+      expect(screen.getByRole("button", { name: `${t.post.fields.photoLater} 3` })).toBeDisabled();
 
-  it("previews chosen photos and releases the previous ones", () => {
-    const created = vi.fn().mockReturnValueOnce("blob:one").mockReturnValueOnce("blob:two");
-    const revoked = vi.fn();
-    vi.stubGlobal("URL", Object.assign(URL, { createObjectURL: created, revokeObjectURL: revoked }));
-    const { container, unmount } = render(<ListingForm locale="en" t={t} />);
-    const input = screen.getByLabelText(t.post.fields.photos);
+      fireEvent.click(screen.getByRole("button", { name: `${t.post.fields.photoEarlier} 3` }));
+      expect(shown()).toEqual(["blob:1", "blob:3", "blob:2"]);
+      fireEvent.click(screen.getByRole("button", { name: `${t.post.fields.photoLater} 1` }));
+      expect(shown()).toEqual(["blob:3", "blob:1", "blob:2"]);
+      fireEvent.click(screen.getByRole("button", { name: `${t.post.fields.photoRemove} 2` }));
+      expect(shown()).toEqual(["blob:3", "blob:2"]);
+      expect(URL.revokeObjectURL).toHaveBeenCalledWith("blob:1");
+    });
 
-    expect(container.querySelector(".previews")).toBeNull();
-    fireEvent.change(input, { target: { files: [new File(["x"], "a.jpg")] } });
-    expect(container.querySelector(".previews img")).toHaveAttribute("src", "blob:one");
-    fireEvent.change(input, { target: { files: [new File(["y"], "b.jpg")] } });
-    expect(revoked).toHaveBeenCalledWith("blob:one");
-    expect(container.querySelector(".previews img")).toHaveAttribute("src", "blob:two");
-    unmount();
-    expect(revoked).toHaveBeenCalledWith("blob:two");
-    vi.unstubAllGlobals();
+    it("keeps at most sixteen and says so", () => {
+      render(<ListingForm locale="en" t={t} />);
+      choose(...Array.from({ length: 15 }, (_, index) => `${index}.jpg`));
+      choose("x.jpg", "y.jpg");
+      expect(shown()).toHaveLength(16);
+      expect(screen.getByRole("alert")).toHaveTextContent(t.post.errors.photos);
+      choose("z.jpg");
+      expect(shown()).toHaveLength(16);
+    });
+
+    it("releases the previews of chosen photos when the form goes away", () => {
+      const { unmount } = render(<ListingForm locale="en" t={t} />);
+      choose("a.jpg");
+      unmount();
+      expect(URL.revokeObjectURL).toHaveBeenCalledWith("blob:1");
+    });
   });
 
   describe("steps", () => {
@@ -256,6 +306,7 @@ describe("ListingForm", () => {
       render(<ListingForm locale="en" t={t} />);
       completeFirst();
       completeSecond();
+      choose("a.jpg");
       const button = screen.getByRole("button", { name: t.post.submit });
       fireEvent.submit(button.closest("form") as HTMLFormElement);
       await waitFor(() => expect(router.push).toHaveBeenCalledWith("/en/login?next=%2Fen%2Flistings%2Fnew"));
@@ -318,9 +369,12 @@ describe("NewListingPage", () => {
     await expect(NewListingPage({ params, searchParams: Promise.resolve({}) })).rejects.toThrow("REDIRECT /en/login?next=%2Fen%2Flistings%2Fnew");
   });
 
-  it("shows the form", async () => {
+  it("shows the form, with the number hidden when the user hides it by default", async () => {
+    db.hidesPhoneByDefault.mockResolvedValue(true);
     render(await NewListingPage({ params, searchParams: Promise.resolve({}) }));
     expect(screen.getByRole("button", { name: t.post.next })).toBeInTheDocument();
+    expect(db.hidesPhoneByDefault).toHaveBeenCalledWith("u1");
+    expect(screen.getByRole("checkbox", { name: t.post.fields.hidePhone, hidden: true })).toBeChecked();
   });
 
   it("asks someone without a phone to add one first", async () => {
@@ -335,6 +389,119 @@ describe("NewListingPage", () => {
     render(await NewListingPage({ params, searchParams: Promise.resolve({ sent: "1" }) }));
     expect(screen.getByRole("status")).toHaveTextContent(t.post.sent);
     expect(screen.queryByRole("button", { name: t.post.next })).toBeNull();
+  });
+});
+
+const editable = {
+  id: 9,
+  status: "ACTIVE" as const,
+  images: ["https://cdn/listings/old.webp"],
+  fields: {
+    deal: "rent",
+    type: "apartment",
+    city: "თბილისი",
+    district: "ვაკე",
+    street: "ჭავჭავაძე ი. გამზირი",
+    metro: "",
+    address: "Main 1",
+    building: "new",
+    price: "900",
+    currency: "USD",
+    area: "50",
+    rooms: "2",
+    floor: "3",
+    floors: "9",
+    title: "Flat",
+    description: "Sunny",
+    descriptionEn: "Sunny flat",
+    descriptionRu: "",
+    cadastralCode: "01.10",
+    hidePhone: "on",
+    lat: "41.7",
+    lng: "44.8",
+    features: "lift",
+  },
+};
+
+describe("editing a listing", () => {
+  it("fills the form in, keeps the photos it had, and sends the listing's id", async () => {
+    reply(200, { id: 9, status: "ACTIVE" });
+    render(<ListingForm locale="en" t={t} initial={editable} />);
+    expect(screen.getByLabelText(t.post.fields.title)).toHaveValue("Flat");
+    expect(screen.getByLabelText(t.post.fields.cadastralCode)).toHaveValue("01.10");
+    expect(screen.getByLabelText(t.post.fields.descriptionEn)).toHaveValue("Sunny flat");
+    expect(screen.getByLabelText(t.search.deal)).toHaveValue("rent");
+    expect(await screen.findByLabelText(t.post.fields.street)).toHaveValue("ჭავჭავაძე ი. გამზირი");
+    expect(screen.getByRole("checkbox", { name: t.post.fields.hidePhone, hidden: true })).toBeChecked();
+    expect(document.querySelector(".photo-list img")).toHaveAttribute("src", "https://cdn/listings/old.webp");
+
+    fireEvent.click(screen.getByRole("button", { name: t.post.next }));
+    fireEvent.click(screen.getByRole("button", { name: t.post.next }));
+    fireEvent.click(screen.getByRole("button", { name: t.post.save }));
+    await waitFor(() => expect(router.push).toHaveBeenCalledWith("/en/listings/9/edit?saved=1"));
+    expect(sentTo("/api/listings/photos")).toHaveLength(0);
+    const [listing] = sentTo("/api/listings");
+    expect([listing.get("id"), listing.get("hidePhone"), listing.getAll("photos")]).toEqual(["9", "on", ["https://cdn/listings/old.webp"]]);
+  });
+
+  it("forgets the saved street once another district is chosen", async () => {
+    render(<ListingForm locale="en" t={t} initial={editable} />);
+    await screen.findByLabelText(t.post.fields.street);
+    fireEvent.change(screen.getByLabelText(t.post.fields.district), { target: { value: "საბურთალო" } });
+    expect(screen.getByLabelText(t.post.fields.street)).toHaveValue("");
+  });
+
+  it("sends a reopened draft for review like a new listing", async () => {
+    reply(200, { id: 9, status: "PENDING" });
+    render(<ListingForm locale="en" t={t} initial={{ ...editable, status: "DRAFT", fields: { deal: "sale", type: "apartment", city: "თბილისი" } }} />);
+    expect(screen.queryByRole("checkbox", { name: t.post.fields.hidePhone, hidden: true })).not.toBeChecked();
+    fireEvent.submit(formOf(t.post.fields.title));
+    await waitFor(() => expect(router.push).toHaveBeenCalledWith("/en/listings/new?sent=1"));
+  });
+
+  it("sends someone whose session ended back to this edit after signing in", async () => {
+    reply(401, { error: "signedOut" });
+    render(<ListingForm locale="en" t={t} initial={editable} />);
+    fireEvent.submit(formOf(t.post.fields.title));
+    await waitFor(() => expect(router.push).toHaveBeenCalledWith("/en/login?next=%2Fen%2Flistings%2F9%2Fedit"));
+  });
+});
+
+describe("EditListingPage", () => {
+  const open = (saved?: string) => EditListingPage({ params: Promise.resolve({ locale: "en", id: "9" }), searchParams: Promise.resolve({ saved }) });
+
+  it("requires a valid session", async () => {
+    session.currentUser.mockResolvedValue(null);
+    await expect(open()).rejects.toThrow("REDIRECT /en/login?next=%2Fen%2Flistings%2F9%2Fedit");
+  });
+
+  it("finds nothing for a listing that is not the user's to edit", async () => {
+    db.getEditableListing.mockResolvedValue(null);
+    await expect(open()).rejects.toThrow("NEXT_NOT_FOUND");
+    expect(db.getEditableListing).toHaveBeenCalledWith("u1", "9");
+  });
+
+  it("shows the owner's listing in the form", async () => {
+    db.getEditableListing.mockResolvedValue(editable);
+    render(await open());
+    expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent(t.post.editHeading);
+    expect(screen.getByLabelText(t.post.fields.title)).toHaveValue("Flat");
+  });
+
+  it("opens a draft under the posting heading", async () => {
+    db.getEditableListing.mockResolvedValue({ ...editable, status: "DRAFT" });
+    render(await open());
+    expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent(t.post.heading);
+  });
+
+  it.each([
+    ["ACTIVE", t.post.savedLive],
+    ["PENDING", t.post.savedReview],
+  ] as const)("after saving, says what became of a listing now %s", async (status, note) => {
+    db.getEditableListing.mockResolvedValue({ ...editable, status });
+    render(await open("1"));
+    expect(screen.getByRole("status")).toHaveTextContent(note);
+    expect(screen.getByRole("link", { name: t.post.toMyListings })).toHaveAttribute("href", "/en/my-listings");
   });
 });
 
@@ -374,6 +541,17 @@ describe("listing photos", () => {
     db.getListing.mockResolvedValue({ ...fixtureListings[0], lat: 41.7 });
     render(await ListingPage({ params: Promise.resolve({ locale: "en", id: "20418" }), searchParams: Promise.resolve({}) }));
     expect(screen.queryByRole("region", { name: t.results.map })).toBeNull();
+  });
+
+  it("offers the number only when the owner has not hidden it", async () => {
+    db.getListing.mockResolvedValue({ ...fixtureListings[0], hidePhone: true });
+    const hidden = render(await ListingPage({ params: Promise.resolve({ locale: "en", id: "20418" }), searchParams: Promise.resolve({}) }));
+    expect(screen.queryByRole("button", { name: new RegExp(t.listing.showPhone) })).toBeNull();
+    expect(hidden.container.textContent).not.toContain("+995 555");
+    hidden.unmount();
+    db.getListing.mockResolvedValue(fixtureListings[0]);
+    render(await ListingPage({ params: Promise.resolve({ locale: "en", id: "20418" }), searchParams: Promise.resolve({}) }));
+    expect(screen.getByRole("button", { name: new RegExp(t.listing.showPhone) })).toBeInTheDocument();
   });
 
   it("omits the rooms fact for property without rooms", async () => {
