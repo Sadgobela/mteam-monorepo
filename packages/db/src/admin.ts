@@ -52,7 +52,7 @@ export async function verifyListing(agentId: string, id: number): Promise<void> 
 export async function listOpenLeads() {
   return db().lead.findMany({
     where: { status: { in: ["NEW", "CONTACTED"] } },
-    select: { id: true, name: true, phone: true, deal: true, search: true, status: true, createdAt: true },
+    select: { id: true, name: true, phone: true, deal: true, search: true, listingId: true, status: true, createdAt: true },
     orderBy: { createdAt: "desc" },
     take: QUEUE_LIMIT,
   });

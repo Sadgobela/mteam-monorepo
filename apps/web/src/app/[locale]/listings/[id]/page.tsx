@@ -25,6 +25,7 @@ import { ReportListing } from "@/components/ReportListing";
 import { ShareButton } from "@/components/ShareButton";
 import type { Query } from "@/lib/url";
 import { LoginLink } from "@/components/LoginLink";
+import { VerifyRequest } from "@/components/VerifyRequest";
 
 export const dynamic = "force-dynamic";
 
@@ -184,6 +185,8 @@ export default async function ListingPage({
             <ReportListing listingId={listing.id} t={t} />
           </div>
           {listing.marketLevel !== undefined && <MarketScale level={listing.marketLevel} t={t} />}
+          {/* Only active listings are shown here, so this is an owner's active listing that no broker has checked. */}
+          {user?.id === listing.sellerId && !listing.verified && !listing.agent && <VerifyRequest listingId={listing.id} locale={locale} t={t} hasPhone={user.phone !== null} />}
           {listing.verified && (
             <div className="note">
               <b>MTeam Verified</b>

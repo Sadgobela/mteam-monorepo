@@ -117,6 +117,13 @@ describe("BrokerPage", () => {
     expect(screen.getByText(t.search.empty)).toBeInTheDocument();
   });
 
+  it("shows the broker's photo and bio", async () => {
+    db.getBroker.mockResolvedValue({ ...broker, photoUrl: "https://img.example/nino.jpg", bio: "Twelve years in Vake.", listings: [] });
+    const { container } = render(await BrokerPage({ params }));
+    expect(container.querySelector(".broker-photo img")).toHaveAttribute("src", "https://img.example/nino.jpg");
+    expect(screen.getByText("Twelve years in Vake.")).toBeInTheDocument();
+  });
+
   it("is a 404 for an unknown broker", async () => {
     db.getBroker.mockResolvedValue(null);
     await expect(BrokerPage({ params })).rejects.toThrow("NEXT_NOT_FOUND");

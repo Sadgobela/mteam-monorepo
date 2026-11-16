@@ -4,8 +4,8 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { Dict, Locale } from "@mteam/shared";
 
-/** The account area's own pages, marking the one that is open. Scrolls sideways on a phone. */
-export function AccountNav({ locale, t }: { locale: Locale; t: Dict }) {
+/** The account area's own pages, marking the one that is open. Scrolls sideways on a phone. A broker also gets their broker profile. */
+export function AccountNav({ locale, t, role }: { locale: Locale; t: Dict; role?: string }) {
   const path = usePathname();
   const links = [
     { href: `/${locale}/my-listings`, text: t.nav.my },
@@ -14,6 +14,7 @@ export function AccountNav({ locale, t }: { locale: Locale; t: Dict }) {
     { href: `/${locale}/saved`, text: t.nav.saved },
     { href: `/${locale}/account/notifications`, text: t.account.notifications },
     { href: `/${locale}/account/profile`, text: t.account.profile },
+    ...(role === "AGENT" ? [{ href: `/${locale}/account/broker`, text: t.brokersAdmin.profile }] : []),
     { href: `/${locale}/account/settings`, text: t.account.settings },
   ];
   return (

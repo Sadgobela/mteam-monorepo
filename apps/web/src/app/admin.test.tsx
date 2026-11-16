@@ -131,7 +131,7 @@ describe("markLeadContactedAction", () => {
 });
 
 describe("AdminPage", () => {
-  const lead = (status: string, deal: string) => ({ id: `l-${status}`, name: `N-${status}`, phone: "+995555", deal, status, createdAt: new Date("2026-11-06T10:00:00Z") });
+  const lead = (status: string, deal: string) => ({ id: `l-${status}`, name: `N-${status}`, phone: "+995555", deal, status, search: null, listingId: null, createdAt: new Date("2026-11-06T10:00:00Z") });
 
   it.each([[null], [user]])("is a 404 for non-staff", async (who) => {
     session.currentUser.mockResolvedValue(who);
@@ -143,13 +143,19 @@ describe("AdminPage", () => {
     session.currentUser.mockResolvedValue(admin);
     db.listPendingListings.mockResolvedValue([{ ...fixtureListings[0], images: ["https://cdn/a.jpg"] }]);
     db.listUnverifiedListings.mockResolvedValue([fixtureListings[1]]);
-    db.listOpenLeads.mockResolvedValue([lead("NEW", "SALE"), lead("CONTACTED", "RENT"), { ...lead("NEW", "DAILY"), id: "l-seek", search: "deal=daily&rooms=2" }]);
+    db.listOpenLeads.mockResolvedValue([
+      lead("NEW", "SALE"),
+      lead("CONTACTED", "RENT"),
+      { ...lead("NEW", "DAILY"), id: "l-seek", search: "deal=daily&rooms=2" },
+      { ...lead("NEW", "SALE"), id: "l-verify", listingId: 7 },
+    ]);
     render(await AdminPage({ params }));
     expect(screen.getByRole("button", { name: t.admin.approve })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: t.admin.reject })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: t.admin.verify })).toBeInTheDocument();
-    expect(screen.getAllByRole("button", { name: t.admin.contacted })).toHaveLength(2);
+    expect(screen.getAllByRole("button", { name: t.admin.contacted })).toHaveLength(3);
     expect(screen.getByRole("link", { name: t.admin.seeking })).toHaveAttribute("href", "/en?deal=daily&rooms=2");
+    expect(screen.getByRole("link", { name: "Verify request: listing 7" })).toHaveAttribute("href", "/en/listings/7");
     expect(screen.getByText(t.admin.contactedDone)).toBeInTheDocument();
     expect(screen.getAllByRole("link", { name: "+995555" })[0]).toHaveAttribute("href", "tel:+995555");
   });

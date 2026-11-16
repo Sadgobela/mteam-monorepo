@@ -18,6 +18,7 @@ vi.mock("@/lib/auth-actions", () => ({ logoutAction: vi.fn() }));
 vi.mock("@/lib/account-actions", () => ({ setHiddenAction: vi.fn(), setFavoriteAction: vi.fn() }));
 vi.mock("@/lib/report-actions", () => ({ reportListingAction: vi.fn() }));
 vi.mock("@/lib/lead-actions", () => ({ leadAction: vi.fn() }));
+vi.mock("@/lib/invite-actions", () => ({ requestVerifyAction: vi.fn() }));
 vi.mock("next/navigation", () => ({
   usePathname: () => null,
   useSearchParams: () => null,
@@ -92,6 +93,31 @@ describe("listing page extras", () => {
     db.listSimilarListings.mockResolvedValue([rental]);
     await open();
     expect(screen.getByRole("heading", { name: "Similar listings" })).toBeInTheDocument();
+  });
+
+  it("offers verification only to the owner of an unverified listing without a broker", async () => {
+    const ask = () => screen.queryByRole("button", { name: "Ask MTeam to verify" });
+    session.currentUser.mockResolvedValue({ id: "seller1", phone: "+995555000000" });
+    db.getListing.mockResolvedValue(rental);
+    const first = await open();
+    expect(ask()).toBeInTheDocument();
+    first.unmount();
+    session.currentUser.mockResolvedValue({ id: "seller1", phone: null });
+    const phoneless = await open();
+    expect(ask()).toBeNull();
+    expect(screen.getByRole("link", { name: "Open profile" })).toHaveAttribute("href", "/en/account/profile");
+    phoneless.unmount();
+    session.currentUser.mockResolvedValue({ id: "seller1", phone: "+995555000000" });
+    for (const listing of [owned, { ...brokered, verified: false }]) {
+      db.getListing.mockResolvedValue(listing);
+      const { unmount } = await open();
+      expect(ask()).toBeNull();
+      unmount();
+    }
+    session.currentUser.mockResolvedValue({ id: "u1" });
+    db.getListing.mockResolvedValue(rental);
+    await open();
+    expect(ask()).toBeNull();
   });
 
   it("offers the loan calculator on sales in the chosen currency, and not on rentals", async () => {

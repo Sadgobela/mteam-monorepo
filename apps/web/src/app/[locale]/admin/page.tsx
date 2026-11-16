@@ -52,6 +52,7 @@ export default async function AdminPage({ params }: { params: Promise<{ locale: 
       <Header locale={locale} t={t} signedIn />
       <main className="page">
         <h1 className="heading">{t.admin.heading}</h1>
+        {isAdmin && <Link href={`/${locale}/admin/brokers`} className="btn ghost">{t.brokersAdmin.link}</Link>}
 
         {isAdmin && (
           <section className="queue">
@@ -119,7 +120,13 @@ export default async function AdminPage({ params }: { params: Promise<{ locale: 
                 <div>
                   <b>{lead.name}</b>
                   <div className="meta">
-                    <a href={`tel:${lead.phone}`}>{lead.phone}</a> · {lead.search ? <a href={`/${locale}?${lead.search}`}>{t.admin.seeking}</a> : t.deal[lead.deal === "SALE" ? "sale" : "rent"]} · {formatDay(lead.createdAt.toISOString(), locale)}
+                    <a href={`tel:${lead.phone}`}>{lead.phone}</a> · {lead.listingId !== null ? (
+                      <a href={`/${locale}/listings/${lead.listingId}`}>{t.brokersAdmin.verifyRequest.replace("{id}", String(lead.listingId))}</a>
+                    ) : lead.search ? (
+                      <a href={`/${locale}?${lead.search}`}>{t.admin.seeking}</a>
+                    ) : (
+                      t.deal[lead.deal === "SALE" ? "sale" : "rent"]
+                    )} · {formatDay(lead.createdAt.toISOString(), locale)}
                   </div>
                 </div>
                 {lead.status === "NEW" ? (
