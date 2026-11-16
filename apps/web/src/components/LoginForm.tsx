@@ -4,6 +4,7 @@ import { useActionState, useEffect, useRef, useState } from "react";
 import { Input } from "antd";
 import type { Dict, Locale } from "@mteam/shared";
 import { loginAction, type LoginState } from "@/lib/auth-actions";
+import { SubmitButton } from "./SubmitButton";
 
 type Action = (previous: LoginState, form: FormData) => Promise<LoginState>;
 
@@ -48,8 +49,8 @@ export function LoginForm({ locale, t, next, action: submit = loginAction, verif
               }}
             />
           </div>
-          <button className="btn" type="submit" disabled={pending || code.length < 6}>{verifyLabel}</button>
-          <button className="link-button" type="submit" name="change" value="1" formNoValidate>{t.login.change}</button>
+          <SubmitButton pending={pending} disabled={code.length < 6}>{verifyLabel}</SubmitButton>
+          <SubmitButton pending={pending} className="link-button" name="change" value="1" formNoValidate>{t.login.change}</SubmitButton>
         </>
       ) : (
         <>
@@ -60,7 +61,7 @@ export function LoginForm({ locale, t, next, action: submit = loginAction, verif
               <input id="login-phone" name="phone" type="tel" required autoComplete="tel-national" inputMode="tel" placeholder="5XX XX XX XX" autoFocus />
             </span>
           </div>
-          <button className="btn" type="submit" disabled={pending}>{t.login.send}</button>
+          <SubmitButton pending={pending}>{t.login.send}</SubmitButton>
         </>
       )}
       {state.error && <p className="note" role="alert">{t.login.errors[state.error]}</p>}

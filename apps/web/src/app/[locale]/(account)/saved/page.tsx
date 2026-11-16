@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { listSavedSearches } from "@mteam/db";
 import { getDictionary } from "@mteam/shared";
 import { EmptyState } from "@/components/EmptyState";
+import { SubmitButton } from "@/components/SubmitButton";
 import { deleteSavedSearchAction, openSavedSearchAction } from "@/lib/account-actions";
 import { resolveLocale } from "@/lib/locale";
 import { searchName } from "@/lib/seo";
@@ -39,11 +40,11 @@ export default async function SavedSearchesPage({ params }: { params: Promise<{ 
                 <div className="queue-actions">
                   <form action={openSavedSearchAction}>
                     {hidden(search.id)}
-                    <button type="submit" className="btn">{t.saved.open}</button>
+                    <SubmitButton>{t.saved.open}</SubmitButton>
                   </form>
                   <form action={deleteSavedSearchAction}>
                     {hidden(search.id)}
-                    <button type="submit" className="btn ghost">{t.saved.remove}</button>
+                    <SubmitButton className="btn ghost">{t.saved.remove}</SubmitButton>
                   </form>
                 </div>
               </li>

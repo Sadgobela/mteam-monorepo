@@ -4,6 +4,7 @@ import { useActionState } from "react";
 import type { Dict } from "@mteam/shared";
 import { leadAction } from "@/lib/lead-actions";
 import { FormSelect } from "./FormSelect";
+import { SubmitButton } from "./SubmitButton";
 
 /** An owner's request to hand a property to MTeam, or, given a search, a request for a broker to find a property like it. */
 export function LeadForm({ t, seek }: { t: Dict; seek?: { search: string; deal: string } }) {
@@ -35,7 +36,7 @@ export function LeadForm({ t, seek }: { t: Dict; seek?: { search: string; deal: 
           ]}
         />
       )}
-      <button className="btn lead-submit" type="submit" disabled={pending}>{seek ? t.assistant.brokerSubmit : t.home.leadSubmit}</button>
+      <SubmitButton className="btn lead-submit" pending={pending}>{seek ? t.assistant.brokerSubmit : t.home.leadSubmit}</SubmitButton>
       {state.invalid && <p className="note lead-error" role="alert">{t.home.leadInvalid}</p>}
       {state.failed && <p className="note lead-error" role="alert">{t.home.leadFailed}</p>}
     </form>

@@ -8,6 +8,7 @@ import { LanguageMenu } from "./LanguageMenu";
 import { Logo } from "./Logo";
 import { PhoneMenu } from "./PhoneMenu";
 import { ThemeToggle } from "./ThemeToggle";
+import { SubmitButton } from "./SubmitButton";
 import { LoginLink } from "./LoginLink";
 import { NotificationBell } from "./NotificationBell";
 
@@ -30,7 +31,7 @@ export function Header({ locale, t, signedIn, onLoginPage = false }: { locale: L
   const session = signedIn ? (
     <form action={logoutAction}>
       <input type="hidden" name="locale" value={locale} />
-      <button type="submit" className="btn ghost">{t.nav.logout}</button>
+      <SubmitButton className="btn ghost">{t.nav.logout}</SubmitButton>
     </form>
   ) : onLoginPage ? null : (
     // Not on the sign-in page itself, where it would open the same form over it.

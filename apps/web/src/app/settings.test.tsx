@@ -1,5 +1,6 @@
 import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { App } from "antd";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const db = vi.hoisted(() => ({
@@ -123,12 +124,13 @@ describe("settings page", () => {
 
 describe("preference switch", () => {
   it("saves a flip straight away", async () => {
-    render(await SettingsPage({ params }));
+    render(<App>{await SettingsPage({ params })}</App>);
     const messages = screen.getByRole("switch", { name: "New chat messages" });
     await userEvent.click(messages);
     await waitFor(() => expect(db.setPreference).toHaveBeenCalledWith("u1", "notifyMessages", false));
     expect(messages).not.toBeChecked();
-    expect(screen.queryByRole("alert")).toBeNull();
+    expect(await screen.findByText("Saved")).toBeInTheDocument();
+    expect(screen.queryByText("That could not be saved. Please try again.")).toBeNull();
   });
 
   it("flips back and says so when it could not be saved", async () => {

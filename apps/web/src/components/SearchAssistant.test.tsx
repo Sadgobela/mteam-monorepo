@@ -22,6 +22,7 @@ describe("SearchAssistant", () => {
     expect(screen.getByText("What type of property?")).toBeInTheDocument();
     await waitFor(() => expect(results()).toHaveTextContent("Show 9 listings"));
     expect(results()).toHaveAttribute("href", "/en?deal=sale");
+    expect(results()).not.toHaveAttribute("aria-busy");
 
     click("Land");
     click("Any");
@@ -41,6 +42,8 @@ describe("SearchAssistant", () => {
     render(<SearchAssistant gelPerUsd={2.7} locale="en" t={getDictionary("en")} />);
     click("Rent");
     expect(results()).toHaveTextContent("Show results");
+    // With a spinner meanwhile, under the same name.
+    expect(results()).toHaveAttribute("aria-busy", "true");
     expect(screen.queryByText(/An MTeam broker/)).toBeNull();
 
     click("Apartment");

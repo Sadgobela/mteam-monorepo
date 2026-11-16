@@ -4,6 +4,7 @@ import { useActionState } from "react";
 import Link from "next/link";
 import type { Dict, Locale } from "@mteam/shared";
 import { requestVerifyAction } from "@/lib/invite-actions";
+import { SubmitButton } from "./SubmitButton";
 import "@/app/brokers.css";
 
 /**
@@ -27,7 +28,7 @@ export function VerifyRequest({ listingId, locale, t, hasPhone }: { listingId: n
       <input type="hidden" name="locale" value={locale} />
       <input type="hidden" name="listingId" value={listingId} />
       <p>{copy.verifyLead}</p>
-      <button type="submit" className="btn" disabled={pending}>{copy.verifyAsk}</button>
+      <SubmitButton pending={pending}>{copy.verifyAsk}</SubmitButton>
       {state.failed && <p role="alert">{copy.verifyFailed}</p>}
     </form>
   );

@@ -1,9 +1,11 @@
 import { redirect } from "next/navigation";
 import { getPreferences, listDevices, listPushEndpoints } from "@mteam/db";
 import { getDictionary, type Dict } from "@mteam/shared";
+import { ActionForm } from "@/components/ActionForm";
 import { ConfirmSubmit } from "@/components/ConfirmSubmit";
 import { PreferenceSwitch } from "@/components/PreferenceSwitch";
 import { PushDevice } from "@/components/PushDevice";
+import { SubmitButton } from "@/components/SubmitButton";
 import { resolveLocale } from "@/lib/locale";
 import { loginPath } from "@/lib/login-path";
 import { vapidPublicKey } from "@/lib/push";
@@ -54,7 +56,7 @@ export default async function SettingsPage({ params }: { params: Promise<{ local
   const time = new Intl.DateTimeFormat(locale, { dateStyle: "medium", timeStyle: "short", timeZone: "Asia/Tbilisi" });
   const localeField = <input type="hidden" name="locale" value={locale} />;
   const notify = (["notifyMessages", "notifySavedSearches", "notifyPriceDrops", "notifyListingUpdates"] as const).map((name) => (
-    <PreferenceSwitch key={name} name={name} label={s[name]} checked={preferences[name]} failed={s.saveFailed} />
+    <PreferenceSwitch key={name} name={name} label={s[name]} checked={preferences[name]} failed={s.saveFailed} saved={t.feedback.saved} />
   ));
 
   return (
@@ -78,7 +80,7 @@ export default async function SettingsPage({ params }: { params: Promise<{ local
 
       <section className="settings-card" aria-labelledby="settings-privacy">
         <h2 id="settings-privacy">{s.privacyHeading}</h2>
-        <PreferenceSwitch name="hidePhoneDefault" label={s.hidePhoneDefault} hint={s.hidePhoneHint} checked={preferences.hidePhoneDefault} failed={s.saveFailed} />
+        <PreferenceSwitch name="hidePhoneDefault" label={s.hidePhoneDefault} hint={s.hidePhoneHint} checked={preferences.hidePhoneDefault} failed={s.saveFailed} saved={t.feedback.saved} />
       </section>
 
       <section className="settings-card" aria-labelledby="settings-devices">
@@ -95,7 +97,7 @@ export default async function SettingsPage({ params }: { params: Promise<{ local
                 <form action={signOutDeviceAction}>
                   {localeField}
                   <input type="hidden" name="id" value={device.id} />
-                  <button type="submit" className="btn ghost">{s.signOut}</button>
+                  <SubmitButton className="btn ghost">{s.signOut}</SubmitButton>
                 </form>
               )}
             </li>
@@ -104,7 +106,7 @@ export default async function SettingsPage({ params }: { params: Promise<{ local
         {devices.some((device) => !device.current) && (
           <form action={signOutOthersAction}>
             {localeField}
-            <button type="submit" className="btn ghost">{s.signOutOthers}</button>
+            <SubmitButton className="btn ghost">{s.signOutOthers}</SubmitButton>
           </form>
         )}
       </section>
@@ -119,10 +121,10 @@ export default async function SettingsPage({ params }: { params: Promise<{ local
                 <li key={line}>{line}</li>
               ))}
             </ul>
-            <form action={deleteAccountAction}>
+            <ActionForm action={deleteAccountAction} failed={t.feedback.failed}>
               {localeField}
               <ConfirmSubmit label={s.deleteButton} question={s.deleteQuestion} yes={s.deleteYes} no={s.deleteNo} name="confirm" value="yes" />
-            </form>
+            </ActionForm>
           </>
         ) : (
           <p className="settings-hint">{s.deleteStaff}</p>

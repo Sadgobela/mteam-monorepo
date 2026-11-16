@@ -3,6 +3,7 @@
 import { useActionState, useState } from "react";
 import type { Dict, Locale } from "@mteam/shared";
 import { FormSelect } from "@/components/FormSelect";
+import { SubmitButton } from "@/components/SubmitButton";
 import { createInviteAction } from "@/lib/invite-actions";
 
 /** The new link, with a button that copies it. Keyed by the link, so "Copied" starts over for the next one. */
@@ -36,7 +37,7 @@ export function InviteCreator({ locale, t, branches }: { locale: Locale; t: Dict
       <form action={action} className="form-row invite-form">
         <input type="hidden" name="locale" value={locale} />
         <FormSelect name="branchId" label={t.brokersAdmin.branch} optional options={branches.map(({ id, name }) => ({ value: id, label: name }))} />
-        <button type="submit" className="btn" disabled={pending}>{t.brokersAdmin.create}</button>
+        <SubmitButton pending={pending}>{t.brokersAdmin.create}</SubmitButton>
       </form>
       {state.link && <CopyLink key={state.link} link={state.link} t={t} />}
       {state.failed && <p className="note" role="alert">{t.brokersAdmin.failed}</p>}

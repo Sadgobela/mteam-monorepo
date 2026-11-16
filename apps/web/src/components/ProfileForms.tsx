@@ -11,6 +11,7 @@ import { shrinkPhoto } from "@/lib/shrink-photo";
 import { onboardAction, saveProfileAction } from "@/lib/profile-actions";
 import { Avatar } from "./Avatar";
 import { ChoicePills } from "./ChoicePills";
+import { SubmitButton } from "./SubmitButton";
 import "@/app/profile.css";
 
 export type Intent = "SEEKING" | "OWNER" | "BROKER";
@@ -60,9 +61,7 @@ export function OnboardingForm({ locale, t, next, name }: { locale: Locale; t: D
           {t.profile.invalid}
         </p>
       )}
-      <button className="btn" type="submit" disabled={pending}>
-        {t.profile.start}
-      </button>
+      <SubmitButton pending={pending}>{t.profile.start}</SubmitButton>
     </form>
   );
 }
@@ -83,9 +82,7 @@ export function ProfileForm({ locale, t, name, intent }: { locale: Locale; t: Di
           {t.profile.saved}
         </p>
       )}
-      <button className="btn" type="submit" disabled={pending}>
-        {t.profile.save}
-      </button>
+      <SubmitButton pending={pending}>{t.profile.save}</SubmitButton>
     </form>
   );
 }
@@ -135,7 +132,7 @@ export function AvatarUpload({ locale, t, name, url, joined }: { locale: Locale;
       <div>
         {name && <b>{name}</b>}
         <span className="meta">{joined}</span>
-        <label className="btn ghost avatar-change" aria-disabled={pending}>
+        <label className="btn ghost avatar-change" aria-disabled={pending} aria-busy={pending}>
           <input type="file" accept="image/jpeg,image/png,image/webp" aria-label={t.profile.photo} disabled={pending} onChange={upload} />
           {t.profile.photoChange}
         </label>

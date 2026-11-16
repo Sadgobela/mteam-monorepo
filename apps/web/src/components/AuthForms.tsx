@@ -4,6 +4,7 @@ import { startTransition, useActionState, useEffect, useState, type FormEvent, t
 import { Tabs } from "antd";
 import type { Dict, Locale } from "@mteam/shared";
 import { emailSignInAction, registerAction, type AuthState } from "@/lib/password-actions";
+import { SubmitButton } from "./SubmitButton";
 
 type Action = (previous: AuthState, form: FormData) => Promise<AuthState>;
 
@@ -25,7 +26,7 @@ export function AuthForm({ action, t, submit, children }: { action: Action; t: D
   return (
     <form className="form" onSubmit={onSubmit}>
       {children}
-      <button className="btn" type="submit" disabled={pending}>{submit}</button>
+      <SubmitButton pending={pending}>{submit}</SubmitButton>
       {state.error && <p className="note" role="alert">{t.auth.errors[state.error]}</p>}
       {state.notice && <p className="note" role="status">{t.auth.notices[state.notice]}</p>}
     </form>

@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { listNotifications } from "@mteam/db";
 import { formatDay, getDictionary } from "@mteam/shared";
 import { EmptyState } from "@/components/EmptyState";
+import { SubmitButton } from "@/components/SubmitButton";
 import { resolveLocale } from "@/lib/locale";
 import { loginPath } from "@/lib/login-path";
 import { noticeSubject, noticeText } from "@/lib/notice-text";
@@ -24,7 +25,7 @@ export default async function NotificationsPage({ params }: { params: Promise<{ 
         {notices.some((notice) => !notice.read) && (
           <form action={markAllNotificationsReadAction}>
             <input type="hidden" name="locale" value={locale} />
-            <button type="submit" className="btn ghost">{t.notifications.markAllRead}</button>
+            <SubmitButton className="btn ghost">{t.notifications.markAllRead}</SubmitButton>
           </form>
         )}
       </div>
@@ -36,14 +37,14 @@ export default async function NotificationsPage({ params }: { params: Promise<{ 
             <form action={openNotificationAction}>
               <input type="hidden" name="locale" value={locale} />
               <input type="hidden" name="id" value={notice.id} />
-              <button type="submit" className={notice.read ? "notice" : "notice unread"}>
+              <SubmitButton className={notice.read ? "notice" : "notice unread"}>
                 <span className="notice-text">{noticeText(notice, t, locale)}</span>
                 <span className="notice-meta">
                   {!notice.read && <span className="notice-new">{t.notifications.unread}</span>}
                   <span>{noticeSubject(notice, t, locale)}</span>
                   <time dateTime={notice.at.toISOString()}>{formatDay(notice.at.toISOString(), locale)}</time>
                 </span>
-              </button>
+              </SubmitButton>
             </form>
           </li>
         ))}

@@ -1,15 +1,7 @@
 import type { DisplayCurrency, Dict, Listing, Locale } from "@mteam/shared";
-import { setFavoriteAction } from "@/lib/account-actions";
+import { FavoriteButton, Heart } from "./FavoriteButton";
 import { ListingCard } from "./ListingCard";
 import { LoginLink } from "./LoginLink";
-
-function Heart({ filled }: { filled: boolean }) {
-  return (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill={filled ? "currentColor" : "none"} stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
-      <path d="M12 20s-7-4.5-9-9a4.8 4.8 0 0 1 9-2.5A4.8 4.8 0 0 1 21 11c-2 4.5-9 9-9 9z" />
-    </svg>
-  );
-}
 
 export function ListingGrid({
   listings,
@@ -31,30 +23,21 @@ export function ListingGrid({
   signedIn: boolean;
   favoriteIds: number[];
 }) {
+  const labels = { add: t.favorites.add, remove: t.favorites.remove, added: t.feedback.favoriteAdded, removed: t.feedback.favoriteRemoved, failed: t.feedback.failed };
   return (
     <div className={list ? "cards list" : "cards"}>
-      {listings.map((listing) => {
-        const active = favoriteIds.includes(listing.id);
-        return (
-          <div key={listing.id} className="card-wrap">
-            <ListingCard listing={listing} locale={locale} t={t} cur={cur} gelPerUsd={gelPerUsd} />
-            {signedIn ? (
-              <form action={setFavoriteAction}>
-                <input type="hidden" name="locale" value={locale} />
-                <input type="hidden" name="listingId" value={listing.id} />
-                <input type="hidden" name="want" value={active ? "0" : "1"} />
-                <button type="submit" className="fav" aria-label={active ? t.favorites.remove : t.favorites.add}>
-                  <Heart filled={active} />
-                </button>
-              </form>
-            ) : (
-              <LoginLink locale={locale} className="fav" label={t.favorites.add}>
-                <Heart filled={false} />
-              </LoginLink>
-            )}
-          </div>
-        );
-      })}
+      {listings.map((listing) => (
+        <div key={listing.id} className="card-wrap">
+          <ListingCard listing={listing} locale={locale} t={t} cur={cur} gelPerUsd={gelPerUsd} />
+          {signedIn ? (
+            <FavoriteButton locale={locale} listingId={listing.id} active={favoriteIds.includes(listing.id)} labels={labels} />
+          ) : (
+            <LoginLink locale={locale} className="fav" label={t.favorites.add}>
+              <Heart filled={false} />
+            </LoginLink>
+          )}
+        </div>
+      ))}
     </div>
   );
 }

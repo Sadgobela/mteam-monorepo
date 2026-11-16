@@ -53,7 +53,7 @@ vi.mock("leaflet", () => ({
 }));
 
 import LocaleLayout, { generateStaticParams, generateMetadata } from "./[locale]/layout";
-import HomePage, { dynamic as homeRendering } from "./[locale]/page";
+import HomePage, { dynamic as homeRendering } from "./[locale]/(home)/page";
 import ListingPage, { dynamic as listingRendering } from "./[locale]/listings/[id]/page";
 
 const p = <T,>(v: T) => Promise.resolve(v);

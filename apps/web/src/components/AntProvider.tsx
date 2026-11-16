@@ -2,7 +2,7 @@
 
 import type { ReactNode } from "react";
 import { AntdRegistry } from "@ant-design/nextjs-registry";
-import { ConfigProvider, type ThemeConfig } from "antd";
+import { App, ConfigProvider, type ThemeConfig } from "antd";
 import enUS from "antd/locale/en_US";
 import kaGE from "antd/locale/ka_GE";
 import ruRU from "antd/locale/ru_RU";
@@ -34,7 +34,8 @@ export function AntProvider({ locale, children }: { locale: Locale; children: Re
   return (
     <AntdRegistry>
       <ConfigProvider locale={language} theme={theme}>
-        {children}
+        {/* Toasts through App.useApp(), so they follow the theme. No wrapper element, which would restyle the page. */}
+        <App component={false}>{children}</App>
       </ConfigProvider>
     </AntdRegistry>
   );

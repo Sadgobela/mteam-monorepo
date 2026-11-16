@@ -5,6 +5,7 @@ import { Button, Modal } from "antd";
 import { reportReasons, type Dict } from "@mteam/shared";
 import { reportListingAction } from "@/lib/report-actions";
 import { FormSelect } from "./FormSelect";
+import { SubmitButton } from "./SubmitButton";
 
 export function ReportListing({ listingId, t }: { listingId: number; t: Dict }) {
   const [open, setOpen] = useState(false);
@@ -24,7 +25,7 @@ export function ReportListing({ listingId, t }: { listingId: number; t: Dict }) 
               <textarea name="note" rows={3} maxLength={500} />
             </label>
             {state.invalid && <p className="note" role="alert">{t.listing.reportInvalid}</p>}
-            <button className="btn" type="submit" disabled={pending}>{t.listing.reportSend}</button>
+            <SubmitButton pending={pending}>{t.listing.reportSend}</SubmitButton>
           </form>
         )}
       </Modal>

@@ -14,6 +14,7 @@ import {
 import { askAssistantAction, countSearchAction, type AskResult } from "@/lib/search-actions";
 import { filterLabels } from "./FilterChips";
 import { LeadForm } from "./LeadForm";
+import { SubmitButton } from "./SubmitButton";
 
 /** A button pressed for a question, or text typed by the visitor, which carries the whole search the AI understood. */
 interface Answer extends AssistantChoice {
@@ -107,9 +108,7 @@ export function SearchAssistant({ locale, t, gelPerUsd, ai = false }: { locale: 
       {ai && (
         <form className="assistant-input" onSubmit={ask}>
           <input aria-label={t.assistant.message} placeholder={t.assistant.placeholder} value={text} maxLength={300} onChange={(event) => setText(event.target.value)} />
-          <button type="submit" className="btn" disabled={reading}>
-            {t.assistant.send}
-          </button>
+          <SubmitButton pending={reading}>{t.assistant.send}</SubmitButton>
         </form>
       )}
       {error && (
@@ -119,7 +118,8 @@ export function SearchAssistant({ locale, t, gelPerUsd, ai = false }: { locale: 
       )}
       {search && (
         <div className="assistant-actions">
-          <Link href={`/${locale}?${search}`} className="btn">
+          {/* Spins while the matches are counted; the link works all along. */}
+          <Link href={`/${locale}?${search}`} className="btn" aria-busy={count?.search !== search || undefined}>
             {count?.search === search ? t.assistant.show.replace("{count}", String(count.total)) : t.assistant.showResults}
           </Link>
           <button type="button" className="btn ghost" onClick={() => answer([])}>

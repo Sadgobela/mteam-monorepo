@@ -31,6 +31,7 @@ import {
 } from "@mteam/shared";
 import { ChoicePills } from "./ChoicePills";
 import { LocationModal } from "./LocationModal";
+import { startNavProgress } from "./NavProgress";
 
 type NumberField = "priceMin" | "priceMax" | "areaMin" | "areaMax" | "floorMin" | "floorMax" | "sqmMin" | "sqmMax" | "floorsMin" | "floorsMax" | "ceilingMin" | "ceilingMax";
 
@@ -69,6 +70,7 @@ export function SearchBar({ locale, t, filters, display, gelPerUsd, results = fa
     setMoreOpen(false);
     setLocationOpen(false);
     setOpenPill(null);
+    startNavProgress(`?${params}`);
     startSearch(() => router.push(`?${params}`));
   }
 
