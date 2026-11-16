@@ -78,10 +78,20 @@ describe("admin invite actions", () => {
 
   it("revokes a link and removes a broker", async () => {
     session.currentUser.mockResolvedValue(admin);
-    await revokeInviteAction(form({ id: "h1" }));
+    await revokeInviteAction(form({ id: "a".repeat(64) }));
     await removeBrokerAction(form({ userId: "u2" }));
-    expect(db.revokeInvite).toHaveBeenCalledWith("h1");
+    expect(db.revokeInvite).toHaveBeenCalledWith("a".repeat(64));
     expect(db.removeBroker).toHaveBeenCalledWith("u2");
+  });
+
+  it("ignores ids in the wrong shape", async () => {
+    session.currentUser.mockResolvedValue(admin);
+    await revokeInviteAction(form({ id: "h1" }));
+    await removeBrokerAction(form({ userId: "bad id!" }));
+    await removeBrokerAction(form({}));
+    expect(db.revokeInvite).not.toHaveBeenCalled();
+    expect(db.removeBroker).not.toHaveBeenCalled();
+    expect(cache.revalidatePath).toHaveBeenCalledTimes(3);
   });
 
   it.each([null, broker, owner])("is a 404 for anyone but an admin (%o)", async (user) => {
@@ -143,6 +153,13 @@ describe("saveBrokerProfileAction", () => {
     expect(await saveBrokerProfileAction({}, form({ locale: "en", photo }))).toEqual({ saved: true });
     expect(photos.readPhotos).toHaveBeenCalledWith([expect.any(File)]);
     expect(db.saveBrokerProfile).toHaveBeenCalledWith("a2", "", "https://img.example/me.jpg");
+  });
+
+  it("counts a line break as one character", async () => {
+    session.currentUser.mockResolvedValue(broker);
+    const bio = `${"x".repeat(299)}\r\n${"y".repeat(300)}`;
+    expect(await saveBrokerProfileAction({}, form({ locale: "en", bio }))).toEqual({ saved: true });
+    expect(db.saveBrokerProfile).toHaveBeenCalledWith("a2", `${"x".repeat(299)}\n${"y".repeat(300)}`, undefined);
   });
 
   it("refuses a file that is not a photo, and a bio that is too long", async () => {

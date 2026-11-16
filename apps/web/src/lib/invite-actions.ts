@@ -14,7 +14,13 @@ const BIO_MAX = 600;
 
 const branchIdSchema = z.string().regex(/^[\w-]{1,40}$/).nullable().catch(null);
 const tokenSchema = z.string().max(100).catch("");
-const bioSchema = z.string().trim().max(BIO_MAX);
+const inviteIdSchema = z.string().regex(/^[0-9a-f]{64}$/);
+const userIdSchema = z.string().regex(/^[\w-]{1,40}$/);
+// A browser sends each line break as two characters; counted as one, as the form's own counter does.
+const bioSchema = z
+  .string()
+  .transform((bio) => bio.replace(/\r\n/g, "\n").trim())
+  .pipe(z.string().max(BIO_MAX));
 
 const refresh = () => revalidatePath("/", "layout");
 
@@ -45,13 +51,15 @@ export async function createInviteAction(_previous: InviteState, form: FormData)
 
 export async function revokeInviteAction(form: FormData): Promise<void> {
   await adminUser();
-  await revokeInvite(String(form.get("id")));
+  const id = inviteIdSchema.safeParse(form.get("id"));
+  if (id.success) await revokeInvite(id.data);
   refresh();
 }
 
 export async function removeBrokerAction(form: FormData): Promise<void> {
   await adminUser();
-  await removeBroker(String(form.get("userId")));
+  const userId = userIdSchema.safeParse(form.get("userId"));
+  if (userId.success) await removeBroker(userId.data);
   refresh();
 }
 
