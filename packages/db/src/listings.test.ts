@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const prisma = vi.hoisted(() => ({
   listing: { findMany: vi.fn(), findFirst: vi.fn(), count: vi.fn(), create: vi.fn(), updateMany: vi.fn(), groupBy: vi.fn(), fields: { floors: "FLOORS" } },
-  listingImage: { deleteMany: vi.fn(), createMany: vi.fn() },
+  listingImage: { deleteMany: vi.fn(), createMany: vi.fn(), count: vi.fn() },
   listingPriceChange: { create: vi.fn() },
   user: { findUnique: vi.fn() },
   $transaction: vi.fn(),
@@ -22,6 +22,7 @@ import {
   getEditableListing,
   getListing,
   hidesPhoneByDefault,
+  photosOfOthers,
   saveDraft,
   searchListings,
   sitemapListings,
@@ -628,6 +629,16 @@ describe("editing", () => {
       prisma.listing.findFirst.mockResolvedValue(null);
       expect(await getEditableListing("u2", "9")).toBeNull();
     });
+  });
+
+  it("finds photos that belong to someone else's listing", async () => {
+    expect(await photosOfOthers("u1", [])).toBe(false);
+    expect(prisma.listingImage.count).not.toHaveBeenCalled();
+    prisma.listingImage.count.mockResolvedValue(1);
+    expect(await photosOfOthers("u1", photos)).toBe(true);
+    expect(prisma.listingImage.count).toHaveBeenCalledWith({ where: { url: { in: photos }, listing: { ownerId: { not: "u1" } } } });
+    prisma.listingImage.count.mockResolvedValue(0);
+    expect(await photosOfOthers("u1", photos)).toBe(false);
   });
 
   it("reads whether the user hides their number by default", async () => {

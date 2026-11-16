@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { createListing, getEditableListing, saveDraft, updateListing } from "@mteam/db";
+import { createListing, getEditableListing, photosOfOthers, saveDraft, updateListing } from "@mteam/db";
 import { MAX_PHOTOS, parseDraftProgress, parseListingDraft } from "@mteam/shared";
 import { streetsIn } from "@mteam/shared/streets";
 import { z } from "zod";
@@ -44,17 +44,26 @@ export async function POST(request: Request) {
   if (!form || !control.success) return fail("invalid", 400);
   const { intent, id: rawId } = control.data;
 
-  // An edit may keep the photos the listing already has; anything else must be one of our own uploads.
   const existing = rawId ? await getEditableListing(user.id, rawId) : null;
   if (rawId && !existing) return fail("missing", 404);
-  const photos = form.getAll("photos").map(String);
-  const known = new Set(existing?.images);
-  if (photos.length > MAX_PHOTOS || !photos.every((url) => known.has(url) || isUploadedPhoto(url))) return fail("photos", 422);
   const id = existing?.id ?? null;
   // A broker's listing is the broker's to handle, and never expires. The role is checked too, as a broker can lose it.
   const agentId = user.role === "AGENT" ? (user.agent?.id ?? null) : null;
 
   try {
+    // An edit may keep the photos the listing already has; anything else must be one of our own uploads, each once, and not
+    // one already shown on someone else's listing.
+    const photos = form.getAll("photos").map(String);
+    const known = new Set(existing?.images);
+    if (
+      photos.length > MAX_PHOTOS ||
+      new Set(photos).size !== photos.length ||
+      !photos.every((url) => known.has(url) || isUploadedPhoto(url)) ||
+      (await photosOfOthers(user.id, photos))
+    ) {
+      return fail("photos", 422);
+    }
+
     if (intent === "draft") {
       const progress = parseDraftProgress(fields);
       if (!progress) return fail("invalid", 422);

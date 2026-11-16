@@ -6,6 +6,7 @@ export {
   getEditableListing,
   getListing,
   hidesPhoneByDefault,
+  photosOfOthers,
   saveDraft,
   updateListing,
   type EditableListing,

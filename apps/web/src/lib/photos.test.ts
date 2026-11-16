@@ -213,4 +213,9 @@ describe("isUploadedPhoto", () => {
     expect(isUploadedPhoto("https://evil.test/listings/0f8fad5b-d9cb-469f-a165-70867728950e.jpg")).toBe(false);
     expect(isUploadedPhoto("https://cdn.example.com.evil.test/listings/0f8fad5b-d9cb-469f-a165-70867728950e.jpg")).toBe(false);
   });
+
+  it("calls nothing ours when storage is not set up, instead of failing", () => {
+    vi.stubEnv("STORAGE_PUBLIC_URL", "");
+    expect(isUploadedPhoto("https://cdn.example.com/listings/0f8fad5b-d9cb-469f-a165-70867728950e.webp")).toBe(false);
+  });
 });

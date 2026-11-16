@@ -112,8 +112,13 @@ export async function uploadPhoto(photo: Photo): Promise<string> {
 
 const uploadedKey = /^listings\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\.webp$/;
 
-/** Whether a URL is one `uploadPhoto` could have returned, so a listing form cannot point its photos anywhere else. */
+/**
+ * Whether a URL is one `uploadPhoto` could have returned, so a listing form cannot point its photos anywhere else. Without storage
+ * settings nothing could have been uploaded, so nothing is ours.
+ */
 export function isUploadedPhoto(url: string): boolean {
-  const prefix = `${z.object({ STORAGE_PUBLIC_URL: z.url() }).parse(process.env).STORAGE_PUBLIC_URL}/`;
+  const env = z.object({ STORAGE_PUBLIC_URL: z.url() }).safeParse(process.env);
+  if (!env.success) return false;
+  const prefix = `${env.data.STORAGE_PUBLIC_URL}/`;
   return url.startsWith(prefix) && uploadedKey.test(url.slice(prefix.length));
 }

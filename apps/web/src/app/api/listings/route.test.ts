@@ -1,7 +1,7 @@
 // @vitest-environment node
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const db = vi.hoisted(() => ({ createListing: vi.fn(), getEditableListing: vi.fn(), saveDraft: vi.fn(), updateListing: vi.fn() }));
+const db = vi.hoisted(() => ({ createListing: vi.fn(), getEditableListing: vi.fn(), photosOfOthers: vi.fn(), saveDraft: vi.fn(), updateListing: vi.fn() }));
 const session = vi.hoisted(() => ({ currentUser: vi.fn() }));
 const photos = vi.hoisted(() => ({ isUploadedPhoto: vi.fn() }));
 
@@ -119,9 +119,17 @@ describe("POST /api/listings", () => {
   it.each([
     ["no photos", []],
     ["a photo from anywhere else", ["https://evil.test/a.jpg"]],
-    ["too many photos", Array.from({ length: 17 }, () => uploaded[0])],
+    ["too many photos", Array.from({ length: 17 }, (_, index) => `https://cdn/listings/${index}.jpg`)],
+    ["the same photo twice", [uploaded[0], uploaded[0]]],
   ])("refuses a listing with %s", async (_name, urls) => {
     expect(await send(post(form({}, urls)))).toEqual([422, { error: "photos" }]);
+    expect(db.createListing).not.toHaveBeenCalled();
+  });
+
+  it("refuses photos already shown on someone else's listing", async () => {
+    db.photosOfOthers.mockResolvedValue(true);
+    expect(await send(post())).toEqual([422, { error: "photos" }]);
+    expect(db.photosOfOthers).toHaveBeenCalledWith("u1", uploaded);
     expect(db.createListing).not.toHaveBeenCalled();
   });
 

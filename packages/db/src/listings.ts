@@ -442,6 +442,12 @@ export async function getEditableListing(ownerId: string, rawId: string): Promis
   };
 }
 
+/** Whether any of these photo addresses belongs to someone else's listing, which a form must not take over. */
+export async function photosOfOthers(ownerId: string, urls: string[]): Promise<boolean> {
+  if (urls.length === 0) return false;
+  return (await db().listingImage.count({ where: { url: { in: urls }, listing: { ownerId: { not: ownerId } } } })) > 0;
+}
+
 /** Whether the user chose to hide their number on new listings. */
 export async function hidesPhoneByDefault(userId: string): Promise<boolean> {
   const user = await db().user.findUnique({ where: { id: userId }, select: { hidePhoneDefault: true } });
