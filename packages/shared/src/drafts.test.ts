@@ -23,6 +23,16 @@ describe("parseLead", () => {
     });
   });
 
+  it("keeps a seeker's search in its canonical form, and allows a daily deal with it", () => {
+    expect(parseLead({ name: "Nino", phone: "555123456", deal: "daily", search: "rooms=2&deal=daily&castle=1" })).toEqual({
+      name: "Nino",
+      phone: "+995555123456",
+      deal: "daily",
+      search: "deal=daily&rooms=2",
+    });
+    expect(parseLead({ name: "Nino", phone: "555123456", deal: "sale", search: "castle=1" })).not.toHaveProperty("search", expect.anything());
+  });
+
   it.each([
     ["no name", { name: " " }],
     ["bad phone", { phone: "123" }],
