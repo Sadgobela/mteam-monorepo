@@ -1,5 +1,7 @@
 import type { Dict, Locale } from "@mteam/shared";
 import { configuredProviders, type ProviderName } from "@/lib/oauth";
+import "@/app/auth.css";
+import { EmailLoginForm, LoginTabs } from "./AuthForms";
 import { LoginForm } from "./LoginForm";
 
 /** Each provider's own mark, as their guidelines ask for on a sign-in button. */
@@ -67,8 +69,16 @@ export function LoginPanel({ locale, t, next, heading: Heading = "h1", failed = 
             <p className="login-or"><span>{t.login.or}</span></p>
           </>
         )}
-        <p className="meta">{t.login.lead}</p>
-        <LoginForm locale={locale} t={t} next={next} />
+        <LoginTabs
+          t={t}
+          phone={
+            <>
+              <p className="meta">{t.login.lead}</p>
+              <LoginForm locale={locale} t={t} next={next} />
+            </>
+          }
+          email={<EmailLoginForm locale={locale} t={t} next={next} />}
+        />
       </div>
     </div>
   );
