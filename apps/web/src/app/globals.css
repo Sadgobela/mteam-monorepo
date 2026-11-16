@@ -430,6 +430,12 @@ html:has(.viewer[open]) { overflow: hidden; }
   .tile:hover { transform: translateY(-2px); }
   .fav:hover { transform: scale(1.1); }
 }
+/* A thin bar at the top from a click until the next page has rendered. Still shown, without moving, under reduced motion. */
+.nav-progress { position: fixed; top: 0; left: 0; right: 0; z-index: 1100; height: 3px; background: var(--brand); transform-origin: left; transform: scaleX(0); opacity: 0; pointer-events: none; }
+.nav-progress[data-phase="loading"] { opacity: 1; transform: scaleX(0.85); animation: nav-progress 8s cubic-bezier(0.1, 0.6, 0.2, 1); }
+.nav-progress[data-phase="done"] { transform: scaleX(1); animation: nav-done 0.4s ease-out; }
+@keyframes nav-progress { from { transform: scaleX(0); } }
+@keyframes nav-done { from, 50% { opacity: 1; } }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { transition: none !important; animation: none !important; }
 }

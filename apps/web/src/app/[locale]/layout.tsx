@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import { getDictionary, locales } from "@mteam/shared";
 import { AntProvider } from "@/components/AntProvider";
+import { NavProgress } from "@/components/NavProgress";
 import { resolveLocale } from "@/lib/locale";
 import { siteUrl } from "@/lib/site-url";
 import { themeInitScript } from "@/lib/theme";
@@ -32,6 +34,10 @@ export default async function LocaleLayout({
         <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
       </head>
       <body>
+        {/* Reads the address, so it waits for it on its own instead of holding back the page. */}
+        <Suspense fallback={null}>
+          <NavProgress />
+        </Suspense>
         <AntProvider locale={locale}>
           {children}
           {modal}

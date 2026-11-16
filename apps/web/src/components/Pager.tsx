@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Pagination } from "antd";
 import type { Dict, Locale } from "@mteam/shared";
 import { resultsHref, type Query } from "@/lib/url";
+import { startNavProgress } from "./NavProgress";
 
 export function Pager({ locale, t, query, page, total, size }: { locale: Locale; t: Dict; query: Query; page: number; total: number; size: number }) {
   const router = useRouter();
@@ -19,7 +20,10 @@ export function Pager({ locale, t, query, page, total, size }: { locale: Locale;
         pageSize={size}
         showSizeChanger={false}
         // For the keyboard: Ant makes each item a tab stop that only reports its page.
-        onChange={(target) => router.push(hrefFor(target))}
+        onChange={(target) => {
+          startNavProgress(hrefFor(target));
+          router.push(hrefFor(target));
+        }}
         itemRender={(target, type) => {
           if ((type === "prev" && page === 1) || (type === "next" && page === last)) return null;
           const text = type === "page" ? target : type === "prev" ? t.results.previous : type === "next" ? t.results.next : "…";

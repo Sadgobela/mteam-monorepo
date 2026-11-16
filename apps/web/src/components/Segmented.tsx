@@ -3,6 +3,7 @@
 import { useOptimistic, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Segmented as AntSegmented } from "antd";
+import { startNavProgress } from "./NavProgress";
 
 /** A row of mutually exclusive choices. Each one is a URL, and the highlight moves before the new page arrives. */
 export function Segmented({
@@ -23,6 +24,7 @@ export function Segmented({
       onChange={(href) =>
         startTransition(() => {
           showCurrent(href);
+          startNavProgress(href);
           router.push(href, { scroll: false });
         })
       }
