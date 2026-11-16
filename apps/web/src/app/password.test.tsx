@@ -14,7 +14,7 @@ const db = vi.hoisted(() => ({
   isResetTokenOpen: vi.fn(),
   getAccountSecurity: vi.fn(),
 }));
-const session = vi.hoisted(() => ({ startSession: vi.fn(), currentUser: vi.fn(), hasSession: vi.fn(), clientIp: vi.fn() }));
+const session = vi.hoisted(() => ({ startSession: vi.fn(), currentUser: vi.fn(), hasSession: vi.fn(), clientIp: vi.fn(), userAgent: vi.fn() }));
 
 vi.mock("@mteam/db", () => db);
 vi.mock("@/lib/session", () => session);
@@ -45,6 +45,7 @@ beforeEach(() => {
   vi.resetAllMocks();
   vi.spyOn(console, "info").mockImplementation(() => undefined);
   session.clientIp.mockResolvedValue("203.0.113.7");
+  session.userAgent.mockResolvedValue("Firefox");
   session.currentUser.mockResolvedValue({ id: "u1" });
   session.hasSession.mockResolvedValue(false);
   db.claimEmailSend.mockResolvedValue(true);
@@ -92,7 +93,7 @@ describe("email sign-in form", () => {
     await user.type(screen.getByLabelText(t.auth.password), strong);
     await user.click(screen.getByRole("button", { name: t.auth.register }));
     expect(await screen.findByRole("alert")).toHaveTextContent(t.auth.errors.taken);
-    expect(db.registerWithPassword).toHaveBeenCalledWith(email, strong, "203.0.113.7");
+    expect(db.registerWithPassword).toHaveBeenCalledWith(email, strong, "203.0.113.7", "Firefox");
 
     await user.click(screen.getByRole("button", { name: t.auth.toSignIn }));
     expect(screen.getByRole("button", { name: t.auth.signIn })).toBeInTheDocument();
@@ -160,7 +161,7 @@ describe("ResetPasswordPage", () => {
     await user.type(screen.getByLabelText(t.auth.newPassword), strong);
     await user.click(screen.getByRole("button", { name: t.auth.savePassword }));
     await waitFor(() => expect(assign).toHaveBeenCalledWith("/en/account/security"));
-    expect(db.resetPassword).toHaveBeenCalledWith("rt", strong);
+    expect(db.resetPassword).toHaveBeenCalledWith("rt", strong, "Firefox");
   });
 });
 

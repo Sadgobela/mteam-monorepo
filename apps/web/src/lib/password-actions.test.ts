@@ -10,7 +10,7 @@ const db = vi.hoisted(() => ({
   requestEmailChange: vi.fn(),
   changePassword: vi.fn(),
 }));
-const session = vi.hoisted(() => ({ startSession: vi.fn(), currentUser: vi.fn(), clientIp: vi.fn(), signInHere: vi.fn() }));
+const session = vi.hoisted(() => ({ startSession: vi.fn(), currentUser: vi.fn(), clientIp: vi.fn(), signInHere: vi.fn(), userAgent: vi.fn() }));
 
 vi.mock("@mteam/db", () => db);
 vi.mock("./session", () => session);
@@ -40,6 +40,7 @@ beforeEach(() => {
   vi.resetAllMocks();
   log.mockImplementation(() => undefined);
   session.clientIp.mockResolvedValue("203.0.113.7");
+  session.userAgent.mockResolvedValue("Firefox");
   session.currentUser.mockResolvedValue({ id: "u1" });
   db.claimEmailSend.mockResolvedValue(true);
 });
@@ -69,7 +70,7 @@ describe("emailSignInAction", () => {
   it("signs in with a normalized email and goes back to the page it came from", async () => {
     db.signInWithPassword.mockResolvedValue({ token: "tok" });
     expect(await emailSignInAction({}, form({ locale: "ru", email: "  Ana@Example.COM ", password: "pw", next: "/ru/saved" }))).toEqual({ done: "/ru/saved" });
-    expect(db.signInWithPassword).toHaveBeenCalledWith(email, "pw", "203.0.113.7");
+    expect(db.signInWithPassword).toHaveBeenCalledWith(email, "pw", "203.0.113.7", "Firefox");
     expect(session.startSession).toHaveBeenCalledWith("tok");
     expect(await emailSignInAction({}, form({ locale: "en", email, password: "pw", next: "//evil.example" }))).toEqual({ done: "/en" });
   });
@@ -89,7 +90,7 @@ describe("registerAction", () => {
   it("creates the account, emails the confirmation link and signs in", async () => {
     db.registerWithPassword.mockResolvedValue({ token: "tok", verifyToken: "vt" });
     expect(await registerAction({}, form({ locale: "ka", email, password: strong, next: "/ka/listings/new" }))).toEqual({ done: "/ka/listings/new" });
-    expect(db.registerWithPassword).toHaveBeenCalledWith(email, strong, "203.0.113.7");
+    expect(db.registerWithPassword).toHaveBeenCalledWith(email, strong, "203.0.113.7", "Firefox");
     expect(log).toHaveBeenCalledWith(`[email] ${email}: ${getDictionary("ka").auth.mail.verifySubject} http://localhost:3111/ka/auth/verify?token=vt`);
     expect(db.claimEmailSend).toHaveBeenCalledWith("203.0.113.7", email);
     expect(session.startSession).toHaveBeenCalledWith("tok");
@@ -140,7 +141,7 @@ describe("resetPasswordAction", () => {
   it("sets the password and signs in fresh", async () => {
     db.resetPassword.mockResolvedValue("tok");
     expect(await resetPasswordAction({}, form({ locale: "en", token: "rt", password: strong }))).toEqual({ done: "/en/account/security" });
-    expect(db.resetPassword).toHaveBeenCalledWith("rt", strong);
+    expect(db.resetPassword).toHaveBeenCalledWith("rt", strong, "Firefox");
     expect(session.startSession).toHaveBeenCalledWith("tok");
   });
 
@@ -194,9 +195,9 @@ describe("changePasswordAction", () => {
   it("sets a first password, or changes one with the current one, and keeps this device signed in", async () => {
     db.changePassword.mockResolvedValue({ token: "tok" });
     expect(await changePasswordAction({}, form({ locale: "en", password: strong }))).toEqual({ notice: "passwordSaved" });
-    expect(db.changePassword).toHaveBeenCalledWith("u1", "", strong);
+    expect(db.changePassword).toHaveBeenCalledWith("u1", "", strong, "Firefox");
     expect(await changePasswordAction({}, form({ locale: "en", current: "old one", password: strong }))).toEqual({ notice: "passwordSaved" });
-    expect(db.changePassword).toHaveBeenLastCalledWith("u1", "old one", strong);
+    expect(db.changePassword).toHaveBeenLastCalledWith("u1", "old one", strong, "Firefox");
     expect(session.startSession).toHaveBeenCalledWith("tok");
   });
 

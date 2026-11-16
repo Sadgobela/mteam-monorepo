@@ -7,7 +7,7 @@ import { getDictionary, type Locale } from "@mteam/shared";
 import { sendEmail } from "./email";
 import { resolveLocale } from "./locale";
 import { safeNext } from "./login-path";
-import { clientIp, currentUser, signInHere, startSession } from "./session";
+import { clientIp, currentUser, signInHere, startSession, userAgent } from "./session";
 import { siteUrl } from "./site-url";
 
 export type AuthError = "invalidEmail" | "weakPassword" | "wrong" | "wrongCurrent" | "limited" | "taken" | "badLink";
@@ -45,7 +45,7 @@ export async function emailSignInAction(_previous: AuthState, form: FormData): P
   if (!email.success) return { error: "invalidEmail" };
   const password = typedPasswordSchema.safeParse(form.get("password"));
   if (!password.success) return { error: "wrong" };
-  const result = await signInWithPassword(email.data, password.data, await clientIp());
+  const result = await signInWithPassword(email.data, password.data, await clientIp(), await userAgent());
   if ("error" in result) return { error: result.error };
   await startSession(result.token);
   // A full page load afterwards, as after the phone code: see loginAction.
@@ -59,7 +59,7 @@ export async function registerAction(_previous: AuthState, form: FormData): Prom
   const password = newPasswordSchema.safeParse(form.get("password"));
   if (!password.success) return { error: "weakPassword" };
   const ip = await clientIp();
-  const result = await registerWithPassword(email.data, password.data, ip);
+  const result = await registerWithPassword(email.data, password.data, ip, await userAgent());
   if ("error" in result) return { error: result.error };
   // Over the email limit the account still opens; the security page can send the link again.
   if (await claimEmailSend(ip, email.data)) sendLink(locale, email.data, "verify", result.verifyToken);
@@ -84,7 +84,7 @@ export async function resetPasswordAction(_previous: AuthState, form: FormData):
   const password = newPasswordSchema.safeParse(form.get("password"));
   if (!password.success) return { error: "weakPassword" };
   const token = tokenSchema.safeParse(form.get("token"));
-  const session = token.success ? await resetPassword(token.data, password.data) : null;
+  const session = token.success ? await resetPassword(token.data, password.data, await userAgent()) : null;
   if (!session) return { error: "badLink" };
   await startSession(session);
   return { done: `/${locale}/account/security` };
@@ -114,7 +114,7 @@ export async function changePasswordAction(_previous: AuthState, form: FormData)
   // Missing when the account has no password yet.
   const current = typedPasswordSchema.safeParse(form.get("current") ?? "");
   if (!current.success) return { error: "wrongCurrent" };
-  const result = await changePassword(user.id, current.data, next.data);
+  const result = await changePassword(user.id, current.data, next.data, await userAgent());
   if ("error" in result) return { error: result.error === "wrong" ? "wrongCurrent" : "limited" };
   await startSession(result.token);
   return { notice: "passwordSaved" };
