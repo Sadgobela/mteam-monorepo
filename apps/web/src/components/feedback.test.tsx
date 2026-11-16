@@ -5,8 +5,12 @@ import { App } from "antd";
 import { redirect } from "next/navigation";
 import { getDictionary } from "@mteam/shared";
 
+const favorite = vi.hoisted(() => ({ setFavoriteAction: vi.fn() }));
+vi.mock("@/lib/account-actions", () => favorite);
+
 import { ActionForm } from "./ActionForm";
 import { ChatForm } from "./ChatForm";
+import { FavoriteButton } from "./FavoriteButton";
 import { SubmitButton } from "./SubmitButton";
 
 const t = getDictionary("en");
@@ -89,6 +93,71 @@ describe("ActionForm", () => {
     expect(await screen.findByText("caught NEXT_REDIRECT")).toBeInTheDocument();
     expect(screen.queryByText("It worked")).toBeNull();
     expect(screen.queryByText("It failed")).toBeNull();
+  });
+});
+
+describe("FavoriteButton", () => {
+  const labels = { add: "Add", remove: "Remove", added: "Added", removed: "Removed", failed: "Failed" };
+  const heart = (active: boolean) =>
+    render(
+      <App>
+        <Boundary>
+          <FavoriteButton locale="en" listingId={7} active={active} labels={labels} />
+        </Boundary>
+      </App>,
+    );
+
+  it("fills at once, sends the change, and says so when it is saved", async () => {
+    const { action, settle } = held<void>();
+    favorite.setFavoriteAction.mockImplementation(action);
+    const { rerender } = heart(false);
+    fireEvent.click(screen.getByRole("button", { name: "Add" }));
+    const button = await screen.findByRole("button", { name: "Remove" });
+    expect(button).toBeDisabled();
+    expect(button.querySelector("svg")).toHaveAttribute("fill", "currentColor");
+    const sent = action.mock.calls[0][0];
+    expect([sent.get("locale"), sent.get("listingId"), sent.get("want")]).toEqual(["en", "7", "1"]);
+    // The page comes back with the saved state as the action finishes.
+    await act(async () => {
+      settle({});
+      rerender(
+        <App>
+          <Boundary>
+            <FavoriteButton locale="en" listingId={7} active labels={labels} />
+          </Boundary>
+        </App>,
+      );
+    });
+    expect(await screen.findByText("Added")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Remove" })).toBeEnabled();
+  });
+
+  it("empties at once when removing, and says so", async () => {
+    favorite.setFavoriteAction.mockResolvedValue(undefined);
+    heart(true);
+    fireEvent.click(screen.getByRole("button", { name: "Remove" }));
+    expect(await screen.findByText("Removed")).toBeInTheDocument();
+    expect(favorite.setFavoriteAction.mock.calls[0][0].get("want")).toBe("0");
+  });
+
+  it("flips back with a note when saving fails", async () => {
+    const { action, settle } = held<void>();
+    favorite.setFavoriteAction.mockImplementation(action);
+    heart(false);
+    fireEvent.click(screen.getByRole("button", { name: "Add" }));
+    expect(await screen.findByRole("button", { name: "Remove" })).toBeDisabled();
+    await act(async () => settle({ error: new Error("offline") }));
+    expect(await screen.findByText("Failed")).toBeInTheDocument();
+    const button = screen.getByRole("button", { name: "Add" });
+    expect(button).toBeEnabled();
+    expect(button.querySelector("svg")).toHaveAttribute("fill", "none");
+  });
+
+  it("leaves a redirect to sign in to Next", async () => {
+    favorite.setFavoriteAction.mockImplementation(toRedirect);
+    heart(false);
+    fireEvent.click(screen.getByRole("button", { name: "Add" }));
+    expect(await screen.findByText("caught NEXT_REDIRECT")).toBeInTheDocument();
   });
 });
 
