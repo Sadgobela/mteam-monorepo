@@ -51,26 +51,27 @@ describe("reading", () => {
       { ...row, id: "n4", type: "PRICE_DROP", data: { oldPriceUsd: 100, newPriceUsd: 90 } },
       { ...row, id: "n5", type: "SEARCH_MATCHES", listingId: null, listing: null, data: { savedSearchId: "s1", query: "deal=sale", count: 3 } },
       { ...row, id: "n6", type: "PRICE_DROP", data: ["not", "an", "object"] },
+      { ...row, id: "n7", type: "LISTING_APPROVED", data: { type: "SEARCH_MATCHES" }, listingId: null, listing: null },
     ]);
     expect(await listNotifications("u1")).toEqual([
       { id: "n1", type: "MESSAGE", conversationId: "c1", count: 2, read: true, at, listingId: 7, listingTitle: "Flat" },
       { id: "n2", type: "LISTING_APPROVED", read: false, at, listingId: 7, listingTitle: "Flat" },
       { id: "n3", type: "LISTING_EXPIRING", expiresAt: "2026-11-18T00:00:00.000Z", read: false, at, listingId: 7, listingTitle: "Flat" },
       { id: "n4", type: "PRICE_DROP", oldPriceUsd: 100, newPriceUsd: 90, read: false, at, listingId: 7, listingTitle: "Flat" },
-      { id: "n5", type: "SEARCH_MATCHES", savedSearchId: "s1", query: "deal=sale", count: 3, read: false, at, listingId: null, listingTitle: null },
+      { id: "n5", type: "SEARCH_MATCHES", savedSearchId: "s1", query: "deal=sale", count: 3, read: false, at },
     ]);
     expect(prisma.notification.findMany.mock.calls[0][0]).toMatchObject({ where: { userId: "u1" }, orderBy: { createdAt: "desc" }, take: 50 });
   });
 
   it("opens one of the user's own, marking it read", async () => {
-    prisma.notification.findFirst.mockResolvedValue({ type: "LISTING_REJECTED", listingId: 7, conversationId: null, data: null });
-    expect(await openNotification("u1", "n1")).toEqual({ type: "LISTING_REJECTED", listingId: 7 });
+    prisma.notification.findFirst.mockResolvedValue({ type: "LISTING_REJECTED", listingId: 7, conversationId: null, data: null, listing: { title: "Flat" } });
+    expect(await openNotification("u1", "n1")).toEqual({ type: "LISTING_REJECTED", listingId: 7, listingTitle: "Flat" });
     expect(prisma.notification.updateMany).toHaveBeenCalledWith({ where: { id: "n1", userId: "u1", readAt: null }, data: { readAt: NOW } });
     expect(prisma.notification.findFirst.mock.calls[0][0].where).toEqual({ id: "n1", userId: "u1" });
   });
 
   it("opens nothing that is someone else's or does not fit", async () => {
-    prisma.notification.findFirst.mockResolvedValueOnce(null).mockResolvedValueOnce({ type: "MESSAGE", listingId: 7, conversationId: null, data: {} });
+    prisma.notification.findFirst.mockResolvedValueOnce(null).mockResolvedValueOnce({ type: "MESSAGE", listingId: 7, conversationId: null, data: {}, listing: { title: "Flat" } });
     expect(await openNotification("u1", "n1")).toBeNull();
     expect(await openNotification("u1", "n2")).toBeNull();
   });

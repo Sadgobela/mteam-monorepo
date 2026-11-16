@@ -30,22 +30,27 @@ async function allows(userId: string, type: NotificationType): Promise<boolean> 
 
 const jsonObject = z.record(z.string(), z.unknown()).catch({});
 
+const aboutListing = { listingId: z.number().int(), listingTitle: z.string() };
+
 const detailsSchema = z.discriminatedUnion("type", [
-  z.object({ type: z.literal("MESSAGE"), conversationId: z.string(), count: z.number().int().positive() }),
-  z.object({ type: z.enum(["LISTING_APPROVED", "LISTING_REJECTED"]) }),
-  z.object({ type: z.literal("LISTING_EXPIRING"), expiresAt: z.iso.datetime() }),
-  z.object({ type: z.literal("PRICE_DROP"), oldPriceUsd: z.number(), newPriceUsd: z.number() }),
+  z.object({ type: z.literal("MESSAGE"), ...aboutListing, conversationId: z.string(), count: z.number().int().positive() }),
+  z.object({ type: z.enum(["LISTING_APPROVED", "LISTING_REJECTED"]), ...aboutListing }),
+  z.object({ type: z.literal("LISTING_EXPIRING"), ...aboutListing, expiresAt: z.iso.datetime() }),
+  z.object({ type: z.literal("PRICE_DROP"), ...aboutListing, oldPriceUsd: z.number(), newPriceUsd: z.number() }),
   z.object({ type: z.literal("SEARCH_MATCHES"), savedSearchId: z.string(), query: z.string(), count: z.number().int().positive() }),
 ]);
 
 /** What a notification is about, by kind: what its text and link need. */
 export type NotificationDetails = z.infer<typeof detailsSchema>;
 
-export type NotificationRow = NotificationDetails & { id: string; read: boolean; at: Date; listingId: number | null; listingTitle: string | null };
+export type NotificationRow = NotificationDetails & { id: string; read: boolean; at: Date };
+
+const detailsSelect = { type: true, listingId: true, conversationId: true, data: true, listing: { select: { title: true } } } as const satisfies Prisma.NotificationSelect;
 
 /** The stored row read back through the schema, so text and links never meet malformed JSON. Null when it does not fit. */
-function detailsOf(row: { type: NotificationType; conversationId: string | null; data: Prisma.JsonValue }): NotificationDetails | null {
-  const parsed = detailsSchema.safeParse({ ...jsonObject.parse(row.data), type: row.type, conversationId: row.conversationId });
+function detailsOf(row: Prisma.NotificationGetPayload<{ select: typeof detailsSelect }>): NotificationDetails | null {
+  // The columns go last, so nothing in the JSON can stand in for them.
+  const parsed = detailsSchema.safeParse({ ...jsonObject.parse(row.data), type: row.type, conversationId: row.conversationId, listingId: row.listingId, listingTitle: row.listing?.title });
   return parsed.success ? parsed.data : null;
 }
 
@@ -60,21 +65,20 @@ export async function listNotifications(userId: string): Promise<NotificationRow
     where: { userId },
     orderBy: { createdAt: "desc" },
     take: LIST_LIMIT,
-    select: { id: true, type: true, listingId: true, conversationId: true, data: true, readAt: true, createdAt: true, listing: { select: { title: true } } },
+    select: { id: true, readAt: true, createdAt: true, ...detailsSelect },
   });
   return rows.flatMap((row) => {
     const details = detailsOf(row);
-    return details ? [{ ...details, id: row.id, read: row.readAt !== null, at: row.createdAt, listingId: row.listingId, listingTitle: row.listing?.title ?? null }] : [];
+    return details ? [{ ...details, id: row.id, read: row.readAt !== null, at: row.createdAt }] : [];
   });
 }
 
 /** Marks one notification read and says what it points at. Null when it is not this user's. The owner check is part of the query. */
-export async function openNotification(userId: string, id: string): Promise<(NotificationDetails & { listingId: number | null }) | null> {
+export async function openNotification(userId: string, id: string): Promise<NotificationDetails | null> {
   const client = db();
   await client.notification.updateMany({ where: { id, userId, readAt: null }, data: { readAt: new Date() } });
-  const row = await client.notification.findFirst({ where: { id, userId }, select: { type: true, listingId: true, conversationId: true, data: true } });
-  const details = row && detailsOf(row);
-  return details ? { ...details, listingId: row.listingId } : null;
+  const row = await client.notification.findFirst({ where: { id, userId }, select: detailsSelect });
+  return row && detailsOf(row);
 }
 
 export async function markAllNotificationsRead(userId: string): Promise<void> {
