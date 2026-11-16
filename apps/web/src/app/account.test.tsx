@@ -10,7 +10,6 @@ const db = vi.hoisted(() => ({ getGelPerUsd: async () => 2.7,
   getHiddenIds: vi.fn(async () => []),
   setHidden: vi.fn(),
   listFavorites: vi.fn(),
-  listMyListings: vi.fn(),
   PAGE_SIZE: 24,
   parseListingId: vi.fn(),
   searchListings: vi.fn(),
@@ -39,7 +38,6 @@ import { Header } from "@/components/Header";
 import { archiveListingAction, setFavoriteAction, setHiddenAction } from "@/lib/account-actions";
 import HomePage from "./[locale]/page";
 import FavoritesPage from "./[locale]/(account)/favorites/page";
-import MyListingsPage from "./[locale]/(account)/my-listings/page";
 
 const t = getDictionary("en");
 const params = Promise.resolve({ locale: "en" });
@@ -124,42 +122,6 @@ describe("FavoritesPage", () => {
     db.listFavorites.mockResolvedValue([]);
     render(await FavoritesPage({ params }));
     expect(screen.getByText(t.favorites.empty)).toBeInTheDocument();
-  });
-});
-
-describe("MyListingsPage", () => {
-  const entry = (status: string, index: number) => ({ status, listing: fixtureListings[index] });
-
-  it("requires a session", async () => {
-    session.currentUser.mockResolvedValue(null);
-    await expect(MyListingsPage({ params })).rejects.toThrow("REDIRECT /en/login");
-  });
-
-  it("links only published listings and offers archive until archived", async () => {
-    db.listMyListings.mockResolvedValue([entry("ACTIVE", 0), entry("PENDING", 1), entry("ARCHIVED", 2), entry("REJECTED", 2)]);
-    render(await MyListingsPage({ params }));
-    expect(db.listMyListings).toHaveBeenCalledWith("u1");
-    expect(screen.getByRole("link", { name: fixtureListings[0].title })).toHaveAttribute("href", `/en/listings/${fixtureListings[0].id}`);
-    expect(screen.queryByRole("link", { name: fixtureListings[1].title })).toBeNull();
-    expect(screen.getByText(t.my.status.PENDING)).toBeInTheDocument();
-    expect(screen.getAllByRole("button", { name: t.my.archive })).toHaveLength(2);
-  });
-
-  it("links staff to the admin panel, and nobody else", async () => {
-    db.listMyListings.mockResolvedValue([]);
-    session.currentUser.mockResolvedValue({ id: "u1", role: "AGENT" });
-    const staff = render(await MyListingsPage({ params }));
-    expect(screen.getByRole("link", { name: t.admin.heading })).toHaveAttribute("href", "/en/admin");
-    staff.unmount();
-    session.currentUser.mockResolvedValue({ id: "u1", role: "USER" });
-    render(await MyListingsPage({ params }));
-    expect(screen.queryByRole("link", { name: t.admin.heading })).toBeNull();
-  });
-
-  it("explains an empty list", async () => {
-    db.listMyListings.mockResolvedValue([]);
-    render(await MyListingsPage({ params }));
-    expect(screen.getByText(t.my.empty)).toBeInTheDocument();
   });
 });
 
