@@ -45,7 +45,22 @@ describe("moderation queue", () => {
 
   it.each(["ACTIVE", "REJECTED"] as const)("only moves a listing that is still pending to %s", async (decision) => {
     await reviewListing(7, decision);
-    expect(prisma.listing.updateMany).toHaveBeenCalledWith({ where: { id: 7, status: "PENDING" }, data: { status: decision } });
+    expect(prisma.listing.updateMany).toHaveBeenLastCalledWith({ where: { id: 7, status: "PENDING" }, data: { status: decision } });
+  });
+
+  it("starts an owner's 60 days on approval, and never a broker's", async () => {
+    const now = new Date("2026-11-16T00:00:00Z");
+    await reviewListing(7, "ACTIVE", now);
+    expect(prisma.listing.updateMany).toHaveBeenNthCalledWith(1, {
+      where: { id: 7, status: "PENDING", agentId: null },
+      data: { status: "ACTIVE", expiresAt: new Date("2027-01-15T00:00:00Z") },
+    });
+  });
+
+  it("sets no end date on a rejection", async () => {
+    prisma.listing.updateMany.mockClear();
+    await reviewListing(7, "REJECTED");
+    expect(prisma.listing.updateMany).toHaveBeenCalledTimes(1);
   });
 });
 
