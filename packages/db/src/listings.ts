@@ -375,6 +375,7 @@ const sameValue = (stored: unknown, next: unknown) =>
  * The owner's edit of a listing, sent for review. A draft or a pending listing becomes PENDING. A published one stays ACTIVE when
  * only its price changed, and goes back to PENDING for any other change, photos and their order included. Whenever a published
  * listing's price or currency changes, a `ListingPriceChange` row records the old and new dollar price, whatever the new status.
+ * Any change but the price also removes MTeam's verification, which vouched for the content as it was.
  * Archived and rejected listings cannot be edited. Returns the new status, or null when the listing is not the user's or not editable.
  */
 export async function updateListing(ownerId: string, id: number, draft: ListingDraft, imageUrls: string[]): Promise<ListingStatus | null> {
@@ -389,7 +390,16 @@ export async function updateListing(ownerId: string, id: number, draft: ListingD
     const status: ListingStatus = row.status === "ACTIVE" && !contentChanged ? "ACTIVE" : "PENDING";
     // The status read above is part of the write, so a listing moderated in between is left alone.
     // Back in review it has no end date, or taking it down and renewing it would publish the change unreviewed. Approval sets a new one.
-    const { count } = await tx.listing.updateMany({ where: { id, ownerId, status: row.status }, data: { ...columns, status, ...(status === "PENDING" ? { expiresAt: null } : {}) } });
+    // A broker's check confirmed the photos, area and price as they were, so changed content loses the badge; a new price alone keeps it.
+    const { count } = await tx.listing.updateMany({
+      where: { id, ownerId, status: row.status },
+      data: {
+        ...columns,
+        status,
+        ...(status === "PENDING" ? { expiresAt: null } : {}),
+        ...(contentChanged ? { verified: false, verifiedAt: null, verifiedById: null } : {}),
+      },
+    });
     if (count === 0) return null;
     await replaceImages(tx, id, imageUrls);
     // From the entered price, not the dollar one: that is recalculated at today's rate, which would make every lari listing look repriced.

@@ -515,6 +515,8 @@ describe("editing", () => {
       expect(await edit("ACTIVE", { price: 90000 })).toBe("ACTIVE");
       expect(prisma.listing.updateMany).toHaveBeenCalledWith({ where: { id: 9, ownerId: "u1", status: "ACTIVE" }, data: expect.objectContaining({ price: 90000, priceUsd: 90000, status: "ACTIVE" }) });
       expect(prisma.listing.updateMany.mock.calls[0][0].data).not.toHaveProperty("expiresAt");
+      // The verification vouched for photos, area and price, and a new price alone keeps the badge.
+      expect(prisma.listing.updateMany.mock.calls[0][0].data).not.toHaveProperty("verified");
       expect(prisma.listingPriceChange.create).toHaveBeenCalledWith({ data: { listingId: 9, oldPriceUsd: 100000, newPriceUsd: 90000 } });
     });
 
@@ -533,7 +535,7 @@ describe("editing", () => {
       const changes: Record<string, unknown> = { deal: "rent", type: "house", city: "ბათუმი", features: ["lift"], hidePhone: true, area: 51, building: "new", lat: 41.7, lng: 44.7 };
       expect(await edit("ACTIVE", { [name]: changes[name] ?? 7 })).toBe("PENDING");
       // Without an end date, so renewing it cannot bring the change back unreviewed.
-      expect(prisma.listing.updateMany.mock.calls[0][0].data).toMatchObject({ status: "PENDING", expiresAt: null });
+      expect(prisma.listing.updateMany.mock.calls[0][0].data).toMatchObject({ status: "PENDING", expiresAt: null, verified: false, verifiedAt: null, verifiedById: null });
     });
 
     it.each([
