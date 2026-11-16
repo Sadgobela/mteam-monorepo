@@ -1,11 +1,13 @@
+import Image from "next/image";
 import { notFound } from "next/navigation";
-import { getGelPerUsd, getBroker, getFavoriteIds } from "@mteam/db";
+import { getGelPerUsd, getBroker, getBrokerProfile, getFavoriteIds } from "@mteam/db";
 import { getDictionary } from "@mteam/shared";
 import { EmptyState } from "@/components/EmptyState";
 import { Header } from "@/components/Header";
 import { ListingGrid } from "@/components/ListingGrid";
 import { resolveLocale } from "@/lib/locale";
 import { currentUser } from "@/lib/session";
+import "@/app/brokers.css";
 
 export const dynamic = "force-dynamic";
 
@@ -18,13 +20,16 @@ export default async function BrokerPage({ params }: { params: Promise<{ locale:
   const user = await currentUser();
   const favoriteIds = user ? await getFavoriteIds(user.id) : [];
   const gelPerUsd = await getGelPerUsd();
+  const profile = await getBrokerProfile(broker.id);
   return (
     <>
       <Header locale={locale} t={t} signedIn={user !== null} />
       <main className="page">
         <div className="agent profile">
           <div className="who">
-            <span className="av" aria-hidden="true">{broker.name.slice(0, 1)}</span>
+            <span className="av broker-photo" aria-hidden="true">
+              {profile?.photoUrl ? <Image src={profile.photoUrl} alt="" fill unoptimized /> : broker.name.slice(0, 1)}
+            </span>
             <div>
               <h1 className="heading">{broker.name}</h1>
               <div className="meta">
@@ -39,6 +44,7 @@ export default async function BrokerPage({ params }: { params: Promise<{ locale:
             </a>
           </div>
         </div>
+        {profile?.bio && <p className="broker-bio">{profile.bio}</p>}
         {broker.listings.length === 0 ? (
           <EmptyState text={t.search.empty} />
         ) : (

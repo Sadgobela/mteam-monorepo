@@ -37,6 +37,8 @@ vi.mock("next/navigation", () => ({
   },
 }));
 
+import AccountLayout from "./[locale]/(account)/layout";
+import BrokerProfilePage from "./[locale]/(account)/account/broker/page";
 import AdminBrokersPage from "./[locale]/admin/brokers/page";
 import InvitePage from "./[locale]/invite/[token]/page";
 
@@ -180,5 +182,71 @@ describe("InvitePage", () => {
     db.checkInvite.mockResolvedValue({ status: "open", branch: "" });
     await visit();
     expect(screen.queryByText(/Branch:/)).toBeNull();
+  });
+});
+
+describe("BrokerProfilePage", () => {
+  const profile = { photoUrl: "https://img.example/nino.jpg", bio: "Ten years in Vake.", branch: "Vake" };
+
+  it("sends a visitor to sign in", async () => {
+    await expect(BrokerProfilePage({ params })).rejects.toThrow("REDIRECT /en/login?next=%2Fen%2Faccount%2Fbroker");
+  });
+
+  it("is a 404 for anyone who is not a broker", async () => {
+    for (const user of [owner, admin, { ...broker, agent: null }]) {
+      session.currentUser.mockResolvedValue(user);
+      await expect(BrokerProfilePage({ params })).rejects.toThrow("NEXT_NOT_FOUND");
+    }
+    session.currentUser.mockResolvedValue(broker);
+    db.getBrokerProfile.mockResolvedValue(null);
+    await expect(BrokerProfilePage({ params })).rejects.toThrow("NEXT_NOT_FOUND");
+  });
+
+  it("shows the photo, the bio and the branch, and links the public page", async () => {
+    session.currentUser.mockResolvedValue(broker);
+    db.getBrokerProfile.mockResolvedValue(profile);
+    const { container } = render(await BrokerProfilePage({ params }));
+    expect(db.getBrokerProfile).toHaveBeenCalledWith("a2");
+    expect(container.querySelector(".broker-photo img")).toHaveAttribute("src", profile.photoUrl);
+    expect(screen.getByRole("textbox", { name: new RegExp(copy.bio) })).toHaveValue(profile.bio);
+    expect(screen.getByText("Vake")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: copy.publicPage })).toHaveAttribute("href", "/en/brokers/a2");
+  });
+
+  it("works for a broker with nothing filled in, who has no public page yet", async () => {
+    session.currentUser.mockResolvedValue({ ...broker, name: null });
+    db.getBrokerProfile.mockResolvedValue({ photoUrl: null, bio: null, branch: "" });
+    const { container } = render(await BrokerProfilePage({ params }));
+    expect(container.querySelector(".broker-photo img")).toBeNull();
+    expect(screen.getByRole("textbox", { name: new RegExp(copy.bio) })).toHaveValue("");
+    expect(screen.getByText(copy.noBranch)).toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: copy.publicPage })).toBeNull();
+  });
+
+  it.each([
+    [{ saved: true }, "status", copy.saved],
+    [{ badPhoto: true }, "alert", copy.badPhoto],
+    [{ badBio: true }, "alert", copy.badBio],
+    [{ failed: true }, "alert", copy.saveFailed],
+  ] as const)("tells the broker how saving went (%o)", async (result, role, text) => {
+    const user = userEvent.setup();
+    session.currentUser.mockResolvedValue(broker);
+    db.getBrokerProfile.mockResolvedValue(profile);
+    actions.saveBrokerProfileAction.mockResolvedValue(result);
+    render(await BrokerProfilePage({ params }));
+    await user.click(screen.getByRole("button", { name: copy.save }));
+    expect(await screen.findByRole(role)).toHaveTextContent(text);
+  });
+});
+
+describe("account navigation for brokers", () => {
+  it("adds the broker profile for a broker only", async () => {
+    session.currentUser.mockResolvedValue(broker);
+    const { unmount } = render(await AccountLayout({ children: null, params }));
+    expect(screen.getByRole("link", { name: copy.profile })).toHaveAttribute("aria-current", "page");
+    unmount();
+    session.currentUser.mockResolvedValue(owner);
+    render(await AccountLayout({ children: null, params }));
+    expect(screen.queryByRole("link", { name: copy.profile })).toBeNull();
   });
 });

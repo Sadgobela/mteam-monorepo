@@ -3,7 +3,7 @@ import { render, screen } from "@testing-library/react";
 import { getDictionary } from "@mteam/shared";
 import { fixtureListings } from "@/test-fixtures";
 
-const db = vi.hoisted(() => ({ getGelPerUsd: async () => 2.7, getBranch: vi.fn(), getBroker: vi.fn(), getFavoriteIds: vi.fn(), listBranches: vi.fn(), listBrokers: vi.fn() }));
+const db = vi.hoisted(() => ({ getGelPerUsd: async () => 2.7, getBranch: vi.fn(), getBroker: vi.fn(), getBrokerProfile: vi.fn(), getFavoriteIds: vi.fn(), listBranches: vi.fn(), listBrokers: vi.fn() }));
 const session = vi.hoisted(() => ({ currentUser: vi.fn(), hasSession: vi.fn() }));
 
 vi.mock("@mteam/db", () => db);
@@ -115,6 +115,15 @@ describe("BrokerPage", () => {
     db.getBroker.mockResolvedValue({ ...broker, listings: [] });
     render(await BrokerPage({ params }));
     expect(screen.getByText(t.search.empty)).toBeInTheDocument();
+  });
+
+  it("shows the broker's photo and bio", async () => {
+    db.getBroker.mockResolvedValue({ ...broker, listings: [] });
+    db.getBrokerProfile.mockResolvedValue({ photoUrl: "https://img.example/nino.jpg", bio: "Twelve years in Vake.", branch: "Vake" });
+    const { container } = render(await BrokerPage({ params }));
+    expect(db.getBrokerProfile).toHaveBeenCalledWith("a1");
+    expect(container.querySelector(".broker-photo img")).toHaveAttribute("src", "https://img.example/nino.jpg");
+    expect(screen.getByText("Twelve years in Vake.")).toBeInTheDocument();
   });
 
   it("is a 404 for an unknown broker", async () => {
