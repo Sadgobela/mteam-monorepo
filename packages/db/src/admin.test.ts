@@ -89,6 +89,7 @@ describe("leads", () => {
     expect(await listOpenLeads()).toEqual([{ id: "l1" }]);
     expect(prisma.lead.findMany.mock.calls[0][0]).toMatchObject({
       where: { status: { in: ["NEW", "CONTACTED"] } },
+      select: { listingId: true },
       orderBy: { createdAt: "desc" },
     });
   });

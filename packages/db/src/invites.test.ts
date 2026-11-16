@@ -221,8 +221,8 @@ describe("requestVerification", () => {
     owned("Nino");
     expect(await requestVerification("u1", 7)).toBe(true);
     expect(prisma.listing.findFirst.mock.calls[0][0].where).toEqual({ id: 7, ownerId: "u1", status: "ACTIVE", verified: false, agentId: null });
-    expect(prisma.lead.findFirst.mock.calls[0][0].where).toEqual({ note: "Verify listing 7", createdAt: { gte: new Date(now.getTime() - 7 * day) } });
-    expect(prisma.lead.create).toHaveBeenCalledWith({ data: { name: "Nino", phone: "+995555123456", deal: "RENT", note: "Verify listing 7" } });
+    expect(prisma.lead.findFirst.mock.calls[0][0].where).toEqual({ listingId: 7, createdAt: { gte: new Date(now.getTime() - 7 * day) } });
+    expect(prisma.lead.create).toHaveBeenCalledWith({ data: { name: "Nino", phone: "+995555123456", deal: "RENT", listingId: 7 } });
   });
 
   it("names an owner without a name by their phone", async () => {

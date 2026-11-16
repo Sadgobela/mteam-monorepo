@@ -175,10 +175,10 @@ export async function saveBrokerProfile(agentId: string, bio: string, photoUrl?:
 }
 
 /**
- * An owner's request for a broker to visit and verify their listing, filed as a lead for the admin's queue.
- * Only the owner of an active listing nobody has verified and no broker handles. One request per listing in 7 days:
- * a repeat returns true without filing another.
- * ponytail: two clicks at the same instant can file two leads; harmless, a unique key on the note if it ever matters.
+ * An owner's request for a broker to visit and verify their listing, filed as a lead naming the listing for the admin's
+ * queue. Only the owner of an active listing nobody has verified and no broker handles, with a phone to be called on.
+ * One request per listing in 7 days: a repeat returns true without filing another.
+ * ponytail: two clicks at the same instant can file two leads; harmless, a unique index if it ever matters.
  */
 export async function requestVerification(userId: string, listingId: number): Promise<boolean> {
   const client = db();
@@ -187,14 +187,13 @@ export async function requestVerification(userId: string, listingId: number): Pr
     select: { deal: true, owner: { select: { name: true, phone: true } } },
   });
   if (!listing?.owner.phone) return false;
-  const note = `Verify listing ${listingId}`;
   const recent = await client.lead.findFirst({
-    where: { note, createdAt: { gte: new Date(Date.now() - VERIFY_REPEAT_MS) } },
+    where: { listingId, createdAt: { gte: new Date(Date.now() - VERIFY_REPEAT_MS) } },
     select: { id: true },
   });
   if (!recent) {
     const { name, phone } = listing.owner;
-    await client.lead.create({ data: { name: name ?? phone, phone, deal: listing.deal, note } });
+    await client.lead.create({ data: { name: name ?? phone, phone, deal: listing.deal, listingId } });
   }
   return true;
 }

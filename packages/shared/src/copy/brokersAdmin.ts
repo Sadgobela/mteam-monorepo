@@ -44,9 +44,12 @@ const ka = {
   noBranch: "ფილიალი ჯერ არ არის",
   publicPage: "ნახე შენი საჯარო გვერდი",
   verifyAsk: "სთხოვე MTeam-ს გადამოწმება",
-  verifyLead: "ბროკერი მოვა და ქონებას ნახავს. თუ ყველაფერი ემთხვევა, განცხადებას MTeam Verified ნიშანი მიენიჭება.",
-  verifySent: "მადლობა! ბროკერი მალე დაგიკავშირდება.",
+  verifyLead: "MTeam-ის ბროკერი დაგირეკავს შენს ნომერზე, მოვა და ქონებას ნახავს. თუ ყველაფერი ემთხვევა, განცხადებას MTeam Verified ნიშანი მიენიჭება.",
+  verifySent: "მადლობა! MTeam-ის ბროკერი მალე დაგირეკავს შენს ნომერზე.",
   verifyFailed: "ვერ გაიგზავნა. სცადე თავიდან.",
+  verifyNeedsPhone: "გადამოწმების მოსათხოვად ჯერ დაამატე ტელეფონის ნომერი პროფილში, რომ ბროკერმა დაგირეკოს.",
+  openProfile: "პროფილის გახსნა",
+  verifyRequest: "გადამოწმების მოთხოვნა: განცხადება {id}",
 };
 
 const en: typeof ka = {
@@ -94,9 +97,12 @@ const en: typeof ka = {
   noBranch: "No branch yet",
   publicPage: "See your public page",
   verifyAsk: "Ask MTeam to verify",
-  verifyLead: "A broker visits and checks the property. If everything matches, the listing gets the MTeam Verified mark.",
-  verifySent: "Thanks! A broker will be in touch soon.",
+  verifyLead: "An MTeam broker will call you on your number, then visit and check the property. If everything matches, the listing gets the MTeam Verified mark.",
+  verifySent: "Thanks! An MTeam broker will call you on your number soon.",
   verifyFailed: "Could not send. Try again.",
+  verifyNeedsPhone: "To ask for a check, first add your phone number in your profile, so a broker can call you.",
+  openProfile: "Open profile",
+  verifyRequest: "Verify request: listing {id}",
 };
 
 const ru: typeof ka = {
@@ -144,9 +150,12 @@ const ru: typeof ka = {
   noBranch: "Филиал пока не указан",
   publicPage: "Ваша публичная страница",
   verifyAsk: "Попросить MTeam проверить",
-  verifyLead: "Брокер приедет и посмотрит объект. Если всё совпадает, объявление получит отметку MTeam Verified.",
-  verifySent: "Спасибо! Брокер скоро свяжется с вами.",
+  verifyLead: "Брокер MTeam позвонит вам на ваш номер, приедет и посмотрит объект. Если всё совпадает, объявление получит отметку MTeam Verified.",
+  verifySent: "Спасибо! Брокер MTeam скоро позвонит вам на ваш номер.",
   verifyFailed: "Не удалось отправить. Попробуйте ещё раз.",
+  verifyNeedsPhone: "Чтобы попросить проверку, сначала добавьте номер телефона в профиле, чтобы брокер мог вам позвонить.",
+  openProfile: "Открыть профиль",
+  verifyRequest: "Запрос на проверку: объявление {id}",
 };
 
 export const brokersAdminCopy = { ka, en, ru };
