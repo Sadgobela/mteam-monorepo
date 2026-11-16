@@ -5,6 +5,7 @@ import { fixtureListings } from "@/test-fixtures";
 
 const db = vi.hoisted(() => ({
   bumpListing: vi.fn(),
+  deleteDraft: vi.fn(),
   countMyListings: vi.fn(),
   listMyListingsTab: vi.fn(),
   myListingTabs: ["active", "pending", "draft", "expiring", "archived", "rejected"] as const,
@@ -31,7 +32,7 @@ vi.mock("next/navigation", () => ({
   },
 }));
 
-import { bumpListingAction, renewListingAction } from "@/lib/my-listings-actions";
+import { bumpListingAction, deleteDraftAction, renewListingAction } from "@/lib/my-listings-actions";
 import MyListingsPage from "./[locale]/(account)/my-listings/page";
 
 const t = getDictionary("en");
@@ -149,6 +150,7 @@ describe("my listings actions", () => {
   it.each([
     ["bumps", bumpListingAction, db.bumpListing],
     ["renews", renewListingAction, db.renewListing],
+    ["deletes a draft", deleteDraftAction, db.deleteDraft],
   ] as const)("%s only through the signed-in user, refreshes and says whether it was done", async (_name, action, write) => {
     write.mockResolvedValue(true);
     expect(await action(form(body))).toBe(true);

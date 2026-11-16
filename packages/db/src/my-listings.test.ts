@@ -1,12 +1,12 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const prisma = vi.hoisted(() => ({
-  listing: { findMany: vi.fn(), count: vi.fn(), groupBy: vi.fn(), updateMany: vi.fn() },
+  listing: { findMany: vi.fn(), count: vi.fn(), groupBy: vi.fn(), updateMany: vi.fn(), deleteMany: vi.fn() },
 }));
 
 vi.mock("./client", () => ({ db: () => prisma }));
 
-import { archiveExpiredListings, bumpListing, countMyListings, countPhoneReveal, expiryFrom, listMyListingsTab, renewListing } from "./index";
+import { archiveExpiredListings, bumpListing, countMyListings, deleteDraft, countPhoneReveal, expiryFrom, listMyListingsTab, renewListing } from "./index";
 
 const now = new Date("2026-11-16T12:00:00Z");
 const hoursAgo = (hours: number) => new Date(now.getTime() - hours * 3_600_000);
@@ -177,6 +177,19 @@ describe("bumpListing", () => {
   it("reports a second bump the same day", async () => {
     prisma.listing.updateMany.mockResolvedValue({ count: 0 });
     expect(await bumpListing("u1", 7)).toBe(false);
+  });
+});
+
+describe("deleteDraft", () => {
+  it("deletes only the user's own draft", async () => {
+    prisma.listing.deleteMany.mockResolvedValue({ count: 1 });
+    expect(await deleteDraft("u1", 7)).toBe(true);
+    expect(prisma.listing.deleteMany).toHaveBeenCalledWith({ where: { id: 7, ownerId: "u1", status: "DRAFT" } });
+  });
+
+  it("reports when there was no such draft", async () => {
+    prisma.listing.deleteMany.mockResolvedValue({ count: 0 });
+    expect(await deleteDraft("u2", 7)).toBe(false);
   });
 });
 
