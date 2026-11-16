@@ -6,10 +6,20 @@ import { loginPath, safeNext } from "./login-path";
 const COOKIE = "mteam_session";
 const MAX_AGE_SECONDS = 30 * 24 * 60 * 60;
 
+/** This browser's session token, to tell its own session apart from the user's others. Not proof of anything by itself. */
+export async function sessionToken(): Promise<string | undefined> {
+  return (await cookies()).get(COOKIE)?.value;
+}
+
 /** The signed-in user. Use this wherever access depends on the answer. */
 export async function currentUser() {
-  const token = (await cookies()).get(COOKIE)?.value;
+  const token = await sessionToken();
   return token ? getSessionUser(token) : null;
+}
+
+/** The browser's own description of itself, kept with a new session so the user can tell their devices apart. */
+export async function userAgent(): Promise<string | undefined> {
+  return (await headers()).get("user-agent") ?? undefined;
 }
 
 /** Only for choosing what the header shows: it saves a query but does not prove the session is valid. */

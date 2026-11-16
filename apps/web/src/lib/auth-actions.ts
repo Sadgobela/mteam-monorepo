@@ -5,7 +5,7 @@ import { addPhone, requestLoginCode, verifyLoginCode } from "@mteam/db";
 import { parsePhone } from "@mteam/shared";
 import { resolveLocale } from "./locale";
 import { safeNext } from "./login-path";
-import { clientIp, currentUser, endSession, signInHere, startSession } from "./session";
+import { clientIp, currentUser, endSession, signInHere, startSession, userAgent } from "./session";
 
 export type LoginError = "invalidPhone" | "tooSoon" | "wrongCode" | "phoneTaken";
 
@@ -28,7 +28,7 @@ export async function loginAction(_previous: LoginState, form: FormData): Promis
     return (await requestLoginCode(phone, await clientIp())) ? { phone } : { phone, error: "tooSoon" };
   }
 
-  const token = await verifyLoginCode(phone, code);
+  const token = await verifyLoginCode(phone, code, await userAgent());
   if (!token) return { phone, error: "wrongCode" };
 
   await startSession(token);

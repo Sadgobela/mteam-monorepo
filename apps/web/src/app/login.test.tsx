@@ -6,7 +6,7 @@ import { getDictionary } from "@mteam/shared";
 const db = vi.hoisted(() => ({ requestLoginCode: vi.fn(), verifyLoginCode: vi.fn(), addPhone: vi.fn() }));
 const router = vi.hoisted(() => ({ back: vi.fn() }));
 const nav = vi.hoisted(() => ({ query: "deal=sale" }));
-const session = vi.hoisted(() => ({ startSession: vi.fn(), endSession: vi.fn(), currentUser: vi.fn(), hasSession: vi.fn(), clientIp: vi.fn(), signInHere: vi.fn() }));
+const session = vi.hoisted(() => ({ startSession: vi.fn(), endSession: vi.fn(), currentUser: vi.fn(), hasSession: vi.fn(), clientIp: vi.fn(), signInHere: vi.fn(), userAgent: vi.fn() }));
 
 vi.mock("@mteam/db", () => db);
 vi.mock("@/lib/session", () => session);
@@ -44,6 +44,7 @@ const form = (fields: Record<string, string>) => {
 beforeEach(() => {
   vi.resetAllMocks();
   session.clientIp.mockResolvedValue("203.0.113.7");
+  session.userAgent.mockResolvedValue("Firefox");
 });
 
 describe("loginAction", () => {
@@ -80,7 +81,7 @@ describe("loginAction", () => {
   it("signs in and goes back to the page it came from", async () => {
     db.verifyLoginCode.mockResolvedValue("tok");
     expect(await loginAction({ phone }, form({ phone, code: "123456", locale: "ru", next: "/ru/saved" }))).toEqual({ done: "/ru/saved" });
-    expect(db.verifyLoginCode).toHaveBeenCalledWith(phone, "123456");
+    expect(db.verifyLoginCode).toHaveBeenCalledWith(phone, "123456", "Firefox");
     expect(session.startSession).toHaveBeenCalledWith("tok");
   });
 
@@ -197,7 +198,7 @@ describe("LoginForm", () => {
     await user.type(cells[0], "0a00000");
 
     expect(await screen.findByRole("alert")).toHaveTextContent(t.login.errors.wrongCode);
-    expect(db.verifyLoginCode).toHaveBeenCalledWith(phone, "000000");
+    expect(db.verifyLoginCode).toHaveBeenCalledWith(phone, "000000", "Firefox");
     expect(screen.getByRole("group", { name: "SMS code" })).toBeInTheDocument();
     // jsdom does not report which button submitted a form, so the action itself covers the "change" branch.
     expect(screen.getByRole("button", { name: "Change number" })).toHaveAttribute("name", "change");

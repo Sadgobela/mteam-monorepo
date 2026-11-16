@@ -74,7 +74,7 @@ export async function finishSocialLogin(request: NextRequest, provider: string):
   if (pending && flow && code && pending.provider === provider && sameText(pending.state, String(query.get("state")))) {
     try {
       const person = await flow.person(code, { ...pending, redirectUri: redirectUri(provider) });
-      token = await signInWithIdentity(flow.id, person.subject);
+      token = await signInWithIdentity(flow.id, person.subject, request.headers.get("user-agent") ?? undefined);
       next = safeNext(pending.next, locale);
     } catch (error) {
       console.error("Social sign-in failed", provider, error);

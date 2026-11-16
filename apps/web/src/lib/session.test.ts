@@ -9,7 +9,16 @@ const requestHeaders = vi.hoisted(() => ({ get: vi.fn() }));
 vi.mock("next/headers", () => ({ cookies: async () => store, headers: async () => requestHeaders }));
 vi.mock("@mteam/db", () => db);
 
-import { clientIp, currentUser, endSession, hasSession, signInHere, startSession } from "./session";
+import { clientIp, currentUser, endSession, hasSession, signInHere, startSession, userAgent } from "./session";
+
+describe("userAgent", () => {
+  it("reads the browser's description, or nothing when it sent none", async () => {
+    requestHeaders.get.mockReturnValueOnce("Mozilla/5.0").mockReturnValueOnce(null);
+    expect(await userAgent()).toBe("Mozilla/5.0");
+    expect(await userAgent()).toBeUndefined();
+    expect(requestHeaders.get).toHaveBeenCalledWith("user-agent");
+  });
+});
 
 beforeEach(() => vi.resetAllMocks());
 afterEach(() => vi.unstubAllEnvs());

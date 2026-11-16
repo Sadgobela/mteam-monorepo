@@ -9,6 +9,8 @@ const RESEND_AFTER_MS = 60_000;
 const MAX_ATTEMPTS = 5;
 const ATTEMPT_WINDOW_MS = 60 * 60_000;
 const SESSION_TTL_MS = 30 * 24 * 60 * 60_000;
+const LAST_SEEN_EVERY_MS = 60 * 60_000;
+const USER_AGENT_MAX = 300;
 // Generous, because Georgian mobile carriers put many customers behind one address. It exists to cap what a script can cost in SMS.
 const CODES_PER_ADDRESS = 20;
 const PHONE_LOOKUPS_PER_ADDRESS = 60;
@@ -140,21 +142,24 @@ async function useCode(phone: string, code: string): Promise<boolean> {
   return matched > 0;
 }
 
-/** A new session for the user. Only a hash of the token is stored. */
-/** Starts a session for a user who has just proved who they are, and returns the token for the cookie. */
-export async function createSession(userId: string): Promise<string> {
+/**
+ * Starts a session for a user who has just proved who they are, and returns the token for the cookie. Only a hash of the token is stored.
+ * The browser's user agent, when given, lets the user tell their devices apart in settings; it is the client's own text, so it is cut short.
+ */
+export async function createSession(userId: string, userAgent?: string): Promise<string> {
   const token = randomBytes(32).toString("base64url");
+  const now = Date.now();
   await db().session.create({
-    data: { tokenHash: sha256(token), userId, expiresAt: new Date(Date.now() + SESSION_TTL_MS) },
+    data: { tokenHash: sha256(token), userId, expiresAt: new Date(now + SESSION_TTL_MS), userAgent: userAgent?.slice(0, USER_AGENT_MAX), lastSeenAt: new Date(now) },
   });
   return token;
 }
 
 /** Checks a code and returns a new session token, or null. A user is created on first login. */
-export async function verifyLoginCode(phone: string, code: string): Promise<string | null> {
+export async function verifyLoginCode(phone: string, code: string, userAgent?: string): Promise<string | null> {
   if (!(await useCode(phone, code))) return null;
   const user = await db().user.upsert({ where: { phone }, update: {}, create: { phone } });
-  return createSession(user.id);
+  return createSession(user.id, userAgent);
 }
 
 /**
@@ -162,14 +167,14 @@ export async function verifyLoginCode(phone: string, code: string): Promise<stri
  * without a name: what the provider calls someone is not shown to others here.
  * Never matched to an existing user by email: Facebook does not promise the address was checked.
  */
-export async function signInWithIdentity(provider: IdentityProvider, subject: string): Promise<string> {
+export async function signInWithIdentity(provider: IdentityProvider, subject: string, userAgent?: string): Promise<string> {
   const identity = await db().identity.upsert({
     where: { provider_subject: { provider, subject } },
     update: {},
     create: { provider, subject, user: { create: {} } },
     select: { userId: true },
   });
-  return createSession(identity.userId);
+  return createSession(identity.userId, userAgent);
 }
 
 export type AddPhoneResult = "added" | "wrongCode" | "taken";
@@ -192,11 +197,20 @@ export async function addPhone(userId: string, phone: string, code: string): Pro
 }
 
 export async function getSessionUser(token: string) {
+  const tokenHash = sha256(token);
   const session = await db().session.findUnique({
-    where: { tokenHash: sha256(token) },
-    select: { expiresAt: true, user: { select: { id: true, phone: true, role: true, name: true, avatarUrl: true, onboardedAt: true, agent: { select: { id: true } } } } },
+    where: { tokenHash },
+    select: { expiresAt: true, lastSeenAt: true, user: { select: { id: true, phone: true, role: true, name: true, avatarUrl: true, onboardedAt: true, agent: { select: { id: true } } } } },
   });
-  return session && session.expiresAt > new Date() ? session.user : null;
+  const now = new Date();
+  if (!session || session.expiresAt <= now) return null;
+  // Last seen, for the devices list in settings. Written at most once an hour, so nearly every request skips it,
+  // and the condition is repeated in the write so parallel requests in that moment write once.
+  const staleBefore = new Date(now.getTime() - LAST_SEEN_EVERY_MS);
+  if (!session.lastSeenAt || session.lastSeenAt < staleBefore) {
+    await db().session.updateMany({ where: { tokenHash, OR: [{ lastSeenAt: null }, { lastSeenAt: { lt: staleBefore } }] }, data: { lastSeenAt: now } });
+  }
+  return session.user;
 }
 
 export async function deleteSession(token: string): Promise<void> {
