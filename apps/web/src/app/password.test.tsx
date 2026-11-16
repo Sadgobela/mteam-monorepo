@@ -32,6 +32,7 @@ vi.mock("next/navigation", () => ({
 
 import { EmailLoginForm } from "@/components/AuthForms";
 import { LoginPanel } from "@/components/LoginPanel";
+import SecurityPage from "./[locale]/(account)/account/security/page";
 import ResetPasswordPage from "./[locale]/auth/reset/page";
 import VerifyEmailPage from "./[locale]/auth/verify/page";
 
@@ -160,5 +161,60 @@ describe("ResetPasswordPage", () => {
     await user.click(screen.getByRole("button", { name: t.auth.savePassword }));
     await waitFor(() => expect(assign).toHaveBeenCalledWith("/en/account/security"));
     expect(db.resetPassword).toHaveBeenCalledWith("rt", strong);
+  });
+});
+
+describe("SecurityPage", () => {
+  const security = { email, emailVerified: false, hasPassword: true, phone: "+995555123456", providers: ["GOOGLE"] };
+
+  it("sends a visitor to sign in", async () => {
+    session.currentUser.mockResolvedValue(null);
+    await expect(SecurityPage({ params })).rejects.toThrow("REDIRECT /en/login?next=%2Fen%2Faccount%2Fsecurity");
+  });
+
+  it("shows the email, a resend link, the password change and the ways to sign in", async () => {
+    const user = userEvent.setup();
+    db.getAccountSecurity.mockResolvedValue(security);
+    db.requestEmailChange.mockResolvedValue("vt");
+    render(await SecurityPage({ params }));
+    expect(db.getAccountSecurity).toHaveBeenCalledWith("u1");
+    expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent(t.auth.security.heading);
+    expect(screen.getByText(t.auth.security.unverifiedTag)).toBeInTheDocument();
+    expect(screen.getByLabelText(t.auth.currentPassword)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: t.auth.security.changePassword })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: t.auth.security.changeEmail })).toBeInTheDocument();
+
+    const methods = screen.getAllByRole("listitem");
+    expect(methods.map((item) => item.textContent)).toEqual([
+      `${t.auth.security.methods.phone}+995555123456${t.auth.security.inUse}`,
+      `${t.auth.security.methods.google}${t.auth.security.inUse}`,
+      `${t.auth.security.methods.facebook}${t.auth.security.notInUse}`,
+      `${t.auth.security.methods.apple}${t.auth.security.notInUse}`,
+      `${t.auth.security.methods.email}${t.auth.security.inUse}`,
+    ]);
+
+    await user.click(screen.getByRole("button", { name: t.auth.security.resend }));
+    expect(await screen.findByRole("status")).toHaveTextContent(t.auth.notices.verifySent);
+    expect(db.requestEmailChange).toHaveBeenCalledWith("u1", email);
+  });
+
+  it("marks a confirmed email and offers no resend", async () => {
+    db.getAccountSecurity.mockResolvedValue({ ...security, emailVerified: true, hasPassword: false });
+    render(await SecurityPage({ params }));
+    expect(screen.getByText(t.auth.security.verifiedTag)).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: t.auth.security.resend })).toBeNull();
+    expect(screen.queryByLabelText(t.auth.currentPassword)).toBeNull();
+    expect(screen.getByRole("button", { name: t.auth.security.setPassword })).toBeInTheDocument();
+    expect(screen.getAllByRole("listitem")[4]).toHaveTextContent(t.auth.security.notInUse);
+  });
+
+  it("asks an account without an email to add one before a password", async () => {
+    db.getAccountSecurity.mockResolvedValue({ email: null, emailVerified: false, hasPassword: false, phone: null, providers: ["APPLE", "FACEBOOK"] });
+    render(await SecurityPage({ params }));
+    expect(screen.getByText(t.auth.security.noEmail)).toBeInTheDocument();
+    expect(screen.getByText(t.auth.security.needEmail)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: t.auth.security.addEmail })).toBeInTheDocument();
+    expect(screen.queryByLabelText(t.auth.newPassword)).toBeNull();
+    expect(screen.getAllByRole("listitem")[0]).toHaveTextContent(t.auth.security.notInUse);
   });
 });
