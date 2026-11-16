@@ -15,7 +15,8 @@ export function PreferenceSwitch({ name, label, hint, checked, failed }: { name:
     setOn(next);
     setError(false);
     startTransition(async () => {
-      if (await setPreferenceAction(name, next)) return;
+      // A thrown error (the database, or an account deleted meanwhile) counts as a failed save, not a crash.
+      if (await setPreferenceAction(name, next).catch(() => false)) return;
       setOn(!next);
       setError(true);
     });

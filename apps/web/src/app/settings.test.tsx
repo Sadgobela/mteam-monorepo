@@ -140,6 +140,15 @@ describe("preference switch", () => {
     expect(hide).not.toBeChecked();
     expect(db.setPreference).not.toHaveBeenCalled();
   });
+
+  it("flips back when saving throws, instead of crashing", async () => {
+    render(await SettingsPage({ params }));
+    db.setPreference.mockRejectedValueOnce(new Error("gone"));
+    const messages = screen.getByRole("switch", { name: "New chat messages" });
+    await userEvent.click(messages);
+    expect(await screen.findByRole("alert")).toHaveTextContent("That could not be saved. Please try again.");
+    expect(messages).toBeChecked();
+  });
 });
 
 describe("setPreferenceAction", () => {

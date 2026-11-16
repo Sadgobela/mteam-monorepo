@@ -11,6 +11,7 @@ const prisma = vi.hoisted(() => {
     hiddenListing: { deleteMany: vi.fn() },
     emailToken: { deleteMany: vi.fn() },
     notification: { deleteMany: vi.fn() },
+    agent: { updateMany: vi.fn() },
     listing: { updateMany: vi.fn() },
     $transaction: vi.fn(),
   };
@@ -90,6 +91,7 @@ describe("deleteAccount", () => {
       expect(table.deleteMany).toHaveBeenCalledWith({ where: { userId: "u1" } });
     }
     expect(prisma.listing.updateMany).toHaveBeenCalledWith({ where: { ownerId: "u1", status: { not: "ARCHIVED" } }, data: { status: "ARCHIVED" } });
+    expect(prisma.agent.updateMany).toHaveBeenCalledWith({ where: { userId: "u1" }, data: { photoUrl: null, bio: null } });
   });
 
   it("refuses brokers and admins, changing nothing", async () => {

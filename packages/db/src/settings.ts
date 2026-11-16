@@ -69,6 +69,8 @@ export async function deleteAccount(userId: string): Promise<boolean> {
     await tx.hiddenListing.deleteMany(mine);
     await tx.emailToken.deleteMany(mine);
     await tx.notification.deleteMany(mine);
+    // A former broker keeps the Agent row their listings and checks point to, but not their photo or bio.
+    await tx.agent.updateMany({ where: { userId }, data: { photoUrl: null, bio: null } });
     await tx.listing.updateMany({ where: { ownerId: userId, status: { not: "ARCHIVED" } }, data: { status: "ARCHIVED" } });
     return true;
   });
