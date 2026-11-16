@@ -7,8 +7,10 @@ import { db } from "./client";
 // The typings promisify only the form without options; at run time the callback simply goes last.
 const scryptAsync = promisify(scrypt) as (password: BinaryLike, salt: BinaryLike, keylen: number, options: ScryptOptions) => Promise<Buffer>;
 
-// OWASP's floor for scrypt is N=2^17 with r=8; 2^15 keeps a sign-in near 100 ms on a small serverless function.
-const COST = { N: 2 ** 15, r: 8, p: 1 };
+// OWASP's recommendation for scrypt. Each hash takes 128 MB of memory for a moment.
+const COST = { N: 2 ** 17, r: 8, p: 1 };
+// Hashes made with other settings are made again at the next sign-in.
+const CURRENT = `scrypt$${COST.N}$${COST.r}$${COST.p}$`;
 const SALT_BYTES = 16;
 const KEY_BYTES = 64;
 // The hash part is at least 16 bytes: an empty one would match every password.
@@ -32,7 +34,7 @@ const addressKey = (kind: string, ip: string) => `${kind}:${addressHash(ip)}`;
 const emailKey = (kind: string, email: string) => `${kind}:${addressHash(`email:${email}`)}`;
 
 async function derive(password: string, salt: Buffer, keyBytes: number, cost: typeof COST): Promise<Buffer> {
-  // scrypt needs 128 * N * r bytes; the default ceiling of 32 MB is just too small for N=2^15.
+  // scrypt needs 128 * N * r bytes, above the default ceiling of 32 MB.
   return scryptAsync(password.normalize("NFKC"), salt, keyBytes, { ...cost, maxmem: 256 * cost.N * cost.r });
 }
 
@@ -54,7 +56,12 @@ export async function checkPassword(password: string, stored: string): Promise<b
 let dummyHash: Promise<string> | undefined;
 
 /** Checked against when no account has the email, so an unknown address takes as long as a wrong password. */
-const anyHash = () => (dummyHash ??= hashPassword(randomBytes(SALT_BYTES).toString("hex")));
+const anyHash = () =>
+  (dummyHash ??= hashPassword(randomBytes(SALT_BYTES).toString("hex")).catch((error: unknown) => {
+    // Not kept, so one failure does not break every later sign-in with an unknown email.
+    dummyHash = undefined;
+    throw error;
+  }));
 
 const isTaken = (error: unknown) => error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002";
 
@@ -82,7 +89,13 @@ export async function signInWithPassword(email: string, password: string, ip: st
   if (!(await claimQuota(addressKey("pw", ip), ATTEMPTS_PER_ADDRESS, now)) || (await emailLocked(key, now))) return { error: "limited" };
   const user = await db().user.findUnique({ where: { email }, select: { id: true, passwordHash: true } });
   const matches = await checkPassword(password, user?.passwordHash ?? (await anyHash()));
-  if (user?.passwordHash && matches) return { token: await createSession(user.id, userAgent) };
+  if (user?.passwordHash && matches) {
+    if (!user.passwordHash.startsWith(CURRENT)) {
+      // Only over the hash just checked, so a password changed meanwhile is not overwritten.
+      await db().user.updateMany({ where: { id: user.id, passwordHash: user.passwordHash }, data: { passwordHash: await hashPassword(password) } });
+    }
+    return { token: await createSession(user.id, userAgent) };
+  }
   // ponytail: checked before and counted after, so parallel guesses can pass the email limit by a few; the address limit still caps them.
   await claimQuota(key, ATTEMPTS_PER_EMAIL, now);
   return { error: "wrong" };

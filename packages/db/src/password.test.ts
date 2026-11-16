@@ -1,4 +1,4 @@
-import { createHash, createHmac } from "node:crypto";
+import { createHash, createHmac, scryptSync } from "node:crypto";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const prisma = vi.hoisted(() => ({
@@ -64,7 +64,7 @@ afterEach(() => {
 describe("hashPassword and checkPassword", () => {
   it("stores scrypt with its cost and a random salt, and checks it", async () => {
     const stored = await hashPassword("correct horse");
-    expect(stored).toMatch(/^scrypt\$32768\$8\$1\$[\w+/]{22}==\$[\w+/]{86}==$/);
+    expect(stored).toMatch(/^scrypt\$131072\$8\$1\$[\w+/]{22}==\$[\w+/]{86}==$/);
     expect(await hashPassword("correct horse")).not.toBe(stored);
     expect(await checkPassword("correct horse", stored)).toBe(true);
     expect(await checkPassword("correct hors", stored)).toBe(false);
@@ -112,6 +112,33 @@ describe("signInWithPassword", () => {
     prisma.codeRequestLimit.findUnique.mockResolvedValueOnce({ count: 10, windowStart: new Date("2026-11-16T09:30:00Z") });
     expect(await signInWithPassword(email, "x", ip)).toEqual({ error: "limited" });
     expect(prisma.user.findUnique).not.toHaveBeenCalled();
+  });
+
+  it("makes an older, cheaper hash again after a right password, and leaves a current one alone", async () => {
+    const salt = Buffer.from("0123456789abcdef");
+    const old = `scrypt$16384$8$1$${salt.toString("base64")}$${scryptSync("right password", salt, 64, { N: 16384, r: 8, p: 1 }).toString("base64")}`;
+    prisma.user.findUnique.mockResolvedValueOnce({ id: "u1", passwordHash: old });
+    expect(await signInWithPassword(email, "right password", ip)).toEqual({ token: expect.any(String) });
+    const { where, data } = prisma.user.updateMany.mock.calls[0][0];
+    expect(where).toEqual({ id: "u1", passwordHash: old });
+    expect(data.passwordHash).toMatch(/^scrypt\$131072\$8\$1\$/);
+    expect(await checkPassword("right password", data.passwordHash)).toBe(true);
+
+    prisma.user.findUnique.mockResolvedValueOnce({ id: "u1", passwordHash: data.passwordHash });
+    expect(await signInWithPassword(email, "right password", ip)).toEqual({ token: expect.any(String) });
+    expect(prisma.user.updateMany).toHaveBeenCalledOnce();
+  });
+
+  it("does not keep a failed stand-in hash for unknown emails", async () => {
+    vi.resetModules();
+    const fresh = await import("./password");
+    prisma.user.findUnique.mockResolvedValue(null);
+    const normalize = vi.spyOn(String.prototype, "normalize").mockImplementationOnce(() => {
+      throw new Error("out of memory");
+    });
+    await expect(fresh.signInWithPassword(email, "x", ip)).rejects.toThrow("out of memory");
+    expect(await fresh.signInWithPassword(email, "x", ip)).toEqual({ error: "wrong" });
+    normalize.mockRestore();
   });
 
   it("lets the email try again under the limit or once its hour is over", async () => {
