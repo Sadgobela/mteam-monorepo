@@ -52,6 +52,7 @@ export default async function AdminPage({ params }: { params: Promise<{ locale: 
       <Header locale={locale} t={t} signedIn />
       <main className="page">
         <h1 className="heading">{t.admin.heading}</h1>
+        {isAdmin && <Link href={`/${locale}/admin/brokers`} className="btn ghost">{t.brokersAdmin.link}</Link>}
 
         {isAdmin && (
           <section className="queue">

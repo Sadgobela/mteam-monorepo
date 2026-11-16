@@ -1,0 +1,10 @@
+/* Brokers: the admin's invites, the broker profile, the public broker page and the verify request. */
+.invite-form { align-items: end; }
+.invite-link { display: grid; gap: 8px; }
+.invite-copy { display: flex; gap: 8px; flex-wrap: wrap; }
+.invite-copy input { flex: 1 1 240px; min-width: 0; height: 44px; padding: 10px 12px; font: inherit; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); color: var(--fg); }
+.broker-form { display: grid; gap: 16px; }
+.broker-photo { position: relative; overflow: hidden; flex: none; width: 72px; height: 72px; }
+.broker-photo img { object-fit: cover; }
+.broker-bio { white-space: pre-line; max-width: 680px; color: var(--fg); }
+.verify-request { display: grid; gap: 10px; justify-items: start; }
