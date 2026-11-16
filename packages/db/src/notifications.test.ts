@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const prisma = vi.hoisted(() => ({
   user: { count: vi.fn() },
-  notification: { count: vi.fn(), create: vi.fn(), createMany: vi.fn(), deleteMany: vi.fn(), findFirst: vi.fn(), findMany: vi.fn(), update: vi.fn(), updateMany: vi.fn() },
+  notification: { count: vi.fn(), create: vi.fn(), createManyAndReturn: vi.fn(), deleteMany: vi.fn(), findFirst: vi.fn(), findMany: vi.fn(), update: vi.fn(), updateMany: vi.fn() },
   listing: { count: vi.fn(), findMany: vi.fn(), findUnique: vi.fn(), fields: { floors: "FLOORS" } },
   listingPriceChange: { findMany: vi.fn() },
   favorite: { findMany: vi.fn() },
@@ -19,6 +19,7 @@ import {
   markConversationNotificationsRead,
   notifyListingReviewed,
   notifyMessage,
+  onNotificationsCreated,
   openNotification,
   runNightlyNotifications,
 } from "./index";
@@ -30,9 +31,13 @@ const daysAhead = (days: number) => new Date(NOW.getTime() + days * 86_400_000);
 beforeEach(() => {
   vi.resetAllMocks();
   vi.useFakeTimers({ now: NOW, toFake: ["Date"] });
-  prisma.notification.createMany.mockImplementation(async ({ data }: { data: unknown[] }) => ({ count: data.length }));
+  prisma.notification.createManyAndReturn.mockImplementation(async ({ data }: { data: unknown[] }) => data.map((_, index) => ({ id: `new${index}` })));
+  prisma.notification.create.mockResolvedValue({ id: "new" });
 });
-afterEach(() => vi.useRealTimers());
+afterEach(() => {
+  vi.useRealTimers();
+  onNotificationsCreated(undefined);
+});
 
 describe("reading", () => {
   it("counts unread ones for the bell", async () => {
@@ -91,7 +96,7 @@ describe("notifyMessage", () => {
     await notifyMessage("u2", "c1", 7);
     expect(prisma.user.count).toHaveBeenCalledWith({ where: { id: "u2", notifyMessages: true } });
     expect(prisma.notification.findFirst.mock.calls[0][0].where).toEqual({ userId: "u2", readAt: null, type: "MESSAGE", conversationId: "c1" });
-    expect(prisma.notification.create).toHaveBeenCalledWith({ data: { userId: "u2", type: "MESSAGE", conversationId: "c1", listingId: 7, data: { count: 1 } } });
+    expect(prisma.notification.create).toHaveBeenCalledWith({ data: { userId: "u2", type: "MESSAGE", conversationId: "c1", listingId: 7, data: { count: 1 } }, select: { id: true } });
   });
 
   it("counts up the unread one and moves it to the top, even if its count was lost", async () => {
@@ -121,11 +126,11 @@ describe("notifyListingReviewed", () => {
     await notifyListingReviewed(7, "ACTIVE");
     expect(prisma.user.count).toHaveBeenCalledWith({ where: { id: "o1", notifyListingUpdates: true } });
     expect(prisma.notification.count).toHaveBeenCalledWith({ where: { userId: "o1", createdAt: { gte: updatedAt }, type: "LISTING_APPROVED", listingId: 7 } });
-    expect(prisma.notification.create).toHaveBeenLastCalledWith({ data: { userId: "o1", type: "LISTING_APPROVED", listingId: 7 } });
+    expect(prisma.notification.create).toHaveBeenLastCalledWith({ data: { userId: "o1", type: "LISTING_APPROVED", listingId: 7 }, select: { id: true } });
 
     prisma.listing.findUnique.mockResolvedValue({ ownerId: "o1", status: "REJECTED", updatedAt });
     await notifyListingReviewed(7, "REJECTED");
-    expect(prisma.notification.create).toHaveBeenLastCalledWith({ data: { userId: "o1", type: "LISTING_REJECTED", listingId: 7 } });
+    expect(prisma.notification.create).toHaveBeenLastCalledWith({ data: { userId: "o1", type: "LISTING_REJECTED", listingId: 7 }, select: { id: true } });
 
     prisma.notification.count.mockResolvedValue(1);
     await notifyListingReviewed(7, "REJECTED");
@@ -155,7 +160,7 @@ describe("runNightlyNotifications", () => {
   it("does nothing on a quiet night but clear out old read notifications", async () => {
     expect(await runNightlyNotifications()).toBe(0);
     expect(prisma.notification.deleteMany).toHaveBeenCalledWith({ where: { readAt: { lt: new Date(NOW.getTime() - 90 * 86_400_000) } } });
-    expect(prisma.notification.createMany).not.toHaveBeenCalled();
+    expect(prisma.notification.createManyAndReturn).not.toHaveBeenCalled();
   });
 
   it("warns owners of listings ending within three days, once per expiry date", async () => {
@@ -172,7 +177,8 @@ describe("runNightlyNotifications", () => {
     expect(await runNightlyNotifications()).toBe(2);
     expect(prisma.listing.findMany.mock.calls[0][0].where).toEqual({ status: "ACTIVE", expiresAt: { gt: NOW, lte: daysAhead(3) }, owner: { notifyListingUpdates: true } });
     expect(prisma.notification.findMany.mock.calls[0][0].where).toEqual({ userId: { in: ["o1", "o1", "o2", "o2"] }, createdAt: { gte: daysAhead(-3) }, type: "LISTING_EXPIRING", listingId: { in: [1, 2, 3, 4] } });
-    expect(prisma.notification.createMany).toHaveBeenCalledWith({
+    expect(prisma.notification.createManyAndReturn).toHaveBeenCalledWith({
+      select: { id: true },
       data: [
         { userId: "o1", type: "LISTING_EXPIRING", listingId: 1, data: { expiresAt: daysAhead(2).toISOString() } },
         { userId: "o2", type: "LISTING_EXPIRING", listingId: 3, data: { expiresAt: daysAhead(3).toISOString() } },
@@ -199,7 +205,8 @@ describe("runNightlyNotifications", () => {
     expect(await runNightlyNotifications()).toBe(2);
     expect(prisma.listingPriceChange.findMany.mock.calls[0][0].where).toEqual({ createdAt: { gte: hoursAgo(25) }, listing: { status: "ACTIVE" } });
     expect(prisma.favorite.findMany.mock.calls[0][0].where).toEqual({ listingId: { in: [1, 3] }, user: { notifyPriceDrops: true } });
-    expect(prisma.notification.createMany).toHaveBeenCalledWith({
+    expect(prisma.notification.createManyAndReturn).toHaveBeenCalledWith({
+      select: { id: true },
       data: [
         { userId: "u1", type: "PRICE_DROP", listingId: 1, data: { oldPriceUsd: 100, newPriceUsd: 90 } },
         { userId: "u2", type: "PRICE_DROP", listingId: 1, data: { oldPriceUsd: 100, newPriceUsd: 90 } },
@@ -236,6 +243,65 @@ describe("runNightlyNotifications", () => {
     expect(sinces).toEqual([hoursAgo(25), hoursAgo(2), hoursAgo(1)]);
     expect(prisma.listing.count.mock.calls[0][0].where).toMatchObject({ status: "ACTIVE", deal: "SALE", id: { notIn: [9] } });
     expect(prisma.hiddenListing.findMany).toHaveBeenCalledTimes(2);
-    expect(prisma.notification.createMany).toHaveBeenCalledWith({ data: [{ userId: "u1", type: "SEARCH_MATCHES", data: { savedSearchId: "s1", query: "deal=sale", count: 3 } }] });
+    expect(prisma.notification.createManyAndReturn).toHaveBeenCalledWith({ select: { id: true }, data: [{ userId: "u1", type: "SEARCH_MATCHES", data: { savedSearchId: "s1", query: "deal=sale", count: 3 } }] });
+  });
+});
+
+describe("announcing new notifications", () => {
+  const listener = vi.fn();
+  const row = { id: "new", userId: "u2", type: "MESSAGE", listingId: 7, conversationId: "c1", data: { count: 1 }, listing: { title: "Flat" } };
+  const created = { id: "new", userId: "u2", type: "MESSAGE", listingId: 7, listingTitle: "Flat", conversationId: "c1", count: 1 };
+
+  beforeEach(() => {
+    onNotificationsCreated(listener);
+    prisma.user.count.mockResolvedValue(1);
+  });
+
+  it("hands a new chat notification to the listener, read back with its details, dropping rows that do not fit", async () => {
+    prisma.notification.findFirst.mockResolvedValue(null);
+    prisma.notification.findMany.mockResolvedValue([row, { ...row, id: "broken", conversationId: null }]);
+    await notifyMessage("u2", "c1", 7);
+    expect(prisma.notification.findMany.mock.calls[0][0]).toMatchObject({ where: { id: { in: ["new"] } }, select: { id: true, userId: true, type: true } });
+    expect(listener).toHaveBeenCalledWith([created]);
+  });
+
+  it("announces a chat notification again when another message bumps it", async () => {
+    prisma.notification.findFirst.mockResolvedValue({ id: "n1", data: { count: 1 } });
+    prisma.notification.findMany.mockResolvedValue([{ ...row, id: "n1", data: { count: 2 } }]);
+    await notifyMessage("u2", "c1", 7);
+    expect(prisma.notification.findMany.mock.calls[0][0].where).toEqual({ id: { in: ["n1"] } });
+    expect(listener).toHaveBeenCalledWith([{ ...created, id: "n1", count: 2 }]);
+  });
+
+  it("announces a review decision", async () => {
+    prisma.notification.count.mockResolvedValue(0);
+    prisma.listing.findUnique.mockResolvedValue({ ownerId: "o1", status: "ACTIVE", updatedAt: NOW });
+    prisma.notification.findMany.mockResolvedValue([{ ...row, userId: "o1", type: "LISTING_APPROVED", conversationId: null, data: null }]);
+    await notifyListingReviewed(7, "ACTIVE");
+    expect(listener).toHaveBeenCalledWith([{ id: "new", userId: "o1", type: "LISTING_APPROVED", listingId: 7, listingTitle: "Flat" }]);
+  });
+
+  it("announces the nightly ones, and nothing on a quiet night", async () => {
+    prisma.listingPriceChange.findMany.mockResolvedValue([]);
+    prisma.savedSearch.findMany.mockResolvedValue([]);
+    prisma.listing.findMany.mockResolvedValue([{ id: 7, ownerId: "o1", expiresAt: daysAhead(2) }]);
+    const expiring = { ...row, id: "new0", userId: "o1", type: "LISTING_EXPIRING", conversationId: null, data: { expiresAt: daysAhead(2).toISOString() } };
+    prisma.notification.findMany.mockResolvedValueOnce([]).mockResolvedValueOnce([expiring]);
+    expect(await runNightlyNotifications()).toBe(1);
+    expect(listener).toHaveBeenCalledWith([{ id: "new0", userId: "o1", type: "LISTING_EXPIRING", listingId: 7, listingTitle: "Flat", expiresAt: daysAhead(2).toISOString() }]);
+
+    listener.mockClear();
+    prisma.listing.findMany.mockResolvedValue([]);
+    expect(await runNightlyNotifications()).toBe(0);
+    expect(listener).not.toHaveBeenCalled();
+  });
+
+  it("never lets a failed delivery fail the notification", async () => {
+    vi.spyOn(console, "error").mockImplementation(() => undefined);
+    prisma.notification.findFirst.mockResolvedValue(null);
+    prisma.notification.findMany.mockResolvedValue([row]);
+    listener.mockRejectedValue(new Error("push down"));
+    await expect(notifyMessage("u2", "c1", 7)).resolves.toBeUndefined();
+    expect(console.error).toHaveBeenCalledWith(new Error("push down"));
   });
 });

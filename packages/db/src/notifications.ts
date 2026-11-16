@@ -56,6 +56,43 @@ function detailsOf(row: Prisma.NotificationGetPayload<{ select: typeof detailsSe
   return parsed.success ? parsed.data : null;
 }
 
+/** A notification just created, or bumped by another chat message, for delivery beyond the site. */
+export type CreatedNotification = NotificationDetails & { id: string; userId: string };
+export type NotificationListener = (created: CreatedNotification[]) => Promise<void>;
+
+/** On globalThis, because the server's start-up code and its routes can each load their own copy of this module. */
+const listenerStore = globalThis as typeof globalThis & { mteamNotificationListener?: NotificationListener };
+
+/**
+ * Lets the web app deliver notifications elsewhere, such as push to a phone, without this package knowing how. Every
+ * notification is created in this file and handed over here once saved; undefined stops it.
+ */
+export function onNotificationsCreated(listener: NotificationListener | undefined): void {
+  listenerStore.mteamNotificationListener = listener;
+}
+
+/** Hands what was just saved to the listener. Delivery failing never fails what created the notification. */
+async function announce(ids: string[]): Promise<void> {
+  const listener = listenerStore.mteamNotificationListener;
+  if (!listener || ids.length === 0) return;
+  try {
+    const rows = await db().notification.findMany({ where: { id: { in: ids } }, select: { id: true, userId: true, ...detailsSelect } });
+    await listener(rows.flatMap((row) => {
+      const details = detailsOf(row);
+      return details ? [{ ...details, id: row.id, userId: row.userId }] : [];
+    }));
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+/** Saves a batch and announces it. Returns how many were created. */
+async function createAll(data: Prisma.NotificationCreateManyInput[]): Promise<number> {
+  const created = await db().notification.createManyAndReturn({ data, select: { id: true } });
+  await announce(created.map((row) => row.id));
+  return created.length;
+}
+
 /** For the bell. */
 export async function countUnreadNotifications(userId: string): Promise<number> {
   return db().notification.count({ where: { userId, readAt: null } });
@@ -102,8 +139,10 @@ export async function notifyMessage(userId: string, conversationId: string, list
   const unread = await client.notification.findFirst({ where: { userId, readAt: null, type: "MESSAGE", conversationId }, select: { id: true, data: true } });
   if (unread) {
     await client.notification.update({ where: { id: unread.id }, data: { createdAt: new Date(), data: { count: messageCount.parse(unread.data).count + 1 } } });
+    await announce([unread.id]);
   } else {
-    await client.notification.create({ data: { userId, type: "MESSAGE", conversationId, listingId, data: { count: 1 } } });
+    const { id } = await client.notification.create({ data: { userId, type: "MESSAGE", conversationId, listingId, data: { count: 1 } }, select: { id: true } });
+    await announce([id]);
   }
 }
 
@@ -118,7 +157,9 @@ export async function notifyListingReviewed(listingId: number, decision: "ACTIVE
   const type = decision === "ACTIVE" ? "LISTING_APPROVED" : "LISTING_REJECTED";
   if (!(await allows(listing.ownerId, type))) return;
   const told = await client.notification.count({ where: { userId: listing.ownerId, createdAt: { gte: listing.updatedAt }, type, listingId } });
-  if (told === 0) await client.notification.create({ data: { userId: listing.ownerId, type, listingId } });
+  if (told > 0) return;
+  const { id } = await client.notification.create({ data: { userId: listing.ownerId, type, listingId }, select: { id: true } });
+  await announce([id]);
 }
 
 /** Owners' published listings ending within a few days, told once per expiry date: renewing sets a new one. */
@@ -140,7 +181,7 @@ async function notifyExpiring(now: Date): Promise<number> {
       ? [{ userId: ownerId, type: "LISTING_EXPIRING" as const, listingId: id, data: { expiresAt: expiresAt.toISOString() } }]
       : [],
   );
-  return (await client.notification.createMany({ data: fresh })).count;
+  return createAll(fresh);
 }
 
 /** Users whose favourite got cheaper since the last run, told once per change. */
@@ -169,7 +210,7 @@ async function notifyPriceDrops(now: Date): Promise<number> {
       .filter((fan) => fan.listingId === listingId && !told.some((notice) => notice.userId === fan.userId && notice.listingId === listingId && notice.createdAt >= at))
       .map(({ userId }) => ({ userId, type: "PRICE_DROP" as const, listingId, data: { oldPriceUsd, newPriceUsd } })),
   );
-  return (await client.notification.createMany({ data: fresh })).count;
+  return createAll(fresh);
 }
 
 const savedSearchOf = z.object({ savedSearchId: z.string() }).catch({ savedSearchId: "" });
@@ -198,7 +239,7 @@ async function notifySearchMatches(now: Date): Promise<number> {
     const count = await countListings(parseListingFilters(Object.fromEntries(new URLSearchParams(query))), { since, hiddenIds });
     if (count > 0) fresh.push({ userId, type: "SEARCH_MATCHES", data: { savedSearchId: id, query, count } });
   }
-  return (await client.notification.createMany({ data: fresh })).count;
+  return createAll(fresh);
 }
 
 /** Nightly, after expiry: expiring listings, price drops and saved-search matches. Returns how many were created. Safe to run twice. */
