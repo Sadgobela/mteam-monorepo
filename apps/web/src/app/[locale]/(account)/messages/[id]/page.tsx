@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
-import { getConversation } from "@mteam/db";
+import { getChatPartner, getConversation } from "@mteam/db";
 import { getDictionary } from "@mteam/shared";
+import { Avatar } from "@/components/Avatar";
 import { ChatForm, LiveRefresh } from "@/components/ChatForm";
 import { sendChatAction } from "@/lib/chat-actions";
 import { resolveLocale } from "@/lib/locale";
@@ -16,7 +17,7 @@ export default async function ConversationPage({ params, searchParams }: { param
   const locale = resolveLocale(raw);
   const user = await currentUser();
   if (!user) redirect(loginPath(locale, `/${locale}/messages/${id}`));
-  const chat = await getConversation(user.id, id);
+  const [chat, partner] = await Promise.all([getConversation(user.id, id), getChatPartner(user.id, id)]);
   if (!chat) notFound();
   const t = getDictionary(locale);
   const failed = (await searchParams).failed === "1";
@@ -25,11 +26,14 @@ export default async function ConversationPage({ params, searchParams }: { param
   return (
     <>
       <main className="account-main chat">
-        <div>
-          <h1 className="heading">{chat.otherName ?? t.chat.someone}</h1>
-          <Link href={`/${locale}/listings/${chat.listingId}`} className="meta">
-            {chat.listingTitle}
-          </Link>
+        <div className="person">
+          <Avatar name={chat.otherName} url={partner?.avatarUrl ?? null} />
+          <div>
+            <h1 className="heading">{chat.otherName ?? t.chat.someone}</h1>
+            <Link href={`/${locale}/listings/${chat.listingId}`} className="meta">
+              {chat.listingTitle}
+            </Link>
+          </div>
         </div>
         <ol className="chat-thread">
           {chat.messages.map((message) => (
