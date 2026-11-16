@@ -105,6 +105,31 @@ h1, h2, h3 { margin: 0; text-wrap: balance; }
 .search .more-button, .search .search-button { min-height: 52px; font-weight: 700; }
 .search .search-button { padding-inline: 28px; }
 @media (max-width: 760px) { .search .search-button, .search .ant-badge, .search .more-button { flex: 1 1 100%; width: 100%; } }
+/* Results: the full bar on a wide screen. On a phone one row, the location and a filters button opening the sheet. */
+.search .filters-badge { display: none; }
+@media (max-width: 760px) {
+  .search.compact { flex-wrap: nowrap; align-items: center; padding: 4px; border-width: 1px; }
+  .search.compact > label:not(.grow), .search.compact > .more-badge, .search.compact > .search-button { display: none; }
+  .search.compact > label.grow { flex: 1 1 auto; min-width: 0; padding: 4px 8px; }
+  .search.compact > .filters-badge { display: flex; flex: none; width: auto; }
+  .search.compact .filters-button { min-height: 44px; font-weight: 700; }
+}
+/* The phone filter sheet: fields in one or two columns, the button that shows the results always in view at its foot. */
+.filter-sheet .ant-drawer-content { border-radius: 16px 16px 0 0; }
+.filter-sheet .more-panel { padding-inline-end: 0; }
+.filter-sheet .ant-drawer-footer { padding: 12px 16px max(12px, env(safe-area-inset-bottom)); }
+.sheet-foot { display: flex; gap: 8px; }
+.sheet-foot .ant-btn-primary { flex: 1 1 auto; min-width: 0; font-weight: 700; }
+/* Quick filter pills and active-filter chips stay on one line on a phone, scrolling sideways. The padding keeps focus rings in view. */
+@media (max-width: 760px) {
+  .pills, .chips, .switches { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; margin-inline: -16px; padding: 4px 16px; }
+  .pills::-webkit-scrollbar, .chips::-webkit-scrollbar, .switches::-webkit-scrollbar { display: none; }
+  .pills > *, .chips > *, .switches > * { flex: none; white-space: nowrap; }
+  .toolbar { gap: 8px; }
+  .toolbar > .sp { display: none; }
+  .switches { flex: 1 1 100%; }
+}
+.switches { display: flex; gap: 8px; min-width: 0; }
 .search .ant-select { height: 30px; padding: 0; font-weight: 600; outline: 0; }
 .search label { border-radius: 10px; transition: background-color 0.2s; }
 .search[data-keyboard] label:focus-within { outline: 3px solid var(--focus); outline-offset: 2px; }

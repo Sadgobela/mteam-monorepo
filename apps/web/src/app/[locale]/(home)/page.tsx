@@ -86,22 +86,25 @@ export default async function HomePage({
           <div className="toolbar">
             <b>{t.results.found.replace("{count}", String(total))}</b>
             <span className="sp" />
-            <Segmented
-              label={t.results.sort}
-              options={[
-                { text: t.results.sortNew, href: href({ sort: "new", page: "1" }), active: display.sort === "new" },
-                { text: t.results.sortAsc, href: href({ sort: "asc", page: "1" }), active: display.sort === "asc" },
-                { text: t.results.sortDesc, href: href({ sort: "desc", page: "1" }), active: display.sort === "desc" },
-              ]}
-            />
-            <Segmented
-              label={t.results.view}
-              options={[
-                { text: t.results.grid, href: href({ view: "grid" }), active: display.view === "grid" },
-                { text: t.results.list, href: href({ view: "list" }), active: display.view === "list" },
-                { text: t.results.map, href: href({ view: "map", page: "1" }), active: display.view === "map" },
-              ]}
-            />
+            {/* One row on a phone too, scrolling sideways when it does not fit. */}
+            <div className="switches">
+              <Segmented
+                label={t.results.sort}
+                options={[
+                  { text: t.results.sortNew, href: href({ sort: "new", page: "1" }), active: display.sort === "new" },
+                  { text: t.results.sortAsc, href: href({ sort: "asc", page: "1" }), active: display.sort === "asc" },
+                  { text: t.results.sortDesc, href: href({ sort: "desc", page: "1" }), active: display.sort === "desc" },
+                ]}
+              />
+              <Segmented
+                label={t.results.view}
+                options={[
+                  { text: t.results.grid, href: href({ view: "grid" }), active: display.view === "grid" },
+                  { text: t.results.list, href: href({ view: "list" }), active: display.view === "list" },
+                  { text: t.results.map, href: href({ view: "map", page: "1" }), active: display.view === "map" },
+                ]}
+              />
+            </div>
           </div>
         ) : (
           <div className="tiles">
