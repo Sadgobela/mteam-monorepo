@@ -25,8 +25,21 @@ const budgets: Record<(typeof assistantDeals)[number], [number, number][]> = {
 
 const ROOM_CHOICES = [1, 2, 3, 4];
 
+/** The search parameters each question sets. A question whose parameters are already set, say from typed text, is not asked. */
+const stepParams: Record<AssistantStep, string[]> = {
+  deal: ["deal"],
+  type: ["type"],
+  city: ["city"],
+  area: ["district"],
+  budget: ["priceMin", "priceMax"],
+  rooms: ["rooms"],
+  building: ["building"],
+  market: ["belowMarket"],
+};
+
 /** Whether a question means anything given the answers so far. */
 function applies(step: AssistantStep, params: SearchParams): boolean {
+  if (stepParams[step].some((name) => params[name] !== undefined)) return false;
   if (step === "area") return params.city !== undefined && cityAreas(params.city).length > 1;
   if (step === "rooms") return params.type === "apartment" || params.type === "house";
   if (step === "building") return params.type === "apartment";

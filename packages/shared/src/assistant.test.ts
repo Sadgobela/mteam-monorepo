@@ -8,10 +8,20 @@ const choices = (step: AssistantStep, params: SearchParams = {}) => assistantCho
 
 describe("nextAssistantStep", () => {
   it("asks every question for an apartment in a city with districts", () => {
-    const params = { deal: "sale", type: "apartment", city: "თბილისი" };
+    // Answers with the first choice each time: buy, apartment, Tbilisi, its first area, and so on.
+    let params: SearchParams = {};
     const asked: AssistantStep[] = [];
-    for (let step = nextAssistantStep(asked, params); step; step = nextAssistantStep(asked, params)) asked.push(step);
+    for (let step = nextAssistantStep(asked, params); step; step = nextAssistantStep(asked, params)) {
+      asked.push(step);
+      params = { ...params, ...choices(step, params)[0].params };
+    }
     expect(asked).toEqual(["deal", "type", "city", "area", "budget", "rooms", "building", "market"]);
+  });
+
+  it("skips questions whose filters are already set, as typed text can do", () => {
+    const params = { deal: "rent", city: "თბილისი", district: "ვაკე", priceMax: "800", belowMarket: "1" };
+    expect(nextAssistantStep([], params)).toBe("type");
+    expect(nextAssistantStep(["type"], params)).toBeNull();
   });
 
   it("skips questions that do not apply", () => {
