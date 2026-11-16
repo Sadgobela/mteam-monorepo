@@ -3,6 +3,7 @@ import type { Prisma } from "@prisma/client";
 import { db } from "./client";
 import { publicInclude, toListing } from "./listings";
 import { expiryFrom } from "./my-listings";
+import { notifyListingReviewed } from "./notifications";
 
 const QUEUE_LIMIT = 50;
 
@@ -27,6 +28,7 @@ export async function reviewListing(id: number, decision: "ACTIVE" | "REJECTED",
     await db().listing.updateMany({ where: { id, status: "PENDING", agentId: null }, data: { status: decision, expiresAt: expiryFrom(now) } });
   }
   await db().listing.updateMany({ where: { id, status: "PENDING" }, data: { status: decision } });
+  await notifyListingReviewed(id, decision);
 }
 
 /** Published listings a broker has not checked yet. */

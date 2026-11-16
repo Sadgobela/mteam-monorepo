@@ -1,4 +1,5 @@
 import { db } from "./client";
+import { markConversationNotificationsRead, notifyMessage } from "./notifications";
 
 const LIST_LIMIT = 50;
 const THREAD_LIMIT = 200;
@@ -54,6 +55,7 @@ export async function startConversation(buyerId: string, listingId: number, body
     select: { id: true },
   });
   await client.message.create({ data: { conversationId: id, senderId: buyerId, body } });
+  await notifyMessage(sellerId, id, listingId);
   return id;
 }
 
@@ -62,7 +64,7 @@ export async function sendMessage(userId: string, conversationId: string, body: 
   const client = db();
   const conversation = await client.conversation.findFirst({
     where: { id: conversationId, OR: [{ buyerId: userId }, { sellerId: userId }] },
-    select: { buyerId: true, listing: { select: sellerFields } },
+    select: { buyerId: true, listingId: true, listing: { select: sellerFields } },
   });
   if (!conversation) return false;
   // Whoever answers for the listing now, so a broker who left drops out and the owner picks up the chat.
@@ -71,6 +73,7 @@ export async function sendMessage(userId: string, conversationId: string, body: 
   if ((!amBuyer && userId !== sellerId) || !(await canSend(userId))) return false;
   await client.message.create({ data: { conversationId, senderId: userId, body } });
   await client.conversation.update({ where: { id: conversationId }, data: { ...(amBuyer ? { buyerReadAt: new Date() } : { sellerReadAt: new Date() }), sellerId, lastMessageAt: new Date() } });
+  await notifyMessage(amBuyer ? sellerId : conversation.buyerId, conversationId, conversation.listingId);
   return true;
 }
 
@@ -129,6 +132,7 @@ export async function getConversation(userId: string, id: string) {
   // Up to the newest message actually shown, so one arriving this instant still counts as new.
   const shownUpTo = row.messages[0]?.createdAt;
   await client.conversation.updateMany({ where: { id }, data: amBuyer ? { buyerReadAt: shownUpTo } : { sellerReadAt: shownUpTo } });
+  await markConversationNotificationsRead(userId, id);
   const messages: ThreadMessage[] = row.messages.reverse().map((message) => ({ id: message.id, body: message.body, mine: message.senderId === userId, at: message.createdAt }));
   return { id: row.id, listingId: row.listingId, listingTitle: row.listing.title, otherName: amBuyer ? row.seller.name : row.buyer.name, messages };
 }

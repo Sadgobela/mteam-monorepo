@@ -7,6 +7,8 @@ const prisma = vi.hoisted(() => ({
 }));
 
 vi.mock("./client", () => ({ db: () => prisma }));
+const notices = vi.hoisted(() => ({ markConversationNotificationsRead: vi.fn(), notifyMessage: vi.fn() }));
+vi.mock("./notifications", () => notices);
 
 import { getConversation, listConversations, sendMessage, startConversation } from "./index";
 
@@ -64,6 +66,12 @@ describe("startConversation", () => {
     prisma.conversation.findUnique.mockResolvedValue({ id: "c1" });
     expect(await startConversation("u1", 7, "hi")).toBe("c1");
   });
+
+  it("tells the seller about the first message", async () => {
+    prisma.listing.findFirst.mockResolvedValue(ownerListing);
+    await startConversation("u1", 7, "hi");
+    expect(notices.notifyMessage).toHaveBeenCalledWith("owner", "c1", 7);
+  });
 });
 
 describe("sendMessage", () => {
@@ -98,6 +106,21 @@ describe("sendMessage", () => {
     prisma.conversation.findFirst.mockResolvedValue({ buyerId: "u1", listing: { ...left, agent: { userId: "broker", user: { role: "USER" } } } });
     await sendMessage("u1", "c1", "hi");
     expect(prisma.conversation.update.mock.calls[0][0].data.sellerId).toBe("owner");
+  });
+
+  it("tells the other side, never the sender", async () => {
+    prisma.conversation.findFirst.mockResolvedValue({ buyerId: "u1", listingId: 7, listing: ownerListing });
+    await sendMessage("u1", "c1", "hi");
+    expect(notices.notifyMessage).toHaveBeenLastCalledWith("owner", "c1", 7);
+    prisma.conversation.findFirst.mockResolvedValue({ buyerId: "buyer", listingId: 7, listing: { ownerId: "u1", agent: null } });
+    await sendMessage("u1", "c1", "hi");
+    expect(notices.notifyMessage).toHaveBeenLastCalledWith("buyer", "c1", 7);
+  });
+
+  it("tells no one when nothing was sent", async () => {
+    prisma.conversation.findFirst.mockResolvedValue(null);
+    await sendMessage("u1", "c1", "hi");
+    expect(notices.notifyMessage).not.toHaveBeenCalled();
   });
 });
 
@@ -166,6 +189,7 @@ describe("getConversation", () => {
     prisma.conversation.findFirst.mockResolvedValue(structuredClone(thread));
     await getConversation("u1", "c1");
     expect(prisma.conversation.updateMany.mock.calls[0][0].data.buyerReadAt).toEqual(new Date("2026-11-02"));
+    expect(notices.markConversationNotificationsRead).toHaveBeenCalledWith("u1", "c1");
   });
 
   it("gives messages oldest first and marks them read for the buyer", async () => {
