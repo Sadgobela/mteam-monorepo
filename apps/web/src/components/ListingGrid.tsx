@@ -16,6 +16,7 @@ export function ListingGrid({
   locale,
   t,
   cur,
+  gelPerUsd,
   list = false,
   signedIn,
   favoriteIds,
@@ -24,6 +25,8 @@ export function ListingGrid({
   locale: Locale;
   t: Dict;
   cur: DisplayCurrency;
+  /** Lari per dollar, for prices shown in the other currency. */
+  gelPerUsd: number;
   list?: boolean;
   signedIn: boolean;
   favoriteIds: number[];
@@ -34,7 +37,7 @@ export function ListingGrid({
         const active = favoriteIds.includes(listing.id);
         return (
           <div key={listing.id} className="card-wrap">
-            <ListingCard listing={listing} locale={locale} t={t} cur={cur} />
+            <ListingCard listing={listing} locale={locale} t={t} cur={cur} gelPerUsd={gelPerUsd} />
             {signedIn ? (
               <form action={setFavoriteAction}>
                 <input type="hidden" name="locale" value={locale} />

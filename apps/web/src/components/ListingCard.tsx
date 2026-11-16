@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { CardPhotos } from "./CardPhotos";
-import { FALLBACK_GEL_PER_USD, priceUnit, convertPrice, formatDay, formatPrice, placeName, type DisplayCurrency, type Dict, type Listing, type Locale } from "@mteam/shared";
+import { priceUnit, convertPrice, formatDay, formatPrice, placeName, type DisplayCurrency, type Dict, type Listing, type Locale } from "@mteam/shared";
 
 /** Built from the listing's facts, so a card reads in the page language whatever language the owner wrote in. */
 export function cardTitle(listing: Listing, locale: Locale, t: Dict): string {
@@ -18,13 +18,15 @@ export function ListingCard({
   locale,
   t,
   cur = "usd",
+  gelPerUsd,
 }: {
   listing: Listing;
   locale: Locale;
   t: Dict;
   cur?: DisplayCurrency;
+  gelPerUsd: number;
 }) {
-  const shown = convertPrice(listing.price, listing.currency, cur, FALLBACK_GEL_PER_USD);
+  const shown = convertPrice(listing.price, listing.currency, cur, gelPerUsd);
   const currency = cur === "gel" ? "GEL" : "USD";
   const unit = priceUnit(listing.deal, t);
   return (

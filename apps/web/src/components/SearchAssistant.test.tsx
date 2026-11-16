@@ -13,7 +13,7 @@ const results = () => screen.queryByRole("link", { name: /Show/ });
 
 describe("SearchAssistant", () => {
   it("asks one question at a time and links to the matching results with their count", async () => {
-    render(<SearchAssistant locale="en" t={getDictionary("en")} />);
+    render(<SearchAssistant gelPerUsd={2.7} locale="en" t={getDictionary("en")} />);
     expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("Tell me what you are looking for");
     expect(screen.queryByRole("textbox")).toBeNull();
     expect(results()).toBeNull();
@@ -38,7 +38,7 @@ describe("SearchAssistant", () => {
 
   it("shows a plain button until the count arrives, and goes back to a changed answer", async () => {
     countSearchAction.mockReturnValueOnce(new Promise(() => undefined));
-    render(<SearchAssistant locale="en" t={getDictionary("en")} />);
+    render(<SearchAssistant gelPerUsd={2.7} locale="en" t={getDictionary("en")} />);
     click("Rent");
     expect(results()).toHaveTextContent("Show results");
     expect(screen.queryByText(/An MTeam broker/)).toBeNull();
@@ -56,7 +56,7 @@ describe("SearchAssistant", () => {
 
   it("reads typed text, shows what it understood and asks only what is left", async () => {
     askAssistantAction.mockResolvedValueOnce({ search: "deal=sale&type=apartment&city=თბილისი&rooms=2&priceMax=120000" });
-    render(<SearchAssistant locale="en" t={getDictionary("en")} ai />);
+    render(<SearchAssistant gelPerUsd={2.7} locale="en" t={getDictionary("en")} ai />);
     expect(screen.getByText(/Tell me what property you want/)).toBeInTheDocument();
     const box = screen.getByRole("textbox", { name: "Describe what you are looking for" });
 
@@ -82,7 +82,7 @@ describe("SearchAssistant", () => {
 
   it("explains when typed text cannot be used", async () => {
     askAssistantAction.mockResolvedValueOnce({ error: "busy" });
-    render(<SearchAssistant locale="en" t={getDictionary("en")} ai />);
+    render(<SearchAssistant gelPerUsd={2.7} locale="en" t={getDictionary("en")} ai />);
     const box = screen.getByRole("textbox");
     fireEvent.change(box, { target: { value: "flat" } });
     fireEvent.submit(box.closest("form")!);

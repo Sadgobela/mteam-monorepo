@@ -3,7 +3,7 @@ import { fireEvent, render, screen } from "@testing-library/react";
 import { getDictionary } from "@mteam/shared";
 import { fixtureListings } from "@/test-fixtures";
 
-const db = vi.hoisted(() => ({
+const db = vi.hoisted(() => ({ getGelPerUsd: async () => 2.7,
   archiveListing: vi.fn(),
   countListings: vi.fn(),
   getFavoriteIds: vi.fn(),

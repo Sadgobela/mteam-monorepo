@@ -1,7 +1,7 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { betaZodOutputFormat } from "@anthropic-ai/sdk/helpers/beta/zod";
 import { z } from "zod";
-import { buildingStatuses, canonicalSearch, cityAreas, FALLBACK_GEL_PER_USD, popularCities, priceInUsd, propertyTypes } from "@mteam/shared";
+import { buildingStatuses, canonicalSearch, cityAreas, popularCities, priceInUsd, propertyTypes } from "@mteam/shared";
 
 const MODEL = "claude-opus-5-5";
 
@@ -44,8 +44,8 @@ Places:
 ${places}`;
 
 /** Turns filters understood from text into URL search parameters, keeping only what the search parser accepts. */
-export function filtersToSearch(filters: UnderstoodFilters): string {
-  const money = (value: number | null) => (value === null ? undefined : String(priceInUsd(Math.round(value), filters.currency, FALLBACK_GEL_PER_USD)));
+export function filtersToSearch(filters: UnderstoodFilters, gelPerUsd: number): string {
+  const money = (value: number | null) => (value === null ? undefined : String(priceInUsd(Math.round(value), filters.currency, gelPerUsd)));
   return canonicalSearch({
     deal: filters.deal ?? undefined,
     type: filters.type ?? undefined,
@@ -60,7 +60,7 @@ export function filtersToSearch(filters: UnderstoodFilters): string {
 }
 
 /** Reads a visitor's message, with their current search as context, and returns the updated search. Null when nothing usable came back. */
-export async function interpretSearch(message: string, current: string): Promise<string | null> {
+export async function interpretSearch(message: string, current: string, gelPerUsd: number): Promise<string | null> {
   const client = new Anthropic({ timeout: 30_000, maxRetries: 1 });
   const response = await client.beta.messages.parse({
     model: MODEL,
@@ -74,5 +74,5 @@ export async function interpretSearch(message: string, current: string): Promise
   });
   const filters = response.parsed_output;
   if (response.stop_reason === "refusal" || !filters?.understood) return null;
-  return filtersToSearch(filters) || null;
+  return filtersToSearch(filters, gelPerUsd) || null;
 }

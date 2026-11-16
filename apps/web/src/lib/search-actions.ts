@@ -1,6 +1,6 @@
 "use server";
 
-import { claimAssistantQuery, countListings, getHiddenIds } from "@mteam/db";
+import { claimAssistantQuery, countListings, getGelPerUsd, getHiddenIds } from "@mteam/db";
 import { parseListingFilters } from "@mteam/shared";
 import { interpretSearch } from "./assistant-ai";
 import { clientIp, currentUser } from "./session";
@@ -22,7 +22,7 @@ export async function askAssistantAction(text: string, current: string): Promise
   if (!message || message.length > MAX_MESSAGE) return { error: "unclear" };
   if (!(await claimAssistantQuery(await clientIp()))) return { error: "busy" };
   try {
-    const search = await interpretSearch(message, String(current));
+    const search = await interpretSearch(message, String(current), await getGelPerUsd());
     return search ? { search } : { error: "unclear" };
   } catch (error) {
     console.error(error);

@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import { getBranch, getFavoriteIds } from "@mteam/db";
+import { getGelPerUsd, getBranch, getFavoriteIds } from "@mteam/db";
 import { getDictionary, placeLabel } from "@mteam/shared";
 import { BrokerTiles } from "@/components/BrokerTiles";
 import { EmptyState } from "@/components/EmptyState";
@@ -18,6 +18,7 @@ export default async function BranchPage({ params }: { params: Promise<{ locale:
   const t = getDictionary(locale);
   const user = await currentUser();
   const favoriteIds = user ? await getFavoriteIds(user.id) : [];
+  const gelPerUsd = await getGelPerUsd();
   return (
     <>
       <Header locale={locale} t={t} signedIn={user !== null} />
@@ -31,7 +32,7 @@ export default async function BranchPage({ params }: { params: Promise<{ locale:
         {branch.listings.length === 0 ? (
           <EmptyState text={t.search.empty} />
         ) : (
-          <ListingGrid listings={branch.listings} locale={locale} t={t} cur="usd" signedIn={user !== null} favoriteIds={favoriteIds} />
+          <ListingGrid listings={branch.listings} locale={locale} t={t} cur="usd" gelPerUsd={gelPerUsd} signedIn={user !== null} favoriteIds={favoriteIds} />
         )}
       </main>
     </>

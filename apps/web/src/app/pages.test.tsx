@@ -21,6 +21,7 @@ vi.mock("next/navigation", () => ({
 vi.mock("@mteam/db", async () => {
   const { fixtureListings: listings } = await import("@/test-fixtures");
   return {
+    getGelPerUsd: async () => 2.7,
     searchListings: vi.fn(async () => listings),
     countSellerListings: vi.fn(async () => 0),
     getFavoriteIds: vi.fn(async () => []),

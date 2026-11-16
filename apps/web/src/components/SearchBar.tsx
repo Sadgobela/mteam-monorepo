@@ -7,7 +7,6 @@ import type { ReactNode } from "react";
 import { Badge, Button, Checkbox, Input, InputNumber, Modal, Popover, Select } from "antd";
 import {
   buildingStatuses,
-  FALLBACK_GEL_PER_USD,
   priceInLari,
   featureLabel,
   floorPositions,
@@ -48,20 +47,20 @@ function convertMoney(filters: ListingFilters, convert: (value: number) => numbe
 
 const moreFields = { rooms: undefined, priceMin: undefined, priceMax: undefined, areaMin: undefined, areaMax: undefined, floorMin: undefined, floorMax: undefined, sqmMin: undefined, sqmMax: undefined, building: undefined, metro: undefined, owner: undefined, belowMarket: undefined, bedrooms: undefined, floorsMin: undefined, floorsMax: undefined, floorPos: undefined, ceilingMin: undefined, ceilingMax: undefined, condition: undefined, projectType: undefined, bathroom: undefined, storage: undefined, parking: undefined, heating: undefined, hotWater: undefined, material: undefined, windows: undefined, livingRoom: undefined, features: undefined };
 
-export function SearchBar({ locale, t, filters, display, results = false }: { locale: Locale; t: Dict; filters: ListingFilters; display: ListingDisplay; results?: boolean }) {
+export function SearchBar({ locale, t, filters, display, gelPerUsd, results = false }: { locale: Locale; t: Dict; filters: ListingFilters; display: ListingDisplay; gelPerUsd: number; results?: boolean }) {
   const router = useRouter();
   const [searching, startSearch] = useTransition();
   // The URL always holds dollars, so a search means the same whichever currency is on show. While editing, money is in the
   // currency on screen: converting on every keystroke would rewrite the number as it is typed.
   const inLari = display.cur === "gel";
-  const [draft, setDraft] = useState(() => (inLari ? convertMoney(filters, (value) => priceInLari(value, FALLBACK_GEL_PER_USD)) : filters));
+  const [draft, setDraft] = useState(() => (inLari ? convertMoney(filters, (value) => priceInLari(value, gelPerUsd)) : filters));
   const [moreOpen, setMoreOpen] = useState(false);
   const [locationOpen, setLocationOpen] = useState(false);
   const [openPill, setOpenPill] = useState<string | null>(null);
   const change = (values: Partial<ListingFilters>) => setDraft({ ...draft, ...values });
 
   function run(edited: ListingFilters) {
-    const filtersToSearch = inLari ? convertMoney(edited, (value) => priceInUsd(value, "GEL", FALLBACK_GEL_PER_USD)) : edited;
+    const filtersToSearch = inLari ? convertMoney(edited, (value) => priceInUsd(value, "GEL", gelPerUsd)) : edited;
     // "deal" is always sent, even empty: it is how the home page knows a search was made.
     const params = new URLSearchParams({ deal: filtersToSearch.deal ?? "", cur: display.cur, view: display.view, sort: display.sort });
     for (const [key, value] of Object.entries(filtersToSearch)) {

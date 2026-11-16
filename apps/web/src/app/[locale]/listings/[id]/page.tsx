@@ -3,8 +3,8 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { ReactNode } from "react";
-import { countSellerListings, getFavoriteIds, getHiddenIds, listSimilarListings, getListing } from "@mteam/db";
-import { FALLBACK_GEL_PER_USD, LOAN_DEFAULTS, maskPhone, monthlyPayment, placeLabel, priceUnit, convertPrice, formatDay, formatPrice, getDictionary, parseListingDisplay } from "@mteam/shared";
+import { countSellerListings, getFavoriteIds, getGelPerUsd, getHiddenIds, listSimilarListings, getListing } from "@mteam/db";
+import { LOAN_DEFAULTS, maskPhone, monthlyPayment, placeLabel, priceUnit, convertPrice, formatDay, formatPrice, getDictionary, parseListingDisplay } from "@mteam/shared";
 import { Gallery } from "@/components/Gallery";
 import { ListingDetails } from "@/components/ListingDetails";
 import { Header } from "@/components/Header";
@@ -73,7 +73,8 @@ export default async function ListingPage({
   const t = getDictionary(locale);
   const query = await searchParams;
   const { cur } = parseListingDisplay(query);
-  const shown = convertPrice(listing.price, listing.currency, cur, FALLBACK_GEL_PER_USD);
+  const gelPerUsd = await getGelPerUsd();
+  const shown = convertPrice(listing.price, listing.currency, cur, gelPerUsd);
   const currency = cur === "gel" ? "GEL" : "USD";
   const unit = priceUnit(listing.deal, t);
   const here = `/${locale}/listings/${listing.id}`;
@@ -234,7 +235,7 @@ export default async function ListingPage({
           {similar.length > 0 && (
             <section className="similar">
               <h2>{t.listing.similar}</h2>
-              <ListingGrid listings={similar} locale={locale} t={t} cur={cur} signedIn={user !== null} favoriteIds={favoriteIds} />
+              <ListingGrid listings={similar} locale={locale} t={t} cur={cur} gelPerUsd={gelPerUsd} signedIn={user !== null} favoriteIds={favoriteIds} />
             </section>
           )}
           <GiveBand t={t} />
