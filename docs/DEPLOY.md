@@ -19,6 +19,7 @@ Only members of the fixitge team can open the site, through Vercel Authenticatio
 | `DATABASE_URL`, `DATABASE_URL_UNPOOLED` | Set by the Neon integration (Storage → Neon). |
 | `LOGIN_CODE_SECRET` | `openssl rand -hex 32`. Never the example value. |
 | `SMS_PROVIDER` | `log` during the private preview. |
+| `EMAIL_PROVIDER` | `log` during the private preview: email confirmation and password reset links go to the function logs (search `[email]`). Without it the site refuses to send them. |
 | `SITE_URL` | The site's address, e.g. `https://mteam.vercel.app`, later the real domain. |
 | `STORAGE_ENDPOINT` | `https://<account id>.r2.cloudflarestorage.com` |
 | `STORAGE_BUCKET` | The R2 bucket's name, e.g. `mteam-photos`. |
