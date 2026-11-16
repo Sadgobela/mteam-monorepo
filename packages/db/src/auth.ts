@@ -18,6 +18,8 @@ const PHONE_LOOKUPS_PER_ADDRESS = 60;
 const ASSISTANT_QUERIES_PER_ADDRESS = 30;
 // Each written description costs an AI request; a few listings' worth an hour, with room to try again.
 const DESCRIPTION_WRITES_PER_ADDRESS = 10;
+// Per account as well, so one account cannot spend from many addresses.
+const DESCRIPTION_WRITES_PER_USER = 20;
 // Several full listings of 16 photos an hour, with room for replacing some; every upload is stored, so a script must not fill the bucket.
 const PHOTO_UPLOADS_PER_USER = 100;
 const ADDRESS_WINDOW_MS = 60 * 60_000;
@@ -94,8 +96,8 @@ export function claimAssistantQuery(ip: string, now = Date.now()): Promise<boole
 }
 
 /** A description written by AI on the posting form. */
-export function claimDescriptionWrite(ip: string, now = Date.now()): Promise<boolean> {
-  return claimQuota(`desc:${addressHash(ip)}`, DESCRIPTION_WRITES_PER_ADDRESS, now);
+export async function claimDescriptionWrite(ip: string, userId: string, now = Date.now()): Promise<boolean> {
+  return (await claimQuota(`desc-user:${userId}`, DESCRIPTION_WRITES_PER_USER, now)) && claimQuota(`desc:${addressHash(ip)}`, DESCRIPTION_WRITES_PER_ADDRESS, now);
 }
 
 /** Counted per account rather than per address: only signed-in users with a phone can upload. */

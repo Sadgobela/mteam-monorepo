@@ -390,14 +390,18 @@ describe("claimAssistantQuery", () => {
 });
 
 describe("claimDescriptionWrite", () => {
-  it("counts written descriptions on their own key, and refuses past the limit", async () => {
+  it("counts written descriptions per account and per address, and refuses past either limit", async () => {
     prisma.codeRequestLimit.updateMany.mockReset();
     prisma.codeRequestLimit.updateMany.mockResolvedValue({ count: 1 });
-    expect(await claimDescriptionWrite("1.2.3.4")).toBe(true);
-    expect(prisma.codeRequestLimit.updateMany.mock.calls[0][0].where.ipHash).toMatch(/^desc:/);
+    expect(await claimDescriptionWrite("1.2.3.4", "u1")).toBe(true);
+    expect(prisma.codeRequestLimit.updateMany.mock.calls.map(([query]) => query.where.ipHash)).toEqual(["desc-user:u1", expect.stringMatching(/^desc:/)]);
+
+    prisma.codeRequestLimit.updateMany.mockReset();
     prisma.codeRequestLimit.updateMany.mockResolvedValue({ count: 0 });
     prisma.codeRequestLimit.createMany.mockResolvedValue({ count: 0 });
-    expect(await claimDescriptionWrite("1.2.3.4", 1000)).toBe(false);
+    expect(await claimDescriptionWrite("1.2.3.4", "u1", 1000)).toBe(false);
+    // The account's limit is checked first, so the address is not counted for a refused account.
+    expect(prisma.codeRequestLimit.updateMany.mock.calls.every(([query]) => query.where.ipHash === "desc-user:u1")).toBe(true);
   });
 });
 

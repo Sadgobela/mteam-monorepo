@@ -33,7 +33,7 @@ describe("writeDescriptionAction", () => {
 
   beforeEach(() => {
     vi.stubEnv("ANTHROPIC_API_KEY", "test-key");
-    session.currentUser.mockResolvedValue({ id: "u1" });
+    session.currentUser.mockResolvedValue({ id: "u1", phone: "+995555123456" });
     session.clientIp.mockResolvedValue("1.2.3.4");
     db.claimDescriptionWrite.mockResolvedValue(true);
     ai.writeDescriptions.mockResolvedValue(descriptions);
@@ -44,12 +44,13 @@ describe("writeDescriptionAction", () => {
   it("writes the descriptions from the form's facts, counted against the address", async () => {
     expect(await writeDescriptionAction(fields)).toEqual({ descriptions });
     expect(ai.writeDescriptions).toHaveBeenCalledWith({ deal: "sale", type: "apartment", city: "თბილისი", title: "Flat" });
-    expect(db.claimDescriptionWrite).toHaveBeenCalledWith("1.2.3.4");
+    expect(db.claimDescriptionWrite).toHaveBeenCalledWith("1.2.3.4", "u1");
   });
 
   it.each([
     ["without an AI key", () => vi.stubEnv("ANTHROPIC_API_KEY", "")],
     ["for a visitor", () => session.currentUser.mockResolvedValue(null)],
+    ["for an account without a phone, which cannot post", () => session.currentUser.mockResolvedValue({ id: "u1", phone: null })],
   ])("does nothing %s", async (_name, arrange) => {
     arrange();
     expect(await writeDescriptionAction(fields)).toEqual({ error: "failed" });
@@ -64,7 +65,7 @@ describe("writeDescriptionAction", () => {
     expect(db.claimDescriptionWrite).not.toHaveBeenCalled();
   });
 
-  it("stops an address that asked too often", async () => {
+  it("stops an account or address that asked too often", async () => {
     db.claimDescriptionWrite.mockResolvedValue(false);
     expect(await writeDescriptionAction(fields)).toEqual({ error: "busy" });
     expect(ai.writeDescriptions).not.toHaveBeenCalled();
