@@ -4,6 +4,7 @@ import { MAX_PHOTOS, parseDraftProgress, parseListingDraft } from "@mteam/shared
 import { streetsIn } from "@mteam/shared/streets";
 import { z } from "zod";
 import { isUploadedPhoto } from "@/lib/photos";
+import { isCrossSite } from "@/lib/same-origin";
 import { currentUser } from "@/lib/session";
 
 /** The text fields only: photos go up one by one to `/api/listings/photos` and arrive here as their addresses. */
@@ -30,6 +31,7 @@ async function readForm(request: Request): Promise<FormData | null> {
  * DRAFT, "submit" sends the listing for review (see `updateListing` for when an edit stays live).
  */
 export async function POST(request: Request) {
+  if (isCrossSite(request)) return fail("crossSite", 403);
   const user = await currentUser();
   if (!user) return fail("signedOut", 401);
   // The phone is the listing's contact number. The posting page asks for one first, so this only stops a crafted request.

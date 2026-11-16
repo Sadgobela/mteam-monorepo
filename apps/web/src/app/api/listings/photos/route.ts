@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { claimPhotoUpload } from "@mteam/db";
 import { MAX_PHOTO_BYTES } from "@mteam/shared";
 import { readPhotos, uploadPhoto } from "@/lib/photos";
+import { isCrossSite } from "@/lib/same-origin";
 import { currentUser } from "@/lib/session";
 
 /** One photo at its limit, plus room for the form's framing. Still under Vercel's 4.5 MB for a function's body. */
@@ -22,6 +23,7 @@ async function readForm(request: Request): Promise<FormData | null> {
  * because a whole set of photos would pass the size a function on Vercel accepts. The checks come before the body is read.
  */
 export async function POST(request: Request) {
+  if (isCrossSite(request)) return fail("crossSite", 403);
   const user = await currentUser();
   if (!user) return fail("signedOut", 401);
   if (!user.phone) return fail("noPhone", 403);

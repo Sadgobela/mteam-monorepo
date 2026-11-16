@@ -43,6 +43,18 @@ describe("POST /api/listings/photos", () => {
     expect(db.claimPhotoUpload).toHaveBeenCalledWith("u1");
   });
 
+  it("turns away a request sent from another site's page, before anything else", async () => {
+    const request = new Request("http://localhost/api/listings/photos", { method: "POST", body: "x", headers: { origin: "https://evil.test", "content-length": "1" } });
+    expect(await send(request)).toEqual([403, { error: "crossSite" }]);
+    expect(session.currentUser).not.toHaveBeenCalled();
+  });
+
+  it("accepts a request from our own page", async () => {
+    const request = post();
+    request.headers.set("origin", "http://localhost");
+    expect((await send(request))[0]).toBe(200);
+  });
+
   it.each([
     ["a visitor", null, 401, "signedOut"],
     ["someone without a phone", { id: "u1", phone: null }, 403, "noPhone"],
