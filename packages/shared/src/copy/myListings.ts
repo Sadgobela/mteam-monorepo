@@ -1,8 +1,68 @@
 // Copy for one part of the site, kept in its own file so parallel work does not collide in i18n.ts.
-const ka = {};
+const ka = {
+  tabsLabel: "განცხადების სტატუსი",
+  tabs: { active: "აქტიური", pending: "მოდერაციაზე", draft: "დრაფტები", expiring: "მალე იწურება", archived: "მოხსნილი", rejected: "უარყოფილი" },
+  tab: "{name} ({count})",
+  search: "ძებნა ნომრით ან სიტყვით",
+  searchButton: "ძებნა",
+  sortLabel: "დალაგება",
+  emptyTab: "აქ განცხადება არ არის.",
+  number: "№ {id}",
+  views: "ნახვა: {count}",
+  phoneReveals: "ნომრის ნახვა: {count}",
+  favorites: "რჩეულებში: {count}",
+  conversations: "მიწერა: {count}",
+  expires: "აქტიურია {date}-მდე",
+  expired: "ვადა გაუვიდა. განაახლე და ისევ გამოჩნდება.",
+  nextBump: "შემდეგი უფასო აწევა: {time}",
+  open: "ნახვა",
+  edit: "რედაქტირება",
+  renew: "განახლება 60 დღით",
+  bump: "აწევა სიაში",
+};
 
-const en: typeof ka = {};
+const en: typeof ka = {
+  tabsLabel: "Listing status",
+  tabs: { active: "Active", pending: "Under review", draft: "Drafts", expiring: "Ending soon", archived: "Taken down", rejected: "Rejected" },
+  tab: "{name} ({count})",
+  search: "Search by number or word",
+  searchButton: "Search",
+  sortLabel: "Sort",
+  emptyTab: "No listings here.",
+  number: "No. {id}",
+  views: "Views: {count}",
+  phoneReveals: "Number shown: {count}",
+  favorites: "In favourites: {count}",
+  conversations: "Chats: {count}",
+  expires: "Active until {date}",
+  expired: "Its time ran out. Renew it to show it again.",
+  nextBump: "Next free move up: {time}",
+  open: "Open",
+  edit: "Edit",
+  renew: "Renew for 60 days",
+  bump: "Move up the list",
+};
 
-const ru: typeof ka = {};
+const ru: typeof ka = {
+  tabsLabel: "Статус объявления",
+  tabs: { active: "Активные", pending: "На проверке", draft: "Черновики", expiring: "Скоро истекают", archived: "Снятые", rejected: "Отклонённые" },
+  tab: "{name} ({count})",
+  search: "Поиск по номеру или слову",
+  searchButton: "Найти",
+  sortLabel: "Сортировка",
+  emptyTab: "Здесь объявлений нет.",
+  number: "№ {id}",
+  views: "Просмотры: {count}",
+  phoneReveals: "Номер показан: {count}",
+  favorites: "В избранном: {count}",
+  conversations: "Переписки: {count}",
+  expires: "Активно до {date}",
+  expired: "Срок истёк. Обновите, и объявление снова появится.",
+  nextBump: "Следующий бесплатный подъём: {time}",
+  open: "Открыть",
+  edit: "Изменить",
+  renew: "Продлить на 60 дней",
+  bump: "Поднять в списке",
+};
 
 export const myListingsCopy = { ka, en, ru };
