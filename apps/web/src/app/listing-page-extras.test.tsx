@@ -97,11 +97,17 @@ describe("listing page extras", () => {
 
   it("offers verification only to the owner of an unverified listing without a broker", async () => {
     const ask = () => screen.queryByRole("button", { name: "Ask MTeam to verify" });
-    session.currentUser.mockResolvedValue({ id: "seller1" });
+    session.currentUser.mockResolvedValue({ id: "seller1", phone: "+995555000000" });
     db.getListing.mockResolvedValue(rental);
     const first = await open();
     expect(ask()).toBeInTheDocument();
     first.unmount();
+    session.currentUser.mockResolvedValue({ id: "seller1", phone: null });
+    const phoneless = await open();
+    expect(ask()).toBeNull();
+    expect(screen.getByRole("link", { name: "Open profile" })).toHaveAttribute("href", "/en/account/profile");
+    phoneless.unmount();
+    session.currentUser.mockResolvedValue({ id: "seller1", phone: "+995555000000" });
     for (const listing of [owned, { ...brokered, verified: false }]) {
       db.getListing.mockResolvedValue(listing);
       const { unmount } = await open();

@@ -186,7 +186,7 @@ export default async function ListingPage({
           </div>
           {listing.marketLevel !== undefined && <MarketScale level={listing.marketLevel} t={t} />}
           {/* Only active listings are shown here, so this is an owner's active listing that no broker has checked. */}
-          {user?.id === listing.sellerId && !listing.verified && !listing.agent && <VerifyRequest listingId={listing.id} locale={locale} t={t} />}
+          {user?.id === listing.sellerId && !listing.verified && !listing.agent && <VerifyRequest listingId={listing.id} locale={locale} t={t} hasPhone={user.phone !== null} />}
           {listing.verified && (
             <div className="note">
               <b>MTeam Verified</b>

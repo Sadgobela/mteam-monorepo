@@ -1,14 +1,26 @@
 "use client";
 
 import { useActionState } from "react";
+import Link from "next/link";
 import type { Dict, Locale } from "@mteam/shared";
 import { requestVerifyAction } from "@/lib/invite-actions";
 import "@/app/brokers.css";
 
-/** "Ask MTeam to verify", for the owner of a listing nobody has verified yet. One click files a lead for a broker visit. */
-export function VerifyRequest({ listingId, locale, t }: { listingId: number; locale: Locale; t: Dict }) {
+/**
+ * "Ask MTeam to verify", for the owner of a listing nobody has verified yet. One click files a lead for a broker visit.
+ * The broker calls first, so an owner without a phone is asked to add one.
+ */
+export function VerifyRequest({ listingId, locale, t, hasPhone }: { listingId: number; locale: Locale; t: Dict; hasPhone: boolean }) {
   const copy = t.brokersAdmin;
   const [state, action, pending] = useActionState(requestVerifyAction, {});
+  if (!hasPhone) {
+    return (
+      <div className="note verify-request">
+        <p>{copy.verifyNeedsPhone}</p>
+        <Link href={`/${locale}/account/profile`} className="btn ghost">{copy.openProfile}</Link>
+      </div>
+    );
+  }
   if (state.sent) return <p className="note" role="status">{copy.verifySent}</p>;
   return (
     <form action={action} className="note verify-request">

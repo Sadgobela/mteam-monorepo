@@ -270,7 +270,7 @@ describe("VerifyRequest", () => {
   it("files the request in one click and says a broker will be in touch", async () => {
     const user = userEvent.setup();
     actions.requestVerifyAction.mockResolvedValue({ sent: true });
-    render(<VerifyRequest listingId={7} locale="en" t={t} />);
+    render(<VerifyRequest listingId={7} locale="en" t={t} hasPhone />);
     expect(screen.getByText(copy.verifyLead)).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: copy.verifyAsk }));
     expect(await screen.findByRole("status")).toHaveTextContent(copy.verifySent);
@@ -278,10 +278,17 @@ describe("VerifyRequest", () => {
     expect(Object.fromEntries(sent)).toEqual({ locale: "en", listingId: "7" });
   });
 
+  it("asks an owner without a phone to add one first, since the broker calls", () => {
+    render(<VerifyRequest listingId={7} locale="en" t={t} hasPhone={false} />);
+    expect(screen.getByText(copy.verifyNeedsPhone)).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: copy.openProfile })).toHaveAttribute("href", "/en/account/profile");
+    expect(screen.queryByRole("button", { name: copy.verifyAsk })).toBeNull();
+  });
+
   it("says when it could not be sent", async () => {
     const user = userEvent.setup();
     actions.requestVerifyAction.mockResolvedValue({ failed: true });
-    render(<VerifyRequest listingId={7} locale="en" t={t} />);
+    render(<VerifyRequest listingId={7} locale="en" t={t} hasPhone />);
     await user.click(screen.getByRole("button", { name: copy.verifyAsk }));
     expect(await screen.findByRole("alert")).toHaveTextContent(copy.verifyFailed);
   });
