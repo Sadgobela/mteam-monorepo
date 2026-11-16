@@ -1,8 +1,71 @@
 // Copy for one part of the site, kept in its own file so parallel work does not collide in i18n.ts.
-const ka = {};
+const ka = {
+  welcome: "კეთილი იყოს შენი მობრძანება MTeam-ზე!",
+  welcomeLead: "ორი სწრაფი კითხვა და მზად ხარ.",
+  finish: "დაასრულე ანგარიშის შექმნა",
+  name: "შენი სახელი",
+  nameHint: "ჩანს გამყიდველის გვერდზე და მიმოწერაში. ტელეფონი და ელფოსტა არავის უჩანს.",
+  intent: "რამ მოგიყვანა?",
+  intents: { SEEKING: "ვეძებ ბინას ან სახლს", OWNER: "მაქვს ქონება გასაყიდად ან გასაქირავებლად", BROKER: "ვარ ბროკერი" },
+  brokerNote: "მშვენიერია! MTeam დაგიკავშირდება თანამშრომლობაზე სასაუბროდ.",
+  terms: "ვეთანხმები საიტის გამოყენების წესებს",
+  start: "დაწყება",
+  invalid: "შეიყვანე სახელი (2-დან 60 სიმბოლომდე), აირჩიე, რამ მოგიყვანა, და დაეთანხმე წესებს.",
+  photo: "ფოტო",
+  photoChange: "ფოტოს შეცვლა",
+  photoFailed: "ეს ფოტო ვერ გამოვიყენეთ. სცადე JPG, PNG ან WebP, 4 მბ-მდე.",
+  photoTooMany: "ფოტო ბევრჯერ შეიცვალა. სცადე ერთ საათში.",
+  joined: "MTeam-ზე რეგისტრაცია: {date}",
+  save: "შენახვა",
+  saved: "შენახულია.",
+  security: "შესვლა და უსაფრთხოება",
+  securityHint: "ელფოსტა, პაროლი, ტელეფონი და დაკავშირებული ანგარიშები",
+};
 
-const en: typeof ka = {};
+const en: typeof ka = {
+  welcome: "Welcome to MTeam!",
+  welcomeLead: "Two quick questions and you're all set.",
+  finish: "Finish setting up your account",
+  name: "Your name",
+  nameHint: "Shown on your seller page and in chats. Your phone and email stay private.",
+  intent: "What brings you here?",
+  intents: { SEEKING: "Looking for a place", OWNER: "I have a property to sell or rent out", BROKER: "I'm a broker" },
+  brokerNote: "Great! MTeam will get in touch to talk about working together.",
+  terms: "I accept the site's terms of use",
+  start: "Let's go",
+  invalid: "Enter a name of 2 to 60 characters, choose what brings you here and accept the terms.",
+  photo: "Photo",
+  photoChange: "Change photo",
+  photoFailed: "We couldn't use that photo. Try a JPG, PNG or WebP up to 4 MB.",
+  photoTooMany: "The photo was changed too many times. Try again in an hour.",
+  joined: "On MTeam since {date}",
+  save: "Save",
+  saved: "Saved.",
+  security: "Sign-in and security",
+  securityHint: "Email, password, phone and linked accounts",
+};
 
-const ru: typeof ka = {};
+const ru: typeof ka = {
+  welcome: "Добро пожаловать в MTeam!",
+  welcomeLead: "Два коротких вопроса, и всё готово.",
+  finish: "Завершите создание аккаунта",
+  name: "Ваше имя",
+  nameHint: "Видно на странице продавца и в переписке. Телефон и почту никто не видит.",
+  intent: "Что вас к нам привело?",
+  intents: { SEEKING: "Ищу жильё", OWNER: "Хочу продать или сдать недвижимость", BROKER: "Я брокер" },
+  brokerNote: "Отлично! MTeam свяжется с вами, чтобы обсудить сотрудничество.",
+  terms: "Я принимаю правила пользования сайтом",
+  start: "Начать",
+  invalid: "Введите имя от 2 до 60 символов, выберите, что вас привело, и примите правила.",
+  photo: "Фото",
+  photoChange: "Сменить фото",
+  photoFailed: "Не удалось использовать это фото. Попробуйте JPG, PNG или WebP до 4 МБ.",
+  photoTooMany: "Фото меняли слишком часто. Попробуйте через час.",
+  joined: "На MTeam с {date}",
+  save: "Сохранить",
+  saved: "Сохранено.",
+  security: "Вход и безопасность",
+  securityHint: "Почта, пароль, телефон и привязанные аккаунты",
+};
 
 export const profileCopy = { ka, en, ru };

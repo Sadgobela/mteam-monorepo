@@ -10,6 +10,7 @@ const db = vi.hoisted(() => ({
   requestEmailChange: vi.fn(),
   changePassword: vi.fn(),
   verifyEmail: vi.fn(),
+  getSessionUser: vi.fn(),
 }));
 const session = vi.hoisted(() => ({ startSession: vi.fn(), currentUser: vi.fn(), clientIp: vi.fn(), signInHere: vi.fn(), userAgent: vi.fn() }));
 
@@ -44,6 +45,7 @@ beforeEach(() => {
   session.userAgent.mockResolvedValue("Firefox");
   session.currentUser.mockResolvedValue({ id: "u1" });
   db.claimEmailSend.mockResolvedValue(true);
+  db.getSessionUser.mockResolvedValue({ onboardedAt: new Date() });
 });
 
 afterEach(() => vi.unstubAllEnvs());
@@ -87,6 +89,13 @@ describe("emailSignInAction", () => {
     expect(await emailSignInAction({}, form({ locale: "en", email, password: "pw", next: "//evil.example" }))).toEqual({ done: "/en" });
   });
 
+  it("sends an account that has not answered the first-visit questions to them, keeping the page", async () => {
+    db.signInWithPassword.mockResolvedValue({ token: "tok" });
+    db.getSessionUser.mockResolvedValue({ onboardedAt: null });
+    expect(await emailSignInAction({}, form({ locale: "en", email, password: "pw", next: "/en/saved" }))).toEqual({ done: "/en/onboarding?next=%2Fen%2Fsaved" });
+    expect(db.getSessionUser).toHaveBeenCalledWith("tok");
+  });
+
   it("says what went wrong without starting a session", async () => {
     expect(await emailSignInAction({}, form({ locale: "en", email: "not-an-email", password: "pw" }))).toEqual({ error: "invalidEmail" });
     expect(await emailSignInAction({}, form({ locale: "en", email }))).toEqual({ error: "wrong" });
@@ -99,9 +108,11 @@ describe("emailSignInAction", () => {
 });
 
 describe("registerAction", () => {
-  it("creates the account, emails the confirmation link and signs in", async () => {
+  it("creates the account, emails the confirmation link, signs in and asks the first-visit questions", async () => {
     db.registerWithPassword.mockResolvedValue({ token: "tok", verifyToken: "vt" });
-    expect(await registerAction({}, form({ locale: "ka", email, password: strong, next: "/ka/listings/new" }))).toEqual({ done: "/ka/listings/new" });
+    db.getSessionUser.mockResolvedValue({ onboardedAt: null });
+    expect(await registerAction({}, form({ locale: "ka", email, password: strong, next: "/ka/listings/new" }))).toEqual({ done: "/ka/onboarding?next=%2Fka%2Flistings%2Fnew" });
+    expect(db.getSessionUser).toHaveBeenCalledWith("tok");
     expect(db.registerWithPassword).toHaveBeenCalledWith(email, strong, "203.0.113.7", "Firefox");
     expect(log).toHaveBeenCalledWith(`[email] ${email}: ${getDictionary("ka").auth.mail.verifySubject} http://localhost:3111/ka/auth/verify?token=vt`);
     expect(db.claimEmailSend).toHaveBeenCalledWith("203.0.113.7", email, "VERIFY");

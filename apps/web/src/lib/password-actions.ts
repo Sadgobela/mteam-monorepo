@@ -2,11 +2,12 @@
 
 import { redirect } from "next/navigation";
 import { z } from "zod";
-import { changePassword, claimEmailSend, createResetToken, registerWithPassword, requestEmailChange, resetPassword, signInWithPassword, verifyEmail } from "@mteam/db";
+import { changePassword, claimEmailSend, createResetToken, getSessionUser, registerWithPassword, requestEmailChange, resetPassword, signInWithPassword, verifyEmail } from "@mteam/db";
 import { getDictionary, type Locale } from "@mteam/shared";
 import { assertCanSendEmail, sendEmail } from "./email";
 import { resolveLocale } from "./locale";
 import { safeNext } from "./login-path";
+import { pathAfterSignIn } from "./onboarding";
 import { clientIp, currentUser, signInHere, startSession, userAgent } from "./session";
 import { siteUrl } from "./site-url";
 
@@ -49,7 +50,7 @@ export async function emailSignInAction(_previous: AuthState, form: FormData): P
   if ("error" in result) return { error: result.error };
   await startSession(result.token);
   // A full page load afterwards, as after the phone code: see loginAction.
-  return { done: safeNext(form.get("next"), locale) };
+  return { done: pathAfterSignIn(await getSessionUser(result.token), safeNext(form.get("next"), locale), locale) };
 }
 
 export async function registerAction(_previous: AuthState, form: FormData): Promise<AuthState> {
@@ -65,7 +66,7 @@ export async function registerAction(_previous: AuthState, form: FormData): Prom
   // Over the email limit the account still opens; the security page can send the link again.
   if (await claimEmailSend(ip, email.data, "VERIFY")) sendLink(locale, email.data, "verify", result.verifyToken);
   await startSession(result.token);
-  return { done: safeNext(form.get("next"), locale) };
+  return { done: pathAfterSignIn(await getSessionUser(result.token), safeNext(form.get("next"), locale), locale) };
 }
 
 /** Sends a reset link. The answer is the same whether or not an account has the email. */

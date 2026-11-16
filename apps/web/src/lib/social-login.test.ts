@@ -2,7 +2,7 @@
 import { NextRequest } from "next/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-const db = vi.hoisted(() => ({ signInWithIdentity: vi.fn() }));
+const db = vi.hoisted(() => ({ signInWithIdentity: vi.fn(), getSessionUser: vi.fn() }));
 const flow = vi.hoisted(() => ({ id: "GOOGLE", authorizeUrl: vi.fn(), person: vi.fn() }));
 const oauth = vi.hoisted(() => ({ providerFlow: vi.fn() }));
 
@@ -26,6 +26,7 @@ beforeEach(() => {
   oauth.providerFlow.mockReturnValue(flow);
   flow.authorizeUrl.mockReturnValue("https://accounts.example/auth?x=1");
   vi.stubEnv("SITE_URL", origin);
+  db.getSessionUser.mockResolvedValue({ onboardedAt: new Date() });
 });
 
 afterEach(() => vi.unstubAllEnvs());
@@ -88,6 +89,15 @@ describe("coming back", () => {
     expect(response.headers.get("location")).toBe(`${origin}/en/saved`);
     expect(response.cookies.get("mteam_session")).toMatchObject({ value: "tok", httpOnly: true, path: "/" });
     expect(response.cookies.get("mteam_social")).toMatchObject({ value: "", maxAge: 0 });
+  });
+
+  it("sends a new account to the first-visit questions, keeping the page", async () => {
+    flow.person.mockResolvedValue({ subject: "g-1" });
+    db.signInWithIdentity.mockResolvedValue("tok");
+    db.getSessionUser.mockResolvedValue({ onboardedAt: null });
+    const response = await callbackRoute(back("code=c0de&state=st"), params("google"));
+    expect(db.getSessionUser).toHaveBeenCalledWith("tok");
+    expect(response.headers.get("location")).toBe(`${origin}/en/onboarding?next=%2Fen%2Fsaved`);
   });
 
   it.each([

@@ -7,6 +7,7 @@ const db = vi.hoisted(() => ({ getGelPerUsd: async () => 2.7,
   getFavoriteIds: vi.fn(),
   getHiddenIds: vi.fn(),
   getListing: vi.fn(),
+  getPublicPerson: vi.fn(),
   listSellerListings: vi.fn(),
   listSimilarListings: vi.fn(),
 }));
@@ -42,6 +43,7 @@ beforeEach(() => {
   db.getHiddenIds.mockResolvedValue([]);
   db.listSimilarListings.mockResolvedValue([]);
   db.countSellerListings.mockResolvedValue(1);
+  db.getPublicPerson.mockResolvedValue({ name: null, avatarUrl: null });
 });
 
 describe("listing page extras", () => {
@@ -149,8 +151,21 @@ describe("SellerPage", () => {
     expect(db.getFavoriteIds).toHaveBeenCalledWith("u1");
   });
 
-  it("is not found without any listings", async () => {
+  it("shows the seller's name and photo, or initials, never a phone", async () => {
+    db.listSellerListings.mockResolvedValue([owned]);
+    db.getPublicPerson.mockResolvedValue({ name: "Nino Beridze", avatarUrl: null });
+    const { container } = render(await seller());
+    expect(db.getPublicPerson).toHaveBeenCalledWith("seller1");
+    expect(screen.getByRole("heading", { name: "Nino Beridze" })).toBeInTheDocument();
+    expect(screen.getByText("Listings by this seller")).toBeInTheDocument();
+    expect(container.querySelector(".av")).toHaveTextContent("NB");
+  });
+
+  it("is not found without any listings, or without the seller", async () => {
     db.listSellerListings.mockResolvedValue([]);
+    await expect(seller()).rejects.toThrow("NEXT_NOT_FOUND");
+    db.listSellerListings.mockResolvedValue([owned]);
+    db.getPublicPerson.mockResolvedValue(null);
     await expect(seller()).rejects.toThrow("NEXT_NOT_FOUND");
   });
 });

@@ -1,10 +1,11 @@
 import { createHash, randomBytes, timingSafeEqual } from "node:crypto";
 import { NextResponse, type NextRequest } from "next/server";
-import { signInWithIdentity } from "@mteam/db";
+import { getSessionUser, signInWithIdentity } from "@mteam/db";
 import { defaultLocale, isLocale, type Locale } from "@mteam/shared";
 import { z } from "zod";
 import { loginPath, safeNext } from "./login-path";
 import { providerFlow } from "./oauth";
+import { pathAfterSignIn } from "./onboarding";
 import { sessionCookie } from "./session";
 import { siteUrl } from "./site-url";
 
@@ -75,7 +76,7 @@ export async function finishSocialLogin(request: NextRequest, provider: string):
     try {
       const person = await flow.person(code, { ...pending, redirectUri: redirectUri(provider) });
       token = await signInWithIdentity(flow.id, person.subject, request.headers.get("user-agent") ?? undefined);
-      next = safeNext(pending.next, locale);
+      next = pathAfterSignIn(await getSessionUser(token), safeNext(pending.next, locale), locale);
     } catch (error) {
       console.error("Social sign-in failed", provider, error);
     }

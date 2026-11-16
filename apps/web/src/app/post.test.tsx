@@ -81,7 +81,7 @@ let previews = 0;
 beforeEach(() => {
   vi.resetAllMocks();
   previews = 0;
-  session.currentUser.mockResolvedValue({ id: "u1", phone: "+995555123456" });
+  session.currentUser.mockResolvedValue({ id: "u1", phone: "+995555123456", onboardedAt: new Date() });
   vi.stubGlobal("fetch", server);
   vi.stubGlobal("URL", Object.assign(URL, { createObjectURL: () => `blob:${++previews}`, revokeObjectURL: vi.fn() }));
 });
@@ -580,6 +580,11 @@ describe("NewListingPage", () => {
     expect(screen.queryByRole("button", { name: t.post.next })).toBeNull();
   });
 
+  it("asks the first-visit questions, which accept the terms, before posting", async () => {
+    session.currentUser.mockResolvedValue({ id: "u1", phone: "+995555123456", onboardedAt: null });
+    await expect(NewListingPage({ params, searchParams: Promise.resolve({}) })).rejects.toThrow("REDIRECT /en/onboarding?next=%2Fen%2Flistings%2Fnew");
+  });
+
   it("confirms a submitted listing", async () => {
     render(await NewListingPage({ params, searchParams: Promise.resolve({ sent: "1" }) }));
     expect(screen.getByRole("status")).toHaveTextContent(t.post.sent);
@@ -667,6 +672,12 @@ describe("EditListingPage", () => {
   it("requires a valid session", async () => {
     session.currentUser.mockResolvedValue(null);
     await expect(open()).rejects.toThrow("REDIRECT /en/login?next=%2Fen%2Flistings%2F9%2Fedit");
+  });
+
+  it("asks the first-visit questions before editing", async () => {
+    session.currentUser.mockResolvedValue({ id: "u1", phone: "+995555123456", onboardedAt: null });
+    await expect(open()).rejects.toThrow("REDIRECT /en/onboarding?next=%2Fen%2Flistings%2F9%2Fedit");
+    expect(db.getEditableListing).not.toHaveBeenCalled();
   });
 
   it("finds nothing for a listing that is not the user's to edit", async () => {

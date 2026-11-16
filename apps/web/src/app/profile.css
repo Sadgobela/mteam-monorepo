@@ -1,0 +1,27 @@
+/* Onboarding, the profile page and people's photos (track A of docs/ACCOUNT_PLAN.md). */
+img.av { object-fit: cover; }
+.av.av-lg { width: 96px; height: 96px; font-size: 36px; }
+.person { display: flex; align-items: center; gap: 12px; min-width: 0; }
+.person .av { flex: none; }
+.person .heading { margin: 0; overflow-wrap: anywhere; }
+
+.onboarding { max-width: 560px; width: 100%; margin: 0 auto; }
+.onboarding-card { display: grid; gap: 16px; background: var(--surface); border: 1px solid var(--line); border-radius: 20px; padding: 24px; }
+.onboarding-card h1 { margin: 0; }
+.onboarding-card > p { margin: 0; color: var(--muted); }
+.profile-form { display: grid; gap: 16px; }
+.profile-form .btn { justify-self: start; }
+.profile-form .note { margin: 0; }
+.profile-terms { display: flex; align-items: center; gap: 10px; min-height: 44px; cursor: pointer; }
+.profile-terms input { width: 20px; height: 20px; flex: none; accent-color: var(--action); }
+
+.profile-card { display: flex; flex-wrap: wrap; align-items: center; gap: 16px; background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 16px; }
+.profile-card > div { display: grid; gap: 8px; justify-items: start; }
+.avatar-change { position: relative; }
+.avatar-change input { position: absolute; width: 1px; height: 1px; opacity: 0; }
+.avatar-change:focus-within { box-shadow: 0 0 0 2px var(--focus); }
+.avatar-change[aria-disabled="true"] { opacity: 0.6; cursor: progress; }
+@media (max-width: 520px) { .onboarding-card { padding: 16px; } .profile-form .btn { justify-self: stretch; } }
+.account-layout > .account-main:only-child { grid-column: 1 / -1; }
+.person > div { display: grid; gap: 2px; min-width: 0; }
+.profile-form .choice-pills button { min-height: 44px; }

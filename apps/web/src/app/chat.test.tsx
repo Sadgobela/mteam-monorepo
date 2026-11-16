@@ -5,6 +5,7 @@ import { fixtureListings } from "@/test-fixtures";
 
 const db = vi.hoisted(() => ({ getGelPerUsd: async () => 2.7,
   countSellerListings: vi.fn(),
+  getChatPartner: vi.fn(),
   getConversation: vi.fn(),
   getFavoriteIds: vi.fn(),
   getHiddenIds: vi.fn(),
@@ -152,8 +153,11 @@ describe("ConversationPage", () => {
 
   it("shows the messages, whose they are, and a box to answer", async () => {
     db.getConversation.mockResolvedValue(chat("Nino"));
+    db.getChatPartner.mockResolvedValue({ name: "Nino", avatarUrl: "https://cdn.example/n.webp" });
     const { container } = render(await ConversationPage({ params: threadParams, searchParams: none }));
+    expect(db.getChatPartner).toHaveBeenCalledWith("u1", "c1");
     expect(screen.getByRole("heading", { level: 1, name: "Nino" })).toBeInTheDocument();
+    expect(container.querySelector("img.av")).toHaveAttribute("src", "https://cdn.example/n.webp");
     expect(screen.getByRole("link", { name: "Flat" })).toHaveAttribute("href", "/en/listings/7");
     const bubbles = container.querySelectorAll(".chat-thread li");
     expect(bubbles[0]).toHaveAttribute("data-mine");

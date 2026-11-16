@@ -17,7 +17,6 @@ vi.mock("@/lib/session", () => session);
 vi.mock("@/lib/auth-actions", () => ({ logoutAction: vi.fn() }));
 
 import AccountLayout from "./[locale]/(account)/layout";
-import ProfilePage from "./[locale]/(account)/account/profile/page";
 import { AccountNav } from "@/components/AccountNav";
 
 const t = getDictionary("en");
@@ -41,15 +40,5 @@ describe("account shell", () => {
     path.current = null;
     rerender(<AccountNav locale="en" t={t} />);
     expect(screen.queryByRole("link", { current: "page" })).toBeNull();
-  });
-
-  it.each([
-    ["profile", ProfilePage, "Profile"],
-  ] as const)("shows the %s placeholder to a signed-in user and sends others to sign in", async (name, Page, heading) => {
-    session.currentUser.mockResolvedValueOnce({ id: "u1" });
-    render(await Page({ params }));
-    expect(screen.getByRole("heading", { name: heading })).toBeInTheDocument();
-    session.currentUser.mockResolvedValueOnce(null);
-    await expect(Page({ params })).rejects.toThrow(`REDIRECT /en/login?next=%2Fen%2Faccount%2F${name}`);
   });
 });

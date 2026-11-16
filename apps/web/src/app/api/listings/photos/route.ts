@@ -27,6 +27,8 @@ export async function POST(request: Request) {
   const user = await currentUser();
   if (!user) return fail("signedOut", 401);
   if (!user.phone) return fail("noPhone", 403);
+  // Posting needs the terms accepted at onboarding, and photos are only ever for a listing.
+  if (!user.onboardedAt) return fail("noOnboarding", 403);
 
   const length = Number(request.headers.get("content-length"));
   if (!(length > 0) || length > MAX_BODY_BYTES) return fail("photos", 413);

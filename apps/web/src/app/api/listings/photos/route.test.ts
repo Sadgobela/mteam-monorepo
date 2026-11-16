@@ -30,7 +30,7 @@ const send = async (request: Request) => {
 
 beforeEach(() => {
   vi.resetAllMocks();
-  session.currentUser.mockResolvedValue({ id: "u1", phone: "+995555123456" });
+  session.currentUser.mockResolvedValue({ id: "u1", phone: "+995555123456", onboardedAt: new Date("2026-11-16T00:00:00Z") });
   db.claimPhotoUpload.mockResolvedValue(true);
   photos.readPhotos.mockResolvedValue(["p1"]);
   photos.uploadPhoto.mockResolvedValue("https://cdn/p1.jpg");
@@ -58,6 +58,7 @@ describe("POST /api/listings/photos", () => {
   it.each([
     ["a visitor", null, 401, "signedOut"],
     ["someone without a phone", { id: "u1", phone: null }, 403, "noPhone"],
+    ["someone who has not finished onboarding", { id: "u1", phone: "+995555123456", onboardedAt: null }, 403, "noOnboarding"],
   ])("turns away %s without reading the body", async (_name, user, status, error) => {
     session.currentUser.mockResolvedValue(user);
     const request = post();
