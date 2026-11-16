@@ -41,16 +41,16 @@ describe("page metadata", () => {
     expect((await layoutMetadata({ params: locale("en"), modal: null })).metadataBase?.href).toBe("http://localhost:3111/");
   });
 
-  it("stops the server starting on a missing or broken address", () => {
+  it("stops the server starting on a missing or broken address", async () => {
     vi.stubEnv("NODE_ENV", "production");
     vi.stubEnv("SITE_URL", "");
-    expect(() => register()).toThrow();
+    await expect(register()).rejects.toThrow();
     for (const broken of ["mteam.example", "localhost:3111", "javascript:alert(1)"]) {
       vi.stubEnv("SITE_URL", broken);
-      expect(() => register()).toThrow();
+      await expect(register()).rejects.toThrow();
     }
     vi.stubEnv("SITE_URL", "https://example.test/");
-    expect(() => register()).not.toThrow();
+    await expect(register()).resolves.toBeUndefined();
   });
 
   it("leaves the home page's title to the site and points at itself", async () => {
