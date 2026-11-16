@@ -64,7 +64,7 @@ function addressBucket(ip: string): string {
 }
 
 /** Counts one use against a key and says whether it is within the limit. Single conditional writes, like the phone limit. */
-async function claimQuota(ipHash: string, limit: number, now: number): Promise<boolean> {
+export async function claimQuota(ipHash: string, limit: number, now: number): Promise<boolean> {
   const limits = db().codeRequestLimit;
   const opened = new Date(now);
   const claimed =

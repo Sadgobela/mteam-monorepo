@@ -5,13 +5,13 @@ const prisma = vi.hoisted(() => ({
   codeRequestLimit: { createMany: vi.fn(), updateMany: vi.fn() },
   agentInvite: { create: vi.fn(), findMany: vi.fn(), findUnique: vi.fn(), updateMany: vi.fn(), deleteMany: vi.fn() },
   branch: { findMany: vi.fn() },
-  user: { findMany: vi.fn(), findFirst: vi.fn(), update: vi.fn(), updateMany: vi.fn() },
+  user: { findMany: vi.fn(), updateMany: vi.fn() },
   agent: { findFirst: vi.fn(), update: vi.fn(), upsert: vi.fn() },
   listing: { findFirst: vi.fn() },
   lead: { findFirst: vi.fn(), create: vi.fn() },
   $transaction: vi.fn(),
 }));
-const roles = vi.hoisted(() => ({ promoteUser: vi.fn() }));
+const roles = vi.hoisted(() => ({ handBackChats: vi.fn() }));
 
 vi.mock("./client", () => ({ db: () => prisma }));
 vi.mock("./roles", () => roles);
@@ -181,27 +181,20 @@ describe("brokers", () => {
     expect(prisma.user.findMany.mock.calls[0][0].where).toEqual({ role: "AGENT" });
   });
 
-  it("removes the role through promoteUser, which hands their chats to the owners", async () => {
-    prisma.user.findFirst.mockResolvedValue({ phone: "+995" });
+  it("removes the role and hands the chats back in one transaction", async () => {
+    prisma.user.updateMany.mockResolvedValue({ count: 1 });
     await removeBroker("u1");
-    expect(prisma.user.findFirst).toHaveBeenCalledWith({ where: { id: "u1", role: "AGENT" }, select: { phone: true } });
-    expect(roles.promoteUser).toHaveBeenCalledWith(prisma, "+995", "USER");
-  });
-
-  it("removes the role of a broker without a phone directly", async () => {
-    prisma.user.findFirst.mockResolvedValue({ phone: null });
-    await removeBroker("u1");
-    expect(prisma.user.update).toHaveBeenCalledWith({ where: { id: "u1" }, data: { role: "USER" } });
-    expect(roles.promoteUser).not.toHaveBeenCalled();
+    expect(prisma.$transaction).toHaveBeenCalledOnce();
+    expect(prisma.user.updateMany).toHaveBeenCalledWith({ where: { id: "u1", role: "AGENT" }, data: { role: "USER" } });
+    expect(roles.handBackChats).toHaveBeenCalledWith(prisma, "u1");
   });
 
   it("leaves admins, strangers and malformed ids alone", async () => {
-    prisma.user.findFirst.mockResolvedValue(null);
+    prisma.user.updateMany.mockResolvedValue({ count: 0 });
     await removeBroker("u1");
     await removeBroker("bad id!");
-    expect(prisma.user.findFirst).toHaveBeenCalledOnce();
-    expect(prisma.user.update).not.toHaveBeenCalled();
-    expect(roles.promoteUser).not.toHaveBeenCalled();
+    expect(prisma.user.updateMany).toHaveBeenCalledOnce();
+    expect(roles.handBackChats).not.toHaveBeenCalled();
   });
 
   it("reads a broker's profile", async () => {

@@ -1,4 +1,4 @@
-import type { PrismaClient } from "@prisma/client";
+import type { Prisma, PrismaClient } from "@prisma/client";
 import { z } from "zod";
 
 const roleSchema = z.enum(["USER", "AGENT", "ADMIN"]);
@@ -24,4 +24,13 @@ export async function promoteUser(client: PrismaClient, phone: string, role: str
       JOIN "User" u ON u.id = a."userId"
       WHERE c."listingId" = l.id AND c."sellerId" = u.id AND u.phone = ${phone}`,
   ]);
+}
+
+/** Hands a former broker's open chats on the listings they handled to those listings' owners. Run it in the same transaction as the role change. */
+export function handBackChats(client: Prisma.TransactionClient, userId: string): Promise<number> {
+  return client.$executeRaw`
+    UPDATE "Conversation" c SET "sellerId" = l."ownerId"
+    FROM "Listing" l
+    JOIN "Agent" a ON a.id = l."agentId"
+    WHERE c."listingId" = l.id AND c."sellerId" = ${userId} AND a."userId" = ${userId}`;
 }

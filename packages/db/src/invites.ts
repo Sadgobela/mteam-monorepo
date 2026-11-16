@@ -1,7 +1,7 @@
 import { createHash, randomBytes } from "node:crypto";
-import { addressHash } from "./auth";
+import { addressHash, claimQuota } from "./auth";
 import { db } from "./client";
-import { promoteUser } from "./roles";
+import { handBackChats } from "./roles";
 
 const INVITE_TTL_MS = 7 * 24 * 60 * 60_000;
 const VERIFY_REPEAT_MS = 7 * 24 * 60 * 60_000;
@@ -9,7 +9,6 @@ const INVITE_LIST_LIMIT = 100;
 const BROKER_LIST_LIMIT = 200;
 // A real invite is opened a few times at most; this only stops a script guessing tokens.
 const INVITE_CHECKS_PER_ADDRESS = 30;
-const ADDRESS_WINDOW_MS = 60 * 60_000;
 const TOKEN_FORMAT = /^[\w-]{43}$/;
 const HASH_FORMAT = /^[0-9a-f]{64}$/;
 const ID_FORMAT = /^[\w-]{1,40}$/;
@@ -45,19 +44,9 @@ export interface BrokerProfile {
 const inviteStatus = (usedAt: Date | null, expiresAt: Date, now: number): InviteStatus =>
   usedAt ? "used" : expiresAt.getTime() <= now ? "expired" : "open";
 
-/**
- * Counts one invite check from a network. The same three conditional writes as the sign-in limits in auth.ts,
- * so parallel requests cannot pass it.
- */
-export async function claimInviteCheck(ip: string, now = Date.now()): Promise<boolean> {
-  const limits = db().codeRequestLimit;
-  const ipHash = `invite:${addressHash(ip)}`;
-  const opened = new Date(now);
-  const claimed =
-    (await limits.updateMany({ where: { ipHash, windowStart: { lte: new Date(now - ADDRESS_WINDOW_MS) } }, data: { windowStart: opened, count: 1 } })).count ||
-    (await limits.updateMany({ where: { ipHash, count: { lt: INVITE_CHECKS_PER_ADDRESS } }, data: { count: { increment: 1 } } })).count ||
-    (await limits.createMany({ data: [{ ipHash, windowStart: opened, count: 1 }], skipDuplicates: true })).count;
-  return claimed > 0;
+/** Counts one invite check from a network, with the same limit store as sign-in. */
+export function claimInviteCheck(ip: string, now = Date.now()): Promise<boolean> {
+  return claimQuota(`invite:${addressHash(ip)}`, INVITE_CHECKS_PER_ADDRESS, now);
 }
 
 /** Makes a single-use link for 7 days and returns its token, which is shown once. Only its hash is kept. */
@@ -110,16 +99,16 @@ export async function listCurrentBrokers(): Promise<CurrentBroker[]> {
   return rows.map((row) => ({ userId: row.id, name: row.name ?? "", phone: row.phone ?? "", branch: row.agent?.branch?.name ?? "" }));
 }
 
-/** Makes a broker an ordinary user again. Only brokers: an admin's role is not changed here. */
+/**
+ * Makes a broker an ordinary user again, and hands their open chats to the listings' owners, in one transaction.
+ * Only brokers: an admin's role is not changed here.
+ */
 export async function removeBroker(userId: string): Promise<void> {
   if (!ID_FORMAT.test(userId)) return;
-  const client = db();
-  const user = await client.user.findFirst({ where: { id: userId, role: "AGENT" }, select: { phone: true } });
-  if (!user) return;
-  // With a phone, promoteUser also hands their open chats to the listings' owners.
-  // Without one they could not have posted, so they have no chats to hand over.
-  if (user.phone) await promoteUser(client, user.phone, "USER");
-  else await client.user.update({ where: { id: userId }, data: { role: "USER" } });
+  await db().$transaction(async (tx) => {
+    const { count } = await tx.user.updateMany({ where: { id: userId, role: "AGENT" }, data: { role: "USER" } });
+    if (count === 1) await handBackChats(tx, userId);
+  });
 }
 
 /** What a link is, without using it up. A token in the wrong shape is "missing" without asking the database. */
