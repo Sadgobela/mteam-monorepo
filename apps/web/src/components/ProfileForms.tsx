@@ -5,6 +5,7 @@ import { useActionState, useEffect, useId, useState, type ChangeEvent } from "re
 import { useRouter } from "next/navigation";
 import type { Dict, Locale } from "@mteam/shared";
 import { z } from "zod";
+import { loginPath } from "@/lib/login-path";
 import { onboardingPath } from "@/lib/onboarding";
 import { onboardAction, saveProfileAction } from "@/lib/profile-actions";
 import { Avatar } from "./Avatar";
@@ -88,7 +89,32 @@ export function ProfileForm({ locale, t, name, intent }: { locale: Locale; t: Di
   );
 }
 
-const uploadReplySchema = z.object({ error: z.enum(["photo", "tooMany"]).optional() });
+const uploadReplySchema = z.object({ error: z.enum(["signedOut", "photo", "tooMany"]) });
+
+/** The longest side a photo is sent at: plenty for a 256 px avatar, and far under the upload limit. */
+const MAX_EDGE_PX = 1024;
+
+/**
+ * A phone photo shrunk to at most 1024 px and re-encoded as JPEG before it is sent, upright as the camera meant it.
+ * The original goes when the browser cannot decode it; the server checks either way.
+ */
+async function shrink(file: File): Promise<Blob> {
+  try {
+    const bitmap = await createImageBitmap(file, { imageOrientation: "from-image" });
+    const scale = Math.min(1, MAX_EDGE_PX / Math.max(bitmap.width, bitmap.height));
+    const canvas = document.createElement("canvas");
+    canvas.width = Math.round(bitmap.width * scale);
+    canvas.height = Math.round(bitmap.height * scale);
+    const context = canvas.getContext("2d");
+    if (!context) return file;
+    context.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+    bitmap.close();
+    const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, "image/jpeg", 0.9));
+    return blob ?? file;
+  } catch {
+    return file;
+  }
+}
 
 /** The user's photo, replaced as soon as a new one is chosen. The server crops it square and removes its metadata. */
 export function AvatarUpload({ locale, t, name, url, joined }: { locale: Locale; t: Dict; name: string | null; url: string | null; joined: string }) {
@@ -103,16 +129,20 @@ export function AvatarUpload({ locale, t, name, url, joined }: { locale: Locale;
     setPending(true);
     setError(undefined);
     const body = new FormData();
-    body.set("photo", file);
+    body.set("photo", await shrink(file), file.name);
+    let ok = false;
     let reply: unknown = null;
     try {
-      reply = await (await fetch(`/${locale}/account/profile/avatar`, { method: "POST", body })).json();
+      const response = await fetch(`/${locale}/account/profile/avatar`, { method: "POST", body });
+      ok = response.ok;
+      reply = await response.json();
     } catch {
-      // A proxy's error page, or no connection: shown as a photo that could not be used.
+      // No connection, or a proxy's error page instead of our answer: shown as a photo that could not be used.
     }
-    const parsed = uploadReplySchema.safeParse(reply);
-    if (parsed.success && !parsed.data.error) router.refresh();
-    else setError(parsed.data?.error ?? "photo");
+    const answer = uploadReplySchema.safeParse(reply).data?.error;
+    if (ok) router.refresh();
+    else if (answer === "signedOut") router.push(loginPath(locale, `/${locale}/account/profile`));
+    else setError(answer === "tooMany" ? "tooMany" : "photo");
     input.value = "";
     setPending(false);
   }

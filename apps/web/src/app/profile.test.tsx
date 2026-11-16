@@ -247,7 +247,8 @@ describe("AvatarUpload", () => {
   it.each([
     ["the hourly limit", async () => Response.json({ error: "tooMany" }, { status: 429 }), t.profile.photoTooMany],
     ["a refused photo", async () => Response.json({ error: "photo" }, { status: 422 }), t.profile.photoFailed],
-    ["an unknown answer", async () => Response.json({ error: "signedOut" }, { status: 401 }), t.profile.photoFailed],
+    ["an unknown answer", async () => Response.json({ error: "forbidden" }, { status: 403 }), t.profile.photoFailed],
+    ["a proxy's page instead of ours", async () => new Response("Request Entity Too Large", { status: 413 }), t.profile.photoFailed],
     ["no connection", async () => Promise.reject(new TypeError("offline")), t.profile.photoFailed],
   ])("explains %s", async (_, reply, message) => {
     fetch.mockImplementation(reply);
@@ -255,6 +256,58 @@ describe("AvatarUpload", () => {
     await userEvent.upload(screen.getByLabelText(t.profile.photo), photo);
     expect(await screen.findByRole("alert")).toHaveTextContent(message);
     expect(router.refresh).not.toHaveBeenCalled();
+  });
+
+  it("sends a signed-out user to sign in, coming back here", async () => {
+    fetch.mockResolvedValue(Response.json({ error: "signedOut" }, { status: 401 }));
+    show();
+    await userEvent.upload(screen.getByLabelText(t.profile.photo), photo);
+    await waitFor(() => expect(router.push).toHaveBeenCalledWith("/en/login?next=%2Fen%2Faccount%2Fprofile"));
+    expect(screen.queryByRole("alert")).toBeNull();
+  });
+
+  describe("shrinking in the browser", () => {
+    const bitmap = { width: 4000, height: 3000, close: vi.fn() };
+    const draw = vi.fn();
+    const small = new Blob(["small"], { type: "image/jpeg" });
+    const sent = async () => {
+      fetch.mockResolvedValue(Response.json({ avatarUrl: "https://cdn.example/b.webp" }));
+      show();
+      await userEvent.upload(screen.getByLabelText(t.profile.photo), photo);
+      await waitFor(() => expect(fetch).toHaveBeenCalled());
+      return fetch.mock.calls[0][1].body.get("photo") as File;
+    };
+
+    beforeEach(() => {
+      vi.stubGlobal("createImageBitmap", vi.fn(async () => bitmap));
+      vi.spyOn(HTMLCanvasElement.prototype, "getContext").mockReturnValue({ drawImage: draw } as unknown as CanvasRenderingContext2D);
+      vi.spyOn(HTMLCanvasElement.prototype, "toBlob").mockImplementation((done) => done(small));
+    });
+    afterEach(() => vi.restoreAllMocks());
+
+    it("sends a big photo upright, at 1024 px on its long side, as JPEG", async () => {
+      const file = await sent();
+      expect(createImageBitmap).toHaveBeenCalledWith(photo, { imageOrientation: "from-image" });
+      expect(draw).toHaveBeenCalledWith(bitmap, 0, 0, 1024, 768);
+      expect(HTMLCanvasElement.prototype.toBlob).toHaveBeenCalledWith(expect.any(Function), "image/jpeg", 0.9);
+      expect(bitmap.close).toHaveBeenCalled();
+      expect(file.size).toBe(small.size);
+    });
+
+    it("never enlarges a small photo", async () => {
+      vi.stubGlobal("createImageBitmap", vi.fn(async () => ({ ...bitmap, width: 300, height: 400 })));
+      await sent();
+      expect(draw).toHaveBeenCalledWith(expect.anything(), 0, 0, 300, 400);
+    });
+
+    it.each([
+      ["has no canvas", () => vi.spyOn(HTMLCanvasElement.prototype, "getContext").mockReturnValue(null)],
+      ["cannot encode", () => vi.spyOn(HTMLCanvasElement.prototype, "toBlob").mockImplementation((done) => done(null))],
+      ["cannot decode the photo", () => vi.stubGlobal("createImageBitmap", vi.fn(async () => Promise.reject(new Error("bad image"))))],
+    ])("sends the original when the browser %s", async (_, breakIt) => {
+      breakIt();
+      expect((await sent()).size).toBe(photo.size);
+    });
   });
 
   it("does nothing when the choice is cancelled", async () => {
