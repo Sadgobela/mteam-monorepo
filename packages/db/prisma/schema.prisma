@@ -88,6 +88,7 @@ model User {
   avatarUrl            String?
   intent               UserIntent?
   onboardedAt          DateTime? // set when the first-visit questions are answered
+  deletedAt            DateTime? // set when the user deleted their account; such a user can never sign in again
   termsAcceptedAt      DateTime?
   // What the user wants to hear about. In-app now; email and SMS follow these once a provider is in.
   notifyMessages       Boolean         @default(true)
@@ -257,6 +258,7 @@ model Listing {
   bumpedAt       DateTime? // a free bump once a day moves the listing up in "newest"
   priceChanges   ListingPriceChange[]
   notifications  Notification[]
+  leads          Lead[]
   createdAt      DateTime             @default(now())
   updatedAt      DateTime             @updatedAt
 
@@ -360,10 +362,15 @@ model Lead {
   note      String?
   /// Set when someone looking for a property asked a broker to find it: their search's URL parameters.
   search    String?
+  /// Set when an owner asked MTeam to verify one of their listings on site.
+  listing   Listing?   @relation(fields: [listingId], references: [id], onDelete: SetNull)
+  listingId Int?
   status    LeadStatus @default(NEW)
   agent     Agent?     @relation(fields: [agentId], references: [id])
   agentId   String?
   createdAt DateTime   @default(now())
+
+  @@index([listingId, createdAt])
 }
 
 // The National Bank of Georgia's official rate, lari per one unit of the currency. Refreshed nightly; see rates.ts.

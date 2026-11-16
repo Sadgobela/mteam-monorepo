@@ -200,17 +200,19 @@ export async function getSessionUser(token: string) {
   const tokenHash = sha256(token);
   const session = await db().session.findUnique({
     where: { tokenHash },
-    select: { expiresAt: true, lastSeenAt: true, user: { select: { id: true, phone: true, role: true, name: true, avatarUrl: true, onboardedAt: true, agent: { select: { id: true } } } } },
+    select: { expiresAt: true, lastSeenAt: true, user: { select: { id: true, phone: true, role: true, name: true, avatarUrl: true, onboardedAt: true, deletedAt: true, agent: { select: { id: true } } } } },
   });
   const now = new Date();
-  if (!session || session.expiresAt <= now) return null;
+  // A deleted account never signs in again, even through a session a sign-in created a moment after the deletion.
+  if (!session || session.expiresAt <= now || session.user.deletedAt) return null;
   // Last seen, for the devices list in settings. Written at most once an hour, so nearly every request skips it,
   // and the condition is repeated in the write so parallel requests in that moment write once.
   const staleBefore = new Date(now.getTime() - LAST_SEEN_EVERY_MS);
   if (!session.lastSeenAt || session.lastSeenAt < staleBefore) {
     await db().session.updateMany({ where: { tokenHash, OR: [{ lastSeenAt: null }, { lastSeenAt: { lt: staleBefore } }] }, data: { lastSeenAt: now } });
   }
-  return session.user;
+  const { deletedAt: _deleted, ...user } = session.user;
+  return user;
 }
 
 export async function deleteSession(token: string): Promise<void> {

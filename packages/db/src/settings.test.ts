@@ -85,7 +85,7 @@ describe("deleteAccount", () => {
     expect(prisma.$transaction).toHaveBeenCalledTimes(1);
     expect(prisma.user.updateMany).toHaveBeenCalledWith({
       where: { id: "u1", role: "USER" },
-      data: { name: null, phone: null, email: null, emailVerifiedAt: null, passwordHash: null, avatarUrl: null },
+      data: { name: null, phone: null, email: null, emailVerifiedAt: null, passwordHash: null, avatarUrl: null, deletedAt: expect.any(Date) },
     });
     for (const table of [prisma.identity, prisma.session, prisma.savedSearch, prisma.favorite, prisma.hiddenListing, prisma.emailToken, prisma.notification]) {
       expect(table.deleteMany).toHaveBeenCalledWith({ where: { userId: "u1" } });
