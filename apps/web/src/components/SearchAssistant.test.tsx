@@ -23,9 +23,10 @@ describe("SearchAssistant", () => {
     click("Land");
     click("Any");
     click("Up to $50,000");
+    click("Yes, below market only");
     expect(screen.getByText(/Done!/)).toBeInTheDocument();
-    expect(results()).toHaveAttribute("href", "/en?deal=sale&type=land&priceMax=50000");
-    expect(countSearchAction).toHaveBeenLastCalledWith("deal=sale&type=land&priceMax=50000");
+    expect(results()).toHaveAttribute("href", "/en?deal=sale&type=land&priceMax=50000&belowMarket=1");
+    expect(countSearchAction).toHaveBeenLastCalledWith("deal=sale&type=land&priceMax=50000&belowMarket=1");
   });
 
   it("shows a plain button until the count arrives, and goes back to a changed answer", async () => {

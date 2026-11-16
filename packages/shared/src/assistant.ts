@@ -4,7 +4,7 @@ import { cityAreas, placeLabel, popularCities } from "./places";
 import { buildingStatuses, propertyTypes, type DealType } from "./search";
 
 /** The search assistant's questions, in the order it asks them. Each answer adds URL search parameters. */
-export const assistantSteps = ["deal", "type", "city", "area", "budget", "rooms", "building"] as const;
+export const assistantSteps = ["deal", "type", "city", "area", "budget", "rooms", "building", "market"] as const;
 export type AssistantStep = (typeof assistantSteps)[number];
 
 export type SearchParams = Record<string, string>;
@@ -70,5 +70,7 @@ export function assistantChoices(step: AssistantStep, params: SearchParams, t: D
       return [...ROOM_CHOICES.map((rooms) => ({ label: t.market.rooms.replace("{count}", String(rooms)), params: { rooms: String(rooms) } })), any];
     case "building":
       return [...buildingStatuses.map((status) => ({ label: t.search.building[status], params: { building: status } })), any];
+    case "market":
+      return [{ label: t.assistant.belowMarket, params: { belowMarket: "1" } }, any];
   }
 }

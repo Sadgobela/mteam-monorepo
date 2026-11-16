@@ -11,15 +11,16 @@ describe("nextAssistantStep", () => {
     const params = { deal: "sale", type: "apartment", city: "თბილისი" };
     const asked: AssistantStep[] = [];
     for (let step = nextAssistantStep(asked, params); step; step = nextAssistantStep(asked, params)) asked.push(step);
-    expect(asked).toEqual(["deal", "type", "city", "area", "budget", "rooms", "building"]);
+    expect(asked).toEqual(["deal", "type", "city", "area", "budget", "rooms", "building", "market"]);
   });
 
   it("skips questions that do not apply", () => {
     expect(nextAssistantStep(["deal", "type"], { deal: "sale", type: "land" })).toBe("city");
     expect(nextAssistantStep(["deal", "type", "city"], { deal: "sale", type: "land" })).toBe("budget");
-    expect(nextAssistantStep(["deal", "type", "city", "budget"], { deal: "sale", type: "land" })).toBeNull();
+    expect(nextAssistantStep(["deal", "type", "city", "budget"], { deal: "sale", type: "land" })).toBe("market");
+    expect(nextAssistantStep(["deal", "type", "city", "budget", "market"], { deal: "sale", type: "land" })).toBeNull();
     expect(nextAssistantStep(["deal", "type", "city", "budget"], { deal: "rent", type: "house" })).toBe("rooms");
-    expect(nextAssistantStep(["deal", "type", "city", "budget", "rooms"], { deal: "rent", type: "house" })).toBeNull();
+    expect(nextAssistantStep(["deal", "type", "city", "budget", "rooms"], { deal: "rent", type: "house" })).toBe("market");
   });
 });
 
@@ -29,7 +30,7 @@ describe("assistantChoices", () => {
   });
 
   it("ends every other question with a choice that adds nothing", () => {
-    for (const step of ["type", "city", "rooms", "building"] as const) expect(choices(step).at(-1)).toEqual({ label: "Any", params: {} });
+    for (const step of ["type", "city", "rooms", "building", "market"] as const) expect(choices(step).at(-1)).toEqual({ label: "Any", params: {} });
   });
 
   it("turns an area into all of its districts", () => {
@@ -48,6 +49,7 @@ describe("assistantChoices", () => {
 
   it("labels rooms, building and cities in the page language", () => {
     expect(choices("rooms")[1]).toEqual({ label: "2-room", params: { rooms: "2" } });
+    expect(choices("market")[0]).toEqual({ label: "Yes, below market only", params: { belowMarket: "1" } });
     expect(choices("building")[1]).toEqual({ label: "New building", params: { building: "new" } });
     expect(choices("type")[0]).toEqual({ label: "Apartment", params: { type: "apartment" } });
     expect(choices("city")[0]).toEqual({ label: "Tbilisi", params: { city: "თბილისი" } });
