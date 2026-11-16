@@ -22,11 +22,11 @@ const form = (photo: Blob | string = new Blob([new Uint8Array(wide)])) => {
 };
 
 /** Content-Length is set by hand: a Request built in a test has none, and a browser always sends one with a form. */
-const post = (body: FormData | string = form(), length: string | null = "1000", type?: string) =>
-  new Request("http://localhost/en/account/profile/avatar", {
+const post = (body: FormData | string = form(), length: string | null = "1000", type?: string, origin: Record<string, string> = { origin: "http://localhost:3000" }) =>
+  new Request("http://localhost:3000/en/account/profile/avatar", {
     method: "POST",
     body,
-    headers: { ...(length === null ? {} : { "content-length": length }), ...(type ? { "content-type": type } : {}) },
+    headers: { ...origin, ...(length === null ? {} : { "content-length": length }), ...(type ? { "content-type": type } : {}) },
   });
 
 const send = async (request: Request) => {
@@ -51,6 +51,21 @@ describe("POST avatar", () => {
     expect(db.setAvatar).toHaveBeenCalledWith("u1", "https://cdn.example/a.webp");
   });
 
+  it.each([
+    ["another site", { origin: "https://evil.example" }],
+    ["the same name on another port", { origin: "http://localhost:4000" }],
+    ["no origin", {}],
+    ["a broken origin", { origin: "null" }],
+  ])("refuses a post from %s before anything else", async (_, origin) => {
+    expect(await send(post(form(), "1000", undefined, origin))).toEqual([403, { error: "forbidden" }]);
+    expect(session.currentUser).not.toHaveBeenCalled();
+  });
+
+  it("accepts our own site behind the proxy, which names the public host", async () => {
+    const request = post(form(), "1000", undefined, { origin: "https://mteam.ge", "x-forwarded-host": "mteam.ge" });
+    expect((await POST(request)).status).toBe(200);
+  });
+
   it("refuses a visitor before reading anything", async () => {
     session.currentUser.mockResolvedValue(null);
     expect(await send(post())).toEqual([401, { error: "signedOut" }]);
@@ -60,7 +75,7 @@ describe("POST avatar", () => {
   it.each([
     ["no size", null],
     ["an empty body", "0"],
-    ["more than one photo's limit", String(6 * 1024 * 1024)],
+    ["more than 4 MB", String(4 * 1024 * 1024 + 1)],
   ])("refuses %s before reading it", async (_, length) => {
     expect(await send(post(form(), length))).toEqual([413, { error: "photo" }]);
     expect(db.claimAvatarUpload).not.toHaveBeenCalled();
