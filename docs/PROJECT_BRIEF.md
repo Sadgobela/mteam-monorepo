@@ -39,7 +39,5 @@ Development runs entirely locally for now. These must be done before real users 
 - Set `LOGIN_CODE_SECRET` to the output of `openssl rand -hex 32`, never the example value.
 - Hosting: the proxy in front of the site must add the visitor's address as the last `x-forwarded-for` entry, because the limit on login codes trusts only that entry. It must also allow 55 MB requests to `/api/listings`.
 - A map tile provider: the free OpenStreetMap tile server is for development only.
-- A real exchange rate: search, sorting and the ₾/$ switch use fixed rates.
 - Set `SITE_URL` to the real address, or the sitemap and page links will point at localhost.
-- Run `db:market` every night, so market levels follow new listings.
 - Sign in with Apple: needs the paid Apple Developer Program and the real HTTPS address, since Apple refuses localhost. Steps in `SOCIAL_LOGIN.md`. Google and Facebook need their production return address added too.
