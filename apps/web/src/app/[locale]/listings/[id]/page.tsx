@@ -4,7 +4,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { ReactNode } from "react";
 import { countSellerListings, getFavoriteIds, getHiddenIds, listSimilarListings, getListing } from "@mteam/db";
-import { LOAN_DEFAULTS, maskPhone, monthlyPayment, placeLabel, priceUnit, convertPrice, formatDay, formatPrice, getDictionary, parseListingDisplay } from "@mteam/shared";
+import { FALLBACK_GEL_PER_USD, LOAN_DEFAULTS, maskPhone, monthlyPayment, placeLabel, priceUnit, convertPrice, formatDay, formatPrice, getDictionary, parseListingDisplay } from "@mteam/shared";
 import { Gallery } from "@/components/Gallery";
 import { ListingDetails } from "@/components/ListingDetails";
 import { Header } from "@/components/Header";
@@ -73,7 +73,7 @@ export default async function ListingPage({
   const t = getDictionary(locale);
   const query = await searchParams;
   const { cur } = parseListingDisplay(query);
-  const shown = convertPrice(listing.price, listing.currency, cur);
+  const shown = convertPrice(listing.price, listing.currency, cur, FALLBACK_GEL_PER_USD);
   const currency = cur === "gel" ? "GEL" : "USD";
   const unit = priceUnit(listing.deal, t);
   const here = `/${locale}/listings/${listing.id}`;

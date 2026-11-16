@@ -3,12 +3,13 @@ import { canonicalSearch, priceInLari, convertPrice, parseListingDisplay, parseL
 
 describe("priceInLari", () => {
   it("reads round lari amounts back exactly", () => {
-    expect(priceInLari(priceInUsd(150000, "GEL"))).toBe(150000);
-    expect(priceInLari(priceInUsd(250000, "GEL"))).toBe(250000);
+    expect(priceInLari(priceInUsd(150000, "GEL", 2.7), 2.7)).toBe(150000);
+    expect(priceInLari(priceInUsd(250000, "GEL", 2.7), 2.7)).toBe(250000);
   });
 
   it("falls back to the exact conversion when rounding would change the dollars", () => {
-    expect(priceInLari(1)).toBe(3);
+    expect(priceInLari(1, 2.7)).toBe(3);
+    expect(priceInLari(priceInUsd(150000, "GEL", 2.5931), 2.5931)).toBe(150000);
   });
 });
 
@@ -176,17 +177,19 @@ describe("parseListingDisplay", () => {
 
 describe("currency conversion", () => {
   it("normalizes each currency to USD", () => {
-    expect(priceInUsd(1000, "USD")).toBe(1000);
-    expect(priceInUsd(2700, "GEL")).toBe(1000);
-    expect(priceInUsd(270000, "GEL")).toBe(100000);
+    expect(priceInUsd(1000, "USD", 2.7)).toBe(1000);
+    expect(priceInUsd(2700, "GEL", 2.7)).toBe(1000);
+    expect(priceInUsd(270000, "GEL", 2.7)).toBe(100000);
+    expect(priceInUsd(2593, "GEL", 2.5931)).toBe(1000);
   });
 
   it("converts for display", () => {
-    expect(convertPrice(1000, "USD", "usd")).toBe(1000);
-    expect(convertPrice(1000, "USD", "gel")).toBe(2700);
-    expect(convertPrice(2700, "GEL", "usd")).toBe(1000);
-    expect(convertPrice(2700, "GEL", "gel")).toBe(2700);
-    expect(convertPrice(270000, "GEL", "usd")).toBe(100000);
+    expect(convertPrice(1000, "USD", "usd", 2.7)).toBe(1000);
+    expect(convertPrice(1000, "USD", "gel", 2.7)).toBe(2700);
+    expect(convertPrice(2700, "GEL", "usd", 2.7)).toBe(1000);
+    expect(convertPrice(2700, "GEL", "gel", 2.7)).toBe(2700);
+    expect(convertPrice(270000, "GEL", "usd", 2.7)).toBe(100000);
+    expect(convertPrice(1000, "USD", "gel", 2.5931)).toBe(2593);
   });
 });
 

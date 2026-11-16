@@ -8,6 +8,7 @@ import {
   type Listing,
   type ListingDraft,
   type ListingFilters,
+  FALLBACK_GEL_PER_USD,
   priceInUsd,
   type PropertyType,
   type SortOrder,
@@ -204,7 +205,7 @@ const SIMILAR_PRICE_SPREAD = 0.3;
 
 /** Same deal, type and city at a nearby price and size. */
 export async function listSimilarListings(listing: Listing, hiddenIds: number[] = []): Promise<Listing[]> {
-  const usd = priceInUsd(listing.price, listing.currency);
+  const usd = priceInUsd(listing.price, listing.currency, FALLBACK_GEL_PER_USD);
   const rows = await db().listing.findMany({
     where: {
       status: "ACTIVE",
@@ -266,8 +267,8 @@ export async function getListing(rawId: string): Promise<Listing | undefined> {
 export function draftColumns(draft: ListingDraft) {
   return {
     ...draft,
-    priceUsd: priceInUsd(draft.price, draft.currency),
-    pricePerSqmUsd: Math.round(priceInUsd(draft.price, draft.currency) / draft.area),
+    priceUsd: priceInUsd(draft.price, draft.currency, FALLBACK_GEL_PER_USD),
+    pricePerSqmUsd: Math.round(priceInUsd(draft.price, draft.currency, FALLBACK_GEL_PER_USD) / draft.area),
     building: draft.building && dbBuildings[draft.building],
     deal: dbDeals[draft.deal],
     type: dbPropertyTypes[draft.type],

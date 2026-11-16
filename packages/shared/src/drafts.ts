@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { isFeature, specKeys, type SpecName } from "./details";
 import { cityDistricts, isCity, isMetro, METRO_CITY } from "./places";
-import { buildingStatuses, canonicalSearch, currencies, dealTypes, MAX_PRICE, priceInUsd, propertyTypes } from "./search";
+import { buildingStatuses, canonicalSearch, currencies, dealTypes, FALLBACK_GEL_PER_USD, MAX_PRICE, priceInUsd, propertyTypes } from "./search";
 
 /** Georgian mobile numbers only, in any common spelling. Returns +9955XXXXXXXX, or null. */
 export function parsePhone(input: string): string | null {
@@ -102,7 +102,7 @@ const draftSchema = z
   .refine((d) => (cityDistricts(d.city).length === 0 ? d.district === undefined : cityDistricts(d.city).includes(d.district ?? "")))
   .refine((d) => d.metro === undefined || d.city === METRO_CITY)
   // Keeps the stored price per m² inside its column.
-  .refine((d) => priceInUsd(d.price, d.currency) / d.area <= MAX_PRICE)
+  .refine((d) => priceInUsd(d.price, d.currency, FALLBACK_GEL_PER_USD) / d.area <= MAX_PRICE)
   .refine((d) => d.rooms !== undefined || d.type === "commercial" || d.type === "land" || d.type === "hotel")
   .refine((d) => (d.lat === undefined) === (d.lng === undefined))
   .refine((d) => (d.floor === undefined) === (d.floors === undefined) && (d.floor ?? 0) <= (d.floors ?? 0));

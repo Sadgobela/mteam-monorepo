@@ -7,6 +7,7 @@ import type { ReactNode } from "react";
 import { Badge, Button, Checkbox, Input, InputNumber, Modal, Popover, Select } from "antd";
 import {
   buildingStatuses,
+  FALLBACK_GEL_PER_USD,
   priceInLari,
   featureLabel,
   floorPositions,
@@ -53,14 +54,14 @@ export function SearchBar({ locale, t, filters, display, results = false }: { lo
   // The URL always holds dollars, so a search means the same whichever currency is on show. While editing, money is in the
   // currency on screen: converting on every keystroke would rewrite the number as it is typed.
   const inLari = display.cur === "gel";
-  const [draft, setDraft] = useState(() => (inLari ? convertMoney(filters, priceInLari) : filters));
+  const [draft, setDraft] = useState(() => (inLari ? convertMoney(filters, (value) => priceInLari(value, FALLBACK_GEL_PER_USD)) : filters));
   const [moreOpen, setMoreOpen] = useState(false);
   const [locationOpen, setLocationOpen] = useState(false);
   const [openPill, setOpenPill] = useState<string | null>(null);
   const change = (values: Partial<ListingFilters>) => setDraft({ ...draft, ...values });
 
   function run(edited: ListingFilters) {
-    const filtersToSearch = inLari ? convertMoney(edited, (value) => priceInUsd(value, "GEL")) : edited;
+    const filtersToSearch = inLari ? convertMoney(edited, (value) => priceInUsd(value, "GEL", FALLBACK_GEL_PER_USD)) : edited;
     // "deal" is always sent, even empty: it is how the home page knows a search was made.
     const params = new URLSearchParams({ deal: filtersToSearch.deal ?? "", cur: display.cur, view: display.view, sort: display.sort });
     for (const [key, value] of Object.entries(filtersToSearch)) {

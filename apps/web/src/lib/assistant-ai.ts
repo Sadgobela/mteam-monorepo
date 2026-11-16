@@ -1,7 +1,7 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { betaZodOutputFormat } from "@anthropic-ai/sdk/helpers/beta/zod";
 import { z } from "zod";
-import { buildingStatuses, canonicalSearch, cityAreas, popularCities, priceInUsd, propertyTypes } from "@mteam/shared";
+import { buildingStatuses, canonicalSearch, cityAreas, FALLBACK_GEL_PER_USD, popularCities, priceInUsd, propertyTypes } from "@mteam/shared";
 
 const MODEL = "claude-opus-5-5";
 
@@ -45,7 +45,7 @@ ${places}`;
 
 /** Turns filters understood from text into URL search parameters, keeping only what the search parser accepts. */
 export function filtersToSearch(filters: UnderstoodFilters): string {
-  const money = (value: number | null) => (value === null ? undefined : String(priceInUsd(Math.round(value), filters.currency)));
+  const money = (value: number | null) => (value === null ? undefined : String(priceInUsd(Math.round(value), filters.currency, FALLBACK_GEL_PER_USD)));
   return canonicalSearch({
     deal: filters.deal ?? undefined,
     type: filters.type ?? undefined,

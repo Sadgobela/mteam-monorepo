@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { priceInLari, featureLabel, placeLabel, specLabel, specNames, specTitles, type Dict, type ListingFilters, type Locale, type SpecName } from "@mteam/shared";
+import { FALLBACK_GEL_PER_USD, priceInLari, featureLabel, placeLabel, specLabel, specNames, specTitles, type Dict, type ListingFilters, type Locale, type SpecName } from "@mteam/shared";
 import { resultsHref, type Query } from "@/lib/url";
 
 /** The active filters as [parameter, label] pairs, in the page language. */
@@ -7,7 +7,7 @@ export function filterLabels(locale: Locale, t: Dict, query: Query, filters: Lis
   const number = (value: number | undefined, label: string) => (value === undefined ? undefined : `${label} ${value}`);
   const list = (names: string[] | undefined) => names && placeLabel(names[0], locale) + (names.length > 1 ? ` +${names.length - 1}` : "");
   // Prices are stored in dollars; shown in the currency the visitor chose.
-  const money = (value: number | undefined, label: string) => (query.cur === "gel" ? number(value === undefined ? value : priceInLari(value), label.replace("$", "₾")) : number(value, label));
+  const money = (value: number | undefined, label: string) => (query.cur === "gel" ? number(value === undefined ? value : priceInLari(value, FALLBACK_GEL_PER_USD), label.replace("$", "₾")) : number(value, label));
   const chips: [string, string | undefined][] = [
     ["deal", filters.deal && t.deal[filters.deal]],
     ["type", filters.type && t.propertyType[filters.type]],
