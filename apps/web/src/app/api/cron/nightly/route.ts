@@ -1,7 +1,7 @@
 import { timingSafeEqual } from "node:crypto";
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { refreshMarketLevels, saveGelPerUsd } from "@mteam/db";
+import { archiveExpiredListings, refreshMarketLevels, runNightlyNotifications, saveGelPerUsd } from "@mteam/db";
 
 const NBG_URL = "https://nbg.gov.ge/gw/api/ct/monetarypolicy/currencies/en/json/?currencies=USD";
 
@@ -53,6 +53,9 @@ export async function GET(request: Request) {
   const rate = await fetchGelPerUsd();
   const repriced = rate ? await saveGelPerUsd(rate.gelPerUsd, rate.validFrom) : 0;
   const marketLevels = await refreshMarketLevels();
-  console.info(`nightly: rate ${rate?.gelPerUsd ?? "kept"}, repriced ${repriced}, market levels ${marketLevels}`);
-  return NextResponse.json({ gelPerUsd: rate?.gelPerUsd ?? null, repriced, marketLevels }, { status: rate ? 200 : 502 });
+  // Expiry first, so no one is told about a listing that has just been archived.
+  const expired = await archiveExpiredListings();
+  const notified = await runNightlyNotifications();
+  console.info(`nightly: rate ${rate?.gelPerUsd ?? "kept"}, repriced ${repriced}, market levels ${marketLevels}, expired ${expired}, notified ${notified}`);
+  return NextResponse.json({ gelPerUsd: rate?.gelPerUsd ?? null, repriced, marketLevels, expired, notified }, { status: rate ? 200 : 502 });
 }

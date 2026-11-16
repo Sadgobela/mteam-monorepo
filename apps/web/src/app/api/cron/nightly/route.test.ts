@@ -1,7 +1,7 @@
 // @vitest-environment node
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-const db = vi.hoisted(() => ({ saveGelPerUsd: vi.fn(async () => 3), refreshMarketLevels: vi.fn(async () => 40) }));
+const db = vi.hoisted(() => ({ saveGelPerUsd: vi.fn(async () => 3), refreshMarketLevels: vi.fn(async () => 40), archiveExpiredListings: vi.fn(async () => 2), runNightlyNotifications: vi.fn(async () => 5) }));
 vi.mock("@mteam/db", () => db);
 
 import { GET } from "./route";
@@ -30,10 +30,11 @@ describe("nightly job", () => {
   it("stores the National Bank rate, then refreshes market levels", async () => {
     const response = await call(`Bearer ${SECRET}`);
     expect(response.status).toBe(200);
-    expect(await response.json()).toEqual({ gelPerUsd: 2.5931, repriced: 3, marketLevels: 40 });
+    expect(await response.json()).toEqual({ gelPerUsd: 2.5931, repriced: 3, marketLevels: 40, expired: 2, notified: 5 });
     expect(db.saveGelPerUsd).toHaveBeenCalledWith(2.5931, new Date("2026-11-17T00:00:00.000Z"));
     expect(db.saveGelPerUsd.mock.invocationCallOrder[0]).toBeLessThan(db.refreshMarketLevels.mock.invocationCallOrder[0]);
-    expect(console.info).toHaveBeenCalledWith("nightly: rate 2.5931, repriced 3, market levels 40");
+    expect(db.archiveExpiredListings.mock.invocationCallOrder[0]).toBeLessThan(db.runNightlyNotifications.mock.invocationCallOrder[0]);
+    expect(console.info).toHaveBeenCalledWith("nightly: rate 2.5931, repriced 3, market levels 40, expired 2, notified 5");
   });
 
   it("divides by the quantity the rate is quoted for", async () => {
@@ -65,9 +66,9 @@ describe("nightly job", () => {
     feed.mockResolvedValue(reply());
     const response = await call(`Bearer ${SECRET}`);
     expect(response.status).toBe(502);
-    expect(await response.json()).toEqual({ gelPerUsd: null, repriced: 0, marketLevels: 40 });
+    expect(await response.json()).toEqual({ gelPerUsd: null, repriced: 0, marketLevels: 40, expired: 2, notified: 5 });
     expect(db.saveGelPerUsd).not.toHaveBeenCalled();
-    expect(console.info).toHaveBeenCalledWith("nightly: rate kept, repriced 0, market levels 40");
+    expect(console.info).toHaveBeenCalledWith("nightly: rate kept, repriced 0, market levels 40, expired 2, notified 5");
   });
 
   it("keeps the old rate when the bank cannot be reached", async () => {

@@ -15,6 +15,8 @@ export function Header({ locale, t, signedIn, onLoginPage = false }: { locale: L
     { href: `/${locale}/saved`, text: t.nav.saved },
     { href: `/${locale}/messages`, text: t.nav.messages },
     { href: `/${locale}/my-listings`, text: t.nav.my },
+    { href: `/${locale}/account/profile`, text: t.account.profile },
+    { href: `/${locale}/account/settings`, text: t.account.settings },
   ];
   const session = signedIn ? (
     <form action={logoutAction}>

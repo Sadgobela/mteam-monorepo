@@ -38,8 +38,8 @@ vi.mock("next/navigation", () => ({
 import { Header } from "@/components/Header";
 import { archiveListingAction, setFavoriteAction, setHiddenAction } from "@/lib/account-actions";
 import HomePage from "./[locale]/page";
-import FavoritesPage from "./[locale]/favorites/page";
-import MyListingsPage from "./[locale]/my-listings/page";
+import FavoritesPage from "./[locale]/(account)/favorites/page";
+import MyListingsPage from "./[locale]/(account)/my-listings/page";
 
 const t = getDictionary("en");
 const params = Promise.resolve({ locale: "en" });

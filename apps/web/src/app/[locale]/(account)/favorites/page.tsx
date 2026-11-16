@@ -2,7 +2,6 @@ import { redirect } from "next/navigation";
 import { getGelPerUsd, listFavorites } from "@mteam/db";
 import { getDictionary } from "@mteam/shared";
 import { EmptyState } from "@/components/EmptyState";
-import { Header } from "@/components/Header";
 import { ListingGrid } from "@/components/ListingGrid";
 import { resolveLocale } from "@/lib/locale";
 import { currentUser } from "@/lib/session";
@@ -19,8 +18,7 @@ export default async function FavoritesPage({ params }: { params: Promise<{ loca
   const gelPerUsd = await getGelPerUsd();
   return (
     <>
-      <Header locale={locale} t={t} signedIn />
-      <main className="page">
+      <main className="account-main">
         <h1 className="heading">{t.favorites.heading}</h1>
         {listings.length === 0 ? (
           <EmptyState text={t.favorites.empty} />

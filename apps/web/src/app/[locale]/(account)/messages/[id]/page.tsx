@@ -3,7 +3,6 @@ import { notFound, redirect } from "next/navigation";
 import { getConversation } from "@mteam/db";
 import { getDictionary } from "@mteam/shared";
 import { ChatForm, LiveRefresh } from "@/components/ChatForm";
-import { Header } from "@/components/Header";
 import { sendChatAction } from "@/lib/chat-actions";
 import { resolveLocale } from "@/lib/locale";
 import { currentUser } from "@/lib/session";
@@ -25,8 +24,7 @@ export default async function ConversationPage({ params, searchParams }: { param
   const time = new Intl.DateTimeFormat(locale, { dateStyle: "short", timeStyle: "short", timeZone: "Asia/Tbilisi" });
   return (
     <>
-      <Header locale={locale} t={t} signedIn />
-      <main className="page chat">
+      <main className="account-main chat">
         <div>
           <h1 className="heading">{chat.otherName ?? t.chat.someone}</h1>
           <Link href={`/${locale}/listings/${chat.listingId}`} className="meta">

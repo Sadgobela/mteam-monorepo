@@ -2,7 +2,6 @@ import { redirect } from "next/navigation";
 import { listSavedSearches } from "@mteam/db";
 import { getDictionary } from "@mteam/shared";
 import { EmptyState } from "@/components/EmptyState";
-import { Header } from "@/components/Header";
 import { deleteSavedSearchAction, openSavedSearchAction } from "@/lib/account-actions";
 import { resolveLocale } from "@/lib/locale";
 import { searchName } from "@/lib/seo";
@@ -25,8 +24,7 @@ export default async function SavedSearchesPage({ params }: { params: Promise<{ 
   );
   return (
     <>
-      <Header locale={locale} t={t} signedIn />
-      <main className="page">
+      <main className="account-main">
         <h1 className="heading">{t.saved.heading}</h1>
         {searches.length === 0 && <EmptyState text={t.saved.empty} />}
         <ul className="saved-list">
