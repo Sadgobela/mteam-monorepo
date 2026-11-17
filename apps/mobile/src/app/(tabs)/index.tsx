@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { FlatList, StyleSheet, Text, View } from "react-native";
 import { useLocalSearchParams } from "expo-router";
 import { FALLBACK_GEL_PER_USD, placeLabel, popularCities, propertyTypes, sortOrders, type PublicListing, type SortOrder } from "@mteam/shared";
@@ -46,23 +46,28 @@ export default function SearchScreen() {
     setState("loading");
   }
 
+  // Only the latest request may show its answer: an older one (the default sales, overtaken by a saved search) can
+  // answer last.
+  const latest = useRef(0);
+
   /** Fetches a page; the caller shows that it is loading. */
-  const load = useCallback(
-    (query: Query, page = 1) =>
-      api
-        .search({ ...query, page: String(page) })
-        .then(
-          (next) => {
-            setResults((current) => (page === 1 ? next : { ...next, listings: [...current.listings, ...next.listings] }));
-            setState("ready");
-          },
-          () => {
-            if (page === 1) setState("failed");
-          },
-        )
-        .finally(() => setMore(false)),
-    [],
-  );
+  const load = useCallback((query: Query, page = 1) => {
+    const request = ++latest.current;
+    const current = () => request === latest.current;
+    return api
+      .search({ ...query, page: String(page) })
+      .then(
+        (next) => {
+          if (!current()) return;
+          setResults((shown) => (page === 1 ? next : { ...next, listings: [...shown.listings, ...next.listings] }));
+          setState("ready");
+        },
+        () => {
+          if (current() && page === 1) setState("failed");
+        },
+      )
+      .finally(() => current() && setMore(false));
+  }, []);
 
   useEffect(() => {
     void load(startFrom(asked));

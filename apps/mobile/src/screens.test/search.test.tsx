@@ -1,4 +1,4 @@
-import { fireEvent, screen, waitFor } from "@testing-library/react-native";
+import { act, fireEvent, screen, waitFor } from "@testing-library/react-native";
 import { answer, listing, renderApp, serve } from "@/test/render";
 import SearchScreen from "@/app/(tabs)/index";
 
@@ -50,6 +50,16 @@ describe("SearchScreen", () => {
     // No deal in the address: the switch shows sales.
     expect(screen.getByRole("button", { name: "იყიდება" })).toBeSelected();
     useLocalSearchParams.mockReturnValue({});
+  });
+
+  it("keeps the latest search when an older one answers last", async () => {
+    let late!: (value: Response) => void;
+    serve({ "/api/v1/listings": [() => new Promise<Response>((resolve) => (late = resolve)), page([listing], 1)] });
+    await renderApp(<SearchScreen />);
+    await fireEvent.press(screen.getByRole("button", { name: "ძებნა" }));
+    expect(await screen.findByText("მოიძებნა 1 განცხადება")).toBeOnTheScreen();
+    await act(async () => late(page([listing, { ...listing, id: 8 }], 2)));
+    expect(screen.getByText("მოიძებნა 1 განცხადება")).toBeOnTheScreen();
   });
 
   it("adds the next page under the first", async () => {
