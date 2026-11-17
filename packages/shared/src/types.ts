@@ -56,3 +56,6 @@ export interface Listing {
   tone: "violet" | "sand" | "steel" | "rose";
   updatedAt: string;
 }
+
+/** A listing as the app API sends it: without phone numbers, which are given out one at a time and counted. */
+export type PublicListing = Omit<Listing, "contactPhone" | "agent"> & { agent?: Omit<Agent, "phone"> };

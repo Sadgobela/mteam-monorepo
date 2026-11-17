@@ -7,6 +7,8 @@ const webpush = vi.hoisted(() => ({ sendNotification: vi.fn() }));
 
 vi.mock("@mteam/db", () => db);
 vi.mock("web-push", () => ({ default: webpush }));
+const appPush = vi.hoisted(() => ({ deliverToApps: vi.fn() }));
+vi.mock("./app-push", () => appPush);
 
 import { register } from "@/instrumentation";
 import { pushMessage, registerPush, sendPush, vapidPublicKey } from "./push";
@@ -69,9 +71,20 @@ describe("pushMessage", () => {
 });
 
 describe("sendPush", () => {
-  it("does nothing without VAPID keys", async () => {
+  it("sends to browsers only with VAPID keys, and to the app always", async () => {
     await sendPush([message]);
     expect(db.listPushTargets).not.toHaveBeenCalled();
+    expect(appPush.deliverToApps).toHaveBeenCalledWith([message]);
+  });
+
+  it("keeps sending to browsers when the app's push fails", async () => {
+    setUp();
+    db.listPushTargets.mockResolvedValue([target("https://a.test")]);
+    webpush.sendNotification.mockResolvedValue({ statusCode: 201 });
+    appPush.deliverToApps.mockRejectedValue(new Error("expo down"));
+    await sendPush([message]);
+    expect(db.markPushSubscriptionsUsed).toHaveBeenCalledWith(["https://a.test"]);
+    expect(console.error).toHaveBeenCalledWith(new Error("expo down"));
   });
 
   it("sends to each of the user's browsers, forgets the gone ones and logs other failures", async () => {

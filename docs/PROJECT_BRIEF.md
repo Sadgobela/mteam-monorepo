@@ -21,6 +21,7 @@ Today mTeam posts its listings on existing portals (ss.ge, myhome.ge style). We 
 
 ## Decisions
 - Web first, mobile later. The web version must also work well on phones.
+- Mobile started on 2026-11-17 at Irakli's request, while the rest of the web launch waits on outside parties: Expo (SDK 58) in `apps/mobile`, against the site's `/api/v1` (`docs/MOBILE_API.md`). Its first version covers search, listing pages, SMS sign-in, favourites, my listings, posting with photos and push.
 - One monorepo (`mteam-monorepo`): pnpm + Turborepo. Next.js handles the site, admin and API. Split out `apps/api` only if load requires it.
 - Stack: Next.js (TypeScript), PostgreSQL + Prisma, Cloudflare R2 for photos.
 - Design: variant A from the mockup (light, search first, brand purple `#986DC6` from the logo as the accent), with both light and dark themes (follows the system setting, plus a manual toggle). Mockup: https://claude.ai/artifact/427T2eaNdjMvWsQz5jUhUh

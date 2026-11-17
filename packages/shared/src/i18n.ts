@@ -7,6 +7,7 @@ import { brokersAdminCopy } from "./copy/brokersAdmin";
 import { authCopy } from "./copy/auth";
 import { pushCopy } from "./copy/push";
 import { feedbackCopy } from "./copy/feedback";
+import { mobileCopy } from "./copy/mobile";
 import { uiCopy } from "./copy/ui";
 
 export const locales = ["ka", "en", "ru"] as const;
@@ -24,6 +25,7 @@ const ka = {
   account: accountCopy.ka, profile: profileCopy.ka, settings: settingsCopy.ka, myListings: myListingsCopy.ka, notifications: notificationsCopy.ka, brokersAdmin: brokersAdminCopy.ka, auth: authCopy.ka,
   push: pushCopy.ka,
   feedback: feedbackCopy.ka,
+  mobile: mobileCopy.ka,
   ui: uiCopy.ka,
   assistant: { heading: "მითხარი, რას ეძებ, და მოგიძებნი", greeting: "გამარჯობა! რამდენიმე კითხვას დაგისვამ და შესაფერის განცხადებებს მოგიძებნი.", questions: { deal: "რა გაინტერესებს?", type: "რა ტიპის ქონებას ეძებ?", city: "რომელ ქალაქში?", area: "რომელ უბანში?", budget: "რა ბიუჯეტით?", rooms: "რამდენი ოთახი?", building: "ახალი აშენებული თუ ძველი?", market: "გაჩვენო მხოლოდ ბაზარზე დაბალი ფასის განცხადებები?" }, belowMarket: "კი, მხოლოდ ბაზარზე დაბალი", broker: "ვერ იპოვე სასურველი? MTeam-ის ბროკერი მოგიძებნის", brokerSubmit: "ბროკერმა დამირეკოს", greetingAi: "გამარჯობა! დამიწერე, რა ქონებას ეძებ, სად და რა ბიუჯეტით, ან აირჩიე პასუხები ღილაკებით. მაგალითად: „ვაკეში 2 ოთახიანი ბინა 120 ათასამდე“.", message: "დაწერე რას ეძებ", placeholder: "დაწერე რას ეძებ…", send: "გაგზავნა", thinking: "ვკითხულობ…", understood: "გასაგებია, ასე ვეძებ:", unclear: "ვერ გავიგე. დაწერე სხვანაირად ან აირჩიე ღილაკებით.", busy: "ახლა ძალიან ბევრი შეკითხვაა. სცადე ცოტა ხანში ან აირჩიე ღილაკებით.", failed: "ვერ დავამუშავე. სცადე თავიდან ან აირჩიე ღილაკებით.", deals: { sale: "ყიდვა", rent: "ქირით აღება", daily: "დღიურად" }, any: "სულერთია", upTo: "{price}-მდე", from: "{price}-დან", show: "ნახე {count} განცხადება", showResults: "შედეგების ნახვა", change: "პასუხის შეცვლა: {answer}", restart: "თავიდან", done: "მზადაა! ნახე შედეგები ან შეცვალე რომელიმე პასუხი.", filters: "ან მოძებნე ჩვეულებრივი ფილტრებით" },
   meta: { title: "MTeam: უძრავი ქონება", description: "MTeam-ის ბროკერების მიერ გადამოწმებული განცხადებები: საქართველოს უძრავი ქონება." },
@@ -124,6 +126,7 @@ const en: Dict = {
   account: accountCopy.en, profile: profileCopy.en, settings: settingsCopy.en, myListings: myListingsCopy.en, notifications: notificationsCopy.en, brokersAdmin: brokersAdminCopy.en, auth: authCopy.en,
   push: pushCopy.en,
   feedback: feedbackCopy.en,
+  mobile: mobileCopy.en,
   ui: uiCopy.en,
   assistant: { heading: "Tell me what you are looking for", greeting: "Hi! I will ask a few questions and find listings that fit.", questions: { deal: "What are you looking for?", type: "What type of property?", city: "Which city?", area: "Which district?", budget: "What is your budget?", rooms: "How many rooms?", building: "New or old building?", market: "Show only listings priced below the market?" }, belowMarket: "Yes, below market only", broker: "Can't find it? An MTeam broker will search for you", brokerSubmit: "Have a broker call me", greetingAi: "Hi! Tell me what property you want, where and on what budget, or pick answers with the buttons. For example: \"a 2-room apartment in Vake up to 120k\".", message: "Describe what you are looking for", placeholder: "Describe what you are looking for…", send: "Send", thinking: "Reading…", understood: "Got it, searching for:", unclear: "I did not understand. Try other words or pick with the buttons.", busy: "Too many questions right now. Try again shortly or pick with the buttons.", failed: "Something went wrong. Try again or pick with the buttons.", deals: { sale: "Buy", rent: "Rent", daily: "Daily rental" }, any: "Any", upTo: "Up to {price}", from: "From {price}", show: "Show {count} listings", showResults: "Show results", change: "Change answer: {answer}", restart: "Start over", done: "Done! See the results or change any answer.", filters: "Or search with the usual filters" },
   meta: { title: "MTeam: real estate", description: "Listings checked by MTeam brokers: real estate in Georgia." },
@@ -222,6 +225,7 @@ const ru: Dict = {
   account: accountCopy.ru, profile: profileCopy.ru, settings: settingsCopy.ru, myListings: myListingsCopy.ru, notifications: notificationsCopy.ru, brokersAdmin: brokersAdminCopy.ru, auth: authCopy.ru,
   push: pushCopy.ru,
   feedback: feedbackCopy.ru,
+  mobile: mobileCopy.ru,
   ui: uiCopy.ru,
   assistant: { heading: "Расскажите, что вы ищете", greeting: "Здравствуйте! Задам несколько вопросов и подберу подходящие объявления.", questions: { deal: "Что вас интересует?", type: "Какой тип недвижимости?", city: "В каком городе?", area: "В каком районе?", budget: "Какой бюджет?", rooms: "Сколько комнат?", building: "Новостройка или старый дом?", market: "Показать только объявления с ценой ниже рынка?" }, belowMarket: "Да, только ниже рынка", broker: "Не нашли? Брокер MTeam подберёт для вас", brokerSubmit: "Пусть брокер позвонит", greetingAi: "Здравствуйте! Напишите, какую недвижимость ищете, где и с каким бюджетом, или выберите ответы кнопками. Например: «2-комнатная квартира в Ваке до 120 тысяч».", message: "Опишите, что вы ищете", placeholder: "Опишите, что вы ищете…", send: "Отправить", thinking: "Читаю…", understood: "Понятно, ищу:", unclear: "Не понял. Напишите иначе или выберите кнопками.", busy: "Сейчас слишком много запросов. Попробуйте чуть позже или выберите кнопками.", failed: "Не удалось обработать. Попробуйте ещё раз или выберите кнопками.", deals: { sale: "Купить", rent: "Снять", daily: "Посуточно" }, any: "Неважно", upTo: "До {price}", from: "От {price}", show: "Показать объявления: {count}", showResults: "Показать результаты", change: "Изменить ответ: {answer}", restart: "Сначала", done: "Готово! Смотрите результаты или измените любой ответ.", filters: "Или ищите по обычным фильтрам" },
   meta: { title: "MTeam: недвижимость", description: "Объявления, проверенные брокерами MTeam: недвижимость Грузии." },

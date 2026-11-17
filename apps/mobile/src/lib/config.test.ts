@@ -1,0 +1,32 @@
+import Constants from "expo-constants";
+import { apiUrl, easProjectId } from "./config";
+
+const config = Constants as unknown as { expoConfig: { extra?: Record<string, unknown> } | null; easConfig: { projectId?: string } | null };
+const saved = config.expoConfig;
+
+afterEach(() => {
+  config.expoConfig = saved;
+  config.easConfig = null;
+  delete process.env.EXPO_PUBLIC_API_URL;
+});
+
+describe("config", () => {
+  it("uses the local server when set, else app.json, else the live site, without a trailing slash", () => {
+    expect(apiUrl()).toBe("https://api.test");
+    process.env.EXPO_PUBLIC_API_URL = "http://192.168.1.5:3000";
+    expect(apiUrl()).toBe("http://192.168.1.5:3000");
+    delete process.env.EXPO_PUBLIC_API_URL;
+    config.expoConfig = null;
+    expect(apiUrl()).toBe("https://mteam.vercel.app");
+  });
+
+  it("reads the EAS project id from app.json or the build", () => {
+    expect(easProjectId()).toBe("project");
+    config.expoConfig = { extra: {} };
+    config.easConfig = { projectId: "built" };
+    expect(easProjectId()).toBe("built");
+    config.easConfig = null;
+    config.expoConfig = null;
+    expect(easProjectId()).toBeUndefined();
+  });
+});

@@ -6,9 +6,17 @@ import { loginPath, safeNext } from "./login-path";
 const COOKIE = "mteam_session";
 const MAX_AGE_SECONDS = 30 * 24 * 60 * 60;
 
-/** This browser's session token, to tell its own session apart from the user's others. Not proof of anything by itself. */
+const BEARER = /^Bearer ([\w-]{20,100})$/;
+
+/**
+ * This device's session token, to tell its own session apart from the user's others. Not proof of anything by itself.
+ * A browser sends it in the cookie; the mobile app, which keeps it in its secure store, sends it as a bearer token.
+ * A bearer token is never sent by a browser on its own, so it needs no cross-site check.
+ */
 export async function sessionToken(): Promise<string | undefined> {
-  return (await cookies()).get(COOKIE)?.value;
+  const cookie = (await cookies()).get(COOKIE)?.value;
+  if (cookie) return cookie;
+  return BEARER.exec((await headers()).get("authorization") ?? "")?.[1];
 }
 
 /** The signed-in user. Use this wherever access depends on the answer. */
