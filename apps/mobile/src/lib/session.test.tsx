@@ -57,6 +57,22 @@ describe("SessionProvider", () => {
     expect(store.deleteItemAsync).not.toHaveBeenCalled();
   });
 
+  it("gets ready after five seconds when the server does not answer, and fills the profile in when it does", async () => {
+    jest.useFakeTimers();
+    store.getItemAsync.mockResolvedValueOnce("tok");
+    let reply!: (value: Response) => void;
+    fetchMock.mockReturnValueOnce(new Promise((resolve) => (reply = resolve)));
+    const hook = await renderHook(() => useSession(), { wrapper });
+    await act(() => jest.advanceTimersByTimeAsync(4900));
+    expect(hook.result.current.ready).toBe(false);
+    await act(() => jest.advanceTimersByTimeAsync(100));
+    expect(hook.result.current.ready).toBe(true);
+    expect(hook.result.current.user).toBeNull();
+    await act(async () => reply(answer(me)));
+    expect(hook.result.current.user).toEqual(me);
+    jest.useRealTimers();
+  });
+
   it("stays signed in when a refresh fails for any reason but a dead session", async () => {
     store.getItemAsync.mockResolvedValueOnce("tok");
     fetchMock.mockResolvedValueOnce(answer(me));

@@ -3,6 +3,8 @@ import { api, ApiError, setApiToken, type Me } from "./api";
 import { readStored, writeStored } from "./storage";
 
 const KEY = "session";
+/** The longest the start-up screen waits for the profile. */
+const BOOT_WAIT_MS = 5000;
 
 interface SessionValue {
   /** False until the stored session has been checked, so screens do not flash the signed-out state. */
@@ -48,7 +50,11 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     readStored(KEY).then(async (token) => {
       if (token) {
         setApiToken(token);
-        await load();
+        // The start-up screen waits for the profile, but not on a stalled server: after a few seconds the app opens and
+        // the profile fills in when it comes.
+        let timer: ReturnType<typeof setTimeout> | undefined;
+        await Promise.race([load(), new Promise((done) => (timer = setTimeout(done, BOOT_WAIT_MS)))]);
+        clearTimeout(timer);
       }
       setReady(true);
     });
