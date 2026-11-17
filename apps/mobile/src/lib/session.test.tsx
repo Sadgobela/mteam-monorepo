@@ -57,6 +57,18 @@ describe("SessionProvider", () => {
     expect(store.deleteItemAsync).not.toHaveBeenCalled();
   });
 
+  it("stays signed in when a refresh fails for any reason but a dead session", async () => {
+    store.getItemAsync.mockResolvedValueOnce("tok");
+    fetchMock.mockResolvedValueOnce(answer(me));
+    const session = await start();
+    fetchMock.mockResolvedValueOnce(answer({ error: "failed" }, 500));
+    await act(() => session.current.refresh());
+    fetchMock.mockRejectedValueOnce(new TypeError("offline"));
+    await act(() => session.current.refresh());
+    expect(session.current.user).toEqual(me);
+    expect(store.deleteItemAsync).not.toHaveBeenCalled();
+  });
+
   it("signs in, sets hearts at once and puts them back when saving fails, and signs out", async () => {
     const session = await start();
     fetchMock.mockResolvedValueOnce(answer(me));

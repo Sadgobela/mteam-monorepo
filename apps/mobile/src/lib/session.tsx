@@ -34,12 +34,13 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       setFavoriteIds(new Set(me.favoriteIds));
       setUnread(me.unread);
     } catch (error) {
-      // An expired or revoked session is forgotten; being offline keeps it for next time.
+      // An expired or revoked session is forgotten. Being offline or a failing server keeps it, and keeps the user signed
+      // in on screen: a refresh after a push must not show the sign-in prompts because of one bad answer.
       if (error instanceof ApiError && error.status === 401) {
         setApiToken(null);
         await writeStored(KEY, null);
+        setUser(null);
       }
-      setUser(null);
     }
   }, []);
 
