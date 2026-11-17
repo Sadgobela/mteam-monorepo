@@ -1,5 +1,6 @@
+import { Alert } from "react-native";
 import { act, fireEvent, screen, waitFor } from "@testing-library/react-native";
-import { answer, listing, renderApp, serve } from "@/test/render";
+import { answer, listing, renderApp, serve, signedIn } from "@/test/render";
 import SearchScreen from "@/app/(tabs)/index";
 
 const page = (listings: unknown[], total: number, pageNumber = 1) => answer({ listings, total, page: pageNumber, pageSize: 24, gelPerUsd: 2.7 });
@@ -92,5 +93,52 @@ describe("SearchScreen", () => {
     await renderApp(<SearchScreen />);
     await fireEvent.press(await screen.findByRole("button", { name: "რჩეულებში დამატება" }));
     await waitFor(() => expect(router.push).toHaveBeenCalledWith("/login"));
+  });
+
+  it("saves the results on the screen without their order, and says so until the search changes", async () => {
+    const saved = jest.fn((_body: unknown) => answer({ query: "deal=sale" }));
+    serve({
+      "/api/v1/me": answer(signedIn({ favoriteIds: [7] })),
+      "/api/v1/listings": page([listing], 1),
+      "POST /api/v1/saved-searches": (init) => saved(JSON.parse(String(init.body))),
+    });
+    await renderApp(<SearchScreen />);
+    // Signed in once the heart shows the listing as kept.
+    await screen.findByRole("button", { name: "რჩეულებიდან ამოღება" });
+    await fireEvent.press(screen.getByText("ფასი ↑"));
+    await fireEvent.press(await screen.findByRole("button", { name: "ძიების შენახვა" }));
+    expect(saved).toHaveBeenCalledWith({ query: "deal=sale" });
+    expect(await screen.findByRole("button", { name: "ძიება შენახულია" })).toBeDisabled();
+
+    await fireEvent.press(screen.getByText("ქირავდება"));
+    await fireEvent.press(screen.getByRole("button", { name: "ძებნა" }));
+    expect(await screen.findByRole("button", { name: "ძიების შენახვა" })).toBeEnabled();
+  });
+
+  it("sends a signed-out save to sign-in, a full list to the saved searches, and says when saving fails", async () => {
+    const { router } = jest.requireMock("expo-router");
+    const alert = jest.spyOn(Alert, "alert").mockImplementation(() => undefined);
+    serve({ "/api/v1/listings": page([listing], 1) });
+    const view = await renderApp(<SearchScreen />);
+    await fireEvent.press(await screen.findByRole("button", { name: "ძიების შენახვა" }));
+    expect(router.push).toHaveBeenCalledWith("/login");
+    await view.unmount();
+
+    let answerSave: (response: Response) => void = () => undefined;
+    serve({
+      "/api/v1/me": answer(signedIn({ favoriteIds: [7] })),
+      "/api/v1/listings": page([listing], 1),
+      "POST /api/v1/saved-searches": [() => new Promise<Response>((resolve) => (answerSave = resolve)), new TypeError("offline")],
+    });
+    await renderApp(<SearchScreen />);
+    await screen.findByRole("button", { name: "რჩეულებიდან ამოღება" });
+    await fireEvent.press(screen.getByRole("button", { name: "ძიების შენახვა" }));
+    // Busy while the server answers.
+    expect(screen.getByRole("button", { name: "ძიების შენახვა" })).toBeDisabled();
+    answerSave(answer({ error: "limit" }, 409));
+    await waitFor(() => expect(router.push).toHaveBeenCalledWith("/saved-searches"));
+    await waitFor(() => expect(screen.getByRole("button", { name: "ძიების შენახვა" })).toBeEnabled());
+    await fireEvent.press(screen.getByRole("button", { name: "ძიების შენახვა" }));
+    await waitFor(() => expect(alert).toHaveBeenCalledWith("ვერ მოხერხდა. სცადე თავიდან."));
   });
 });

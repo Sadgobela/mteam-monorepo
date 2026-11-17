@@ -40,7 +40,7 @@ jest.mock("react-native-safe-area-context", () => require("react-native-safe-are
 jest.mock("expo-status-bar", () => ({ StatusBar: () => null }));
 jest.mock("expo-router", () => {
   const React = require("react");
-  const router = { push: jest.fn(), replace: jest.fn(), back: jest.fn(), navigate: jest.fn(), dismissAll: jest.fn(), canDismiss: jest.fn(() => false) };
+  const router = { push: jest.fn(), replace: jest.fn(), back: jest.fn(), navigate: jest.fn(), dismissAll: jest.fn(), canDismiss: jest.fn(() => false), canGoBack: jest.fn(() => true) };
   const Screen = () => null;
   const navigator = (name) => Object.assign(({ children }) => React.createElement(React.Fragment, null, children), { Screen, displayName: name });
   return {

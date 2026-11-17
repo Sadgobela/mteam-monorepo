@@ -68,6 +68,14 @@ describe("api", () => {
     ["notifications", () => api.notifications("en"), "/api/v1/notifications?locale=en", "GET"],
     ["openNotification", () => api.openNotification("n 1", "en"), "/api/v1/notifications/n%201", "POST"],
     ["readAllNotifications", () => api.readAllNotifications(), "/api/v1/notifications", "POST"],
+    ["conversations", () => api.conversations(), "/api/v1/conversations", "GET"],
+    ["startChat", () => api.startChat(7, "Hi"), "/api/v1/conversations", "POST"],
+    ["chat", () => api.chat("c 1"), "/api/v1/conversations/c%201", "GET"],
+    ["sendMessage", () => api.sendMessage("c1", "Hi"), "/api/v1/conversations/c1", "POST"],
+    ["savedSearches", () => api.savedSearches("en"), "/api/v1/saved-searches?locale=en", "GET"],
+    ["saveSearch", () => api.saveSearch("deal=rent"), "/api/v1/saved-searches", "POST"],
+    ["deleteSavedSearch", () => api.deleteSavedSearch("s1"), "/api/v1/saved-searches/s1", "DELETE"],
+    ["openSavedSearch", () => api.openSavedSearch("s1"), "/api/v1/saved-searches/s1/open", "POST"],
   ])("%s calls its endpoint", async (_name, run, path, method) => {
     await run();
     expect(lastCall()).toMatchObject({ url: `https://api.test${path}`, method });

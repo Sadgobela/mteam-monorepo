@@ -1,4 +1,5 @@
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, TextInput, View, type PressableStateCallbackType, type StyleProp, type TextInputProps, type ViewStyle } from "react-native";
+import { Children, Fragment, type ReactNode } from "react";
 import { Ionicons } from "@expo/vector-icons";
 import { useLocale } from "@/lib/i18n";
 import { radius, space, useColors } from "@/lib/theme";
@@ -117,6 +118,35 @@ export function Segmented<T extends string>({ options, value, onChange, label }:
   );
 }
 
+/** One line of a menu (the account's): an icon, the words and an arrow, opening another screen. */
+export function MenuRow({ icon, label, onPress }: { icon: keyof typeof Ionicons.glyphMap; label: string; onPress: () => void }) {
+  const c = useColors();
+  return (
+    <Pressable accessibilityRole="button" accessibilityLabel={label} onPress={onPress} style={dimWhenPressed(styles.menuRow)}>
+      <View style={[styles.menuIcon, { backgroundColor: c.brandSoft }]}>
+        <Ionicons name={icon} size={18} color={c.brandDeep} />
+      </View>
+      <Text style={[styles.menuText, { color: c.fg }]}>{label}</Text>
+      <Ionicons name="chevron-forward" size={18} color={c.muted} />
+    </Pressable>
+  );
+}
+
+/** Rows of a menu in one card, with lines between them. */
+export function Menu({ children }: { children: ReactNode }) {
+  const c = useColors();
+  return (
+    <View style={[styles.menu, { backgroundColor: c.surface, borderColor: c.line }]}>
+      {Children.toArray(children).map((row, index) => (
+        <Fragment key={index}>
+          {index > 0 && <View style={[styles.menuLine, { backgroundColor: c.line }]} />}
+          {row}
+        </Fragment>
+      ))}
+    </View>
+  );
+}
+
 /** A labelled text field. */
 export function Field({ label, style, ...input }: { label: string } & TextInputProps) {
   const c = useColors();
@@ -171,6 +201,11 @@ const styles = StyleSheet.create({
   segment: { flex: 1, minHeight: 40, borderRadius: radius.sm, alignItems: "center", justifyContent: "center" },
   segmentText: { fontSize: 15, fontWeight: "600" },
   chipLine: { flexDirection: "row", gap: space.sm },
+  menu: { borderWidth: 1, borderRadius: radius.lg, overflow: "hidden" },
+  menuRow: { flexDirection: "row", alignItems: "center", gap: space.md, paddingHorizontal: space.md, minHeight: 56 },
+  menuIcon: { width: 34, height: 34, borderRadius: 17, alignItems: "center", justifyContent: "center" },
+  menuText: { flex: 1, fontSize: 16 },
+  menuLine: { height: StyleSheet.hairlineWidth, marginLeft: 62 },
   field: { gap: space.xs },
   label: { fontSize: 13 },
   input: { borderWidth: 1, borderRadius: radius.md, minHeight: 48, paddingHorizontal: space.md, fontSize: 16 },

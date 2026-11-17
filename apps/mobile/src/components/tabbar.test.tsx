@@ -41,7 +41,7 @@ describe("TabBar", () => {
     expect(await screen.findByRole("tab", { name: "შეტყობინებები, წაუკითხავი: 12" })).toHaveTextContent(/9\+/);
   });
 
-  it("is not on sign-in, and steps aside while the keyboard is open", async () => {
+  it("is not on sign-in or in a chat, and steps aside while the keyboard is open", async () => {
     serve({});
     const listeners: Record<string, () => void> = {};
     const remove = jest.fn();
@@ -53,6 +53,11 @@ describe("TabBar", () => {
     const signIn = await renderApp(<TabBar />);
     expect(screen.queryByLabelText("მთავარი მენიუ")).not.toBeOnTheScreen();
     await signIn.unmount();
+    // A chat has its own box to write in where the menu would be; the list of chats keeps the menu.
+    usePathname.mockReturnValue("/messages/c1");
+    const chat = await renderApp(<TabBar />);
+    expect(screen.queryByLabelText("მთავარი მენიუ")).not.toBeOnTheScreen();
+    await chat.unmount();
     remove.mockClear();
     usePathname.mockReturnValue("/");
     const view = await renderApp(<TabBar />);

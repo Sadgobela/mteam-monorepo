@@ -73,4 +73,51 @@ describe("ListingScreen", () => {
     await fireEvent.press(await screen.findByRole("button", { name: "თავიდან ცდა" }));
     expect(await screen.findByText("$120,000")).toBeOnTheScreen();
   });
+
+  it("writes to the seller: a signed-out user signs in first, and sending opens the chat", async () => {
+    serve({ "/api/v1/listings/7": detail() });
+    const view = await renderApp(<ListingScreen />);
+    await fireEvent.press(await screen.findByRole("button", { name: "მიწერა" }));
+    expect(router.push).toHaveBeenCalledWith("/login");
+    await view.unmount();
+
+    const started = jest.fn((_body: unknown) => answer({ id: "c9" }));
+    serve({
+      "/api/v1/me": answer(signedIn({ id: "u2", favoriteIds: [7] })),
+      "/api/v1/listings/7": detail(),
+      "POST /api/v1/conversations": [answer({ error: "failed" }, 422), (init) => started(JSON.parse(String(init.body)))],
+    });
+    await renderApp(<ListingScreen />);
+    await screen.findByRole("button", { name: "რჩეულებიდან ამოღება" });
+    await fireEvent.press(screen.getByRole("button", { name: "მიწერა" }));
+    expect(screen.getByRole("button", { name: "გაგზავნა" })).toBeDisabled();
+    await fireEvent.changeText(screen.getByLabelText("მისწერე გამყიდველს"), " ჯერ კიდევ იყიდება? ");
+    await fireEvent.press(screen.getByRole("button", { name: "გაგზავნა" }));
+    expect(await screen.findByText("ვერ გაიგზავნა. სცადე ცოტა ხანში.")).toBeOnTheScreen();
+    await fireEvent.press(screen.getByRole("button", { name: "გაგზავნა" }));
+    await waitFor(() => expect(router.push).toHaveBeenCalledWith("/messages/c9"));
+    expect(started).toHaveBeenCalledWith({ listingId: 7, body: "ჯერ კიდევ იყიდება?" });
+    // Sent, the box closes back into the button.
+    expect(screen.getByRole("button", { name: "მიწერა" })).toBeOnTheScreen();
+    expect(screen.queryByText("ვერ გაიგზავნა. სცადე ცოტა ხანში.")).not.toBeOnTheScreen();
+  });
+
+  it("does not offer writing on the user's own listing, nor to a broker on their agency's", async () => {
+    serve({ "/api/v1/me": answer(signedIn({ favoriteIds: [7] })), "/api/v1/listings/7": detail() });
+    const view = await renderApp(<ListingScreen />);
+    await screen.findByRole("button", { name: "რჩეულებიდან ამოღება" });
+    expect(screen.queryByRole("button", { name: "მიწერა" })).not.toBeOnTheScreen();
+    await view.unmount();
+
+    const agent = { id: "a1", name: "Ana", branch: "Vake" };
+    serve({ "/api/v1/me": answer(signedIn({ id: "u2", agentId: "a1", favoriteIds: [7] })), "/api/v1/listings/7": [detail({ agent }), detail({ agent: { ...agent, id: "a2" } })] });
+    const broker = await renderApp(<ListingScreen />);
+    await screen.findByRole("button", { name: "რჩეულებიდან ამოღება" });
+    expect(screen.queryByRole("button", { name: "მიწერა" })).not.toBeOnTheScreen();
+    await broker.unmount();
+    // Another agency's listing is someone else's.
+    await renderApp(<ListingScreen />);
+    await screen.findByRole("button", { name: "რჩეულებიდან ამოღება" });
+    expect(screen.getByRole("button", { name: "მიწერა" })).toBeOnTheScreen();
+  });
 });

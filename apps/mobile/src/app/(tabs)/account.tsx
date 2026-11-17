@@ -4,13 +4,16 @@ import { router } from "expo-router";
 import { languageNames, locales } from "@mteam/shared";
 import { SignInPrompt } from "@/components/SignInPrompt";
 import { useBarSpace } from "@/components/TabBar";
-import { Button, ChipRow, Heading, Note } from "@/components/ui";
+import { Button, ChipRow, Heading, Menu, MenuRow, Note } from "@/components/ui";
 import { fill, useLocale } from "@/lib/i18n";
 import { pushIsOn, turnOffPush, turnOnPush, type PushResult } from "@/lib/push";
 import { useSession } from "@/lib/session";
 import { space, useColors } from "@/lib/theme";
 
-/** The account tab: the language for everyone; for a signed-in user also their listings, push on this phone and signing out. */
+/**
+ * The account tab: the language for everyone; for a signed-in user also a menu of their listings, chats and saved
+ * searches, push on this phone and signing out.
+ */
 export default function AccountScreen() {
   const c = useColors();
   const barSpace = useBarSpace();
@@ -52,7 +55,11 @@ export default function AccountScreen() {
           <Heading>{user.name ? fill(t.mobile.welcome, { name: user.name }) : t.account.heading}</Heading>
           {user.phone && <Note>{user.phone}</Note>}
           {!user.onboarded && <Button label={t.profile.finish} onPress={() => router.push("/onboarding")} />}
-          <Button quiet label={t.my.heading} onPress={() => router.push("/my-listings")} />
+          <Menu>
+            <MenuRow icon="list-outline" label={t.my.heading} onPress={() => router.push("/my-listings")} />
+            <MenuRow icon="chatbubbles-outline" label={t.mobile.messages} onPress={() => router.push("/messages")} />
+            <MenuRow icon="bookmark-outline" label={t.saved.heading} onPress={() => router.push("/saved-searches")} />
+          </Menu>
           <View style={styles.row}>
             <View style={styles.grow}>
               <Text style={{ color: c.fg }}>{t.mobile.pushOn}</Text>

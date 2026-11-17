@@ -71,6 +71,9 @@ function Screens() {
           <Stack.Screen name="login" options={{ title: t.login.title, presentation: "modal" }} />
           <Stack.Screen name="onboarding" options={{ title: t.profile.finish }} />
           <Stack.Screen name="my-listings" options={{ title: t.my.heading }} />
+          <Stack.Screen name="messages/index" options={{ title: t.mobile.messages }} />
+          <Stack.Screen name="messages/[id]" options={{ headerShown: false }} />
+          <Stack.Screen name="saved-searches" options={{ title: t.saved.heading }} />
         </Stack>
       </BlurTargetView>
       <TabBar blurTarget={behind} />

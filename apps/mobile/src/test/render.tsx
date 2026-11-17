@@ -66,7 +66,7 @@ export function serve(routes: Record<string, Reply | Reply[]>) {
   return fetchMock as jest.Mock;
 }
 
-export const me: Me = { id: "u1", name: "Nino", phone: "+995555123456", role: "USER", onboarded: true, favoriteIds: [], unread: 0 };
+export const me: Me = { id: "u1", name: "Nino", phone: "+995555123456", role: "USER", agentId: null, onboarded: true, favoriteIds: [], unread: 0 };
 
 /** Starts the next render signed in as `user`. */
 export function signedIn(user: Partial<Me> = {}): Me {

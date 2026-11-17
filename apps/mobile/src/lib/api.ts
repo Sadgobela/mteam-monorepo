@@ -30,6 +30,8 @@ export interface Me {
   name: string | null;
   phone: string | null;
   role: string;
+  /** The broker the user is, or null: their agency's listings are their own too. */
+  agentId: string | null;
   onboarded: boolean;
   favoriteIds: number[];
   /** Unread notifications, for the badge in the menu. */
@@ -43,6 +45,41 @@ export interface Notice {
   at: string;
   title: string;
   body: string;
+}
+
+/** A chat in the list: the listing it is about, the other person's name, and the last message. */
+export interface Conversation {
+  id: string;
+  listingId: number;
+  listingTitle: string;
+  otherName: string | null;
+  lastBody: string;
+  lastAt: string;
+  unread: boolean;
+}
+
+export interface ChatMessage {
+  id: string;
+  body: string;
+  mine: boolean;
+  at: string;
+}
+
+export interface Chat {
+  id: string;
+  listingId: number;
+  listingTitle: string;
+  otherName: string | null;
+  messages: ChatMessage[];
+}
+
+/** A saved search: its filters as a query string, a name, how many more filters it has, and listings new since it was opened. */
+export interface SavedSearch {
+  id: string;
+  query: string;
+  name: string;
+  others: number;
+  newCount: number;
 }
 
 export type ListingStatus = "DRAFT" | "PENDING" | "ACTIVE" | "ARCHIVED" | "REJECTED";
@@ -137,6 +174,15 @@ export const api = {
   /** Marks one read and answers with the site path it leads to. */
   openNotification: (id: string, locale: string) => call<{ path: string }>(`/api/v1/notifications/${encodeURIComponent(id)}`, { json: { locale } }),
   readAllNotifications: () => call<{ ok: true }>("/api/v1/notifications", { method: "POST" }),
+  conversations: () => call<{ conversations: Conversation[] }>("/api/v1/conversations"),
+  startChat: (listingId: number, body: string) => call<{ id: string }>("/api/v1/conversations", { json: { listingId, body } }),
+  chat: (id: string) => call<Chat>(`/api/v1/conversations/${encodeURIComponent(id)}`),
+  sendMessage: (id: string, body: string) => call<{ ok: true }>(`/api/v1/conversations/${encodeURIComponent(id)}`, { json: { body } }),
+  savedSearches: (locale: string) => call<{ searches: SavedSearch[] }>(`/api/v1/saved-searches${toSearch({ locale })}`),
+  saveSearch: (query: string) => call<{ query: string }>("/api/v1/saved-searches", { json: { query } }),
+  deleteSavedSearch: (id: string) => call<{ ok: true }>(`/api/v1/saved-searches/${encodeURIComponent(id)}`, { method: "DELETE" }),
+  /** Counts its results as seen, and answers with its filters. */
+  openSavedSearch: (id: string) => call<{ query: string }>(`/api/v1/saved-searches/${encodeURIComponent(id)}/open`, { method: "POST" }),
   savePush: (token: string, platform: "ios" | "android", locale: string) => call<{ ok: true }>("/api/v1/push", { json: { token, platform, locale } }),
   deletePush: (token: string) => call<{ ok: true }>("/api/v1/push", { method: "DELETE", json: { token } }),
 };

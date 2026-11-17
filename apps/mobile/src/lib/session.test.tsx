@@ -9,7 +9,7 @@ const store = SecureStore as jest.Mocked<typeof SecureStore>;
 const fetchMock = jest.fn();
 globalThis.fetch = fetchMock;
 
-const me = { id: "u1", name: "Nino", phone: "+995555123456", role: "USER", onboarded: true, favoriteIds: [3], unread: 2 };
+const me = { id: "u1", name: "Nino", phone: "+995555123456", role: "USER", agentId: null, onboarded: true, favoriteIds: [3], unread: 2 };
 const wrapper = ({ children }: { children: ReactNode }) => <SessionProvider>{children}</SessionProvider>;
 const lastHeaders = () => fetchMock.mock.calls.at(-1)[1].headers;
 
