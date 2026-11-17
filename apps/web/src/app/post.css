@@ -1,7 +1,7 @@
 /* The posting and editing form. */
-.photo-list { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
-.photo-list li { display: grid; gap: 6px; }
-.photo-list .ph { border-radius: 10px; overflow: hidden; }
+.photo-list { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; }
+.photo-list li { display: grid; gap: 8px; }
+.photo-list .ph { border-radius: var(--r-md); overflow: hidden; }
 .photo-cover { position: absolute; left: 6px; top: 6px; padding: 2px 8px; border-radius: 999px; background: var(--action); color: var(--on-action); font-size: 12px; font-weight: 600; }
 .photo-tools { display: flex; gap: 4px; }
 .photo-tools .btn { flex: 1; min-height: 44px; padding: 0; }
@@ -13,9 +13,9 @@
 .post-aside h2 { font-size: 15px; margin: 0 0 8px; }
 .post-preview .card { pointer-events: none; }
 .post-preview .cbody { display: grid; gap: 4px; padding: 12px; }
-.post-quality { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 14px; }
+.post-quality { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-lg); padding: 16px; }
 .post-quality meter { width: 100%; height: 12px; }
-.post-quality ul { margin: 8px 0 0; padding-left: 18px; display: grid; gap: 6px; font-size: 14px; color: var(--muted); }
+.post-quality ul { margin: 8px 0 0; padding-left: 18px; display: grid; gap: 8px; font-size: 14px; color: var(--muted); }
 .market-hint { font-size: 14px; }
 .market-hint b { color: var(--brand-deep); }
 .ai-write { justify-self: start; min-height: 44px; }
@@ -29,7 +29,7 @@
   .post-layout { grid-template-columns: minmax(0, 1fr); }
   .post-aside { position: static; }
   /* Below the form, folded away on request. */
-  .post-aside > summary { display: flex; align-items: center; min-height: 44px; padding: 0 16px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); font-weight: 700; cursor: pointer; }
+  .post-aside > summary { display: flex; align-items: center; min-height: 44px; padding: 0 16px; border: 1px solid var(--line); border-radius: var(--r-md); background: var(--surface); font-weight: 700; cursor: pointer; }
   .post-aside[open] > summary { margin-bottom: 4px; }
 }
 /* Phones: one column, but short numbers in pairs (area and rooms, floor and floors, price and currency). Back and Next stay at
