@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { PhoneOutlined, WhatsAppOutlined } from "@ant-design/icons";
 import { Button } from "antd";
 import { z } from "zod";
 import type { Dict } from "@mteam/shared";
@@ -24,8 +25,11 @@ export function PhoneReveal({ listingId, masked, t }: { listingId: number; maske
   if (phone === null) {
     return (
       <>
-        <Button type="primary" block loading={loading} onClick={reveal}>
-          {masked} · {t.listing.showPhone}
+        {/* The words are the name; on a phone's contact bar only the icon shows. */}
+        <Button type="primary" block loading={loading} icon={<PhoneOutlined aria-hidden="true" />} onClick={reveal}>
+          <span className="bar-label">
+            {masked} · {t.listing.showPhone}
+          </span>
         </Button>
         {failed && <p className="note" role="alert">{t.listing.phoneFailed}</p>}
       </>
@@ -34,10 +38,12 @@ export function PhoneReveal({ listingId, masked, t }: { listingId: number; maske
   return (
     <>
       <a className="btn" href={`tel:${phone}`}>
-        {phone}
+        <PhoneOutlined aria-hidden="true" />
+        <span className="bar-label">{phone}</span>
       </a>
       <a className="btn wa" href={`https://wa.me/${phone.replace(/\D/g, "")}`} target="_blank" rel="noreferrer">
-        {t.listing.whatsapp}
+        <WhatsAppOutlined aria-hidden="true" />
+        <span className="bar-label">{t.listing.whatsapp}</span>
       </a>
     </>
   );

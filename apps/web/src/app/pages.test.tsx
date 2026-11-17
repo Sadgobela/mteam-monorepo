@@ -58,6 +58,8 @@ import ListingPage, { dynamic as listingRendering } from "./[locale]/listings/[i
 
 const p = <T,>(v: T) => Promise.resolve(v);
 const radio = (name: string) => screen.getByRole("radio", { name });
+// The price shows in the contact box and again in the phone's contact bar.
+const box = () => within(document.querySelector(".agent > .row") as HTMLElement);
 
 describe("layout", () => {
   it("builds one page per language", async () => {
@@ -238,6 +240,29 @@ describe("listing page", () => {
     expect(screen.queryByText(/checked on site/)).toBeNull();
   });
 
+  it("puts the key facts under the title, and names the broker without a dangling dot when there is no branch", async () => {
+    const { getListing } = await import("@mteam/db");
+    render(await ListingPage({ params: p({ locale: "en", id: "20418" }), searchParams: p({}) }));
+    const head = document.querySelector(".lhead") as HTMLElement;
+    expect(within(head).getByText("Area")).toBeInTheDocument();
+    expect(within(head).getByText("Floor")).toBeInTheDocument();
+    expect(screen.getByText(/^MTeam broker · /)).toBeInTheDocument();
+    cleanup();
+    vi.mocked(getListing).mockResolvedValueOnce({ ...fixtureListings[0], agent: { ...(fixtureListings[0].agent as NonNullable<(typeof fixtureListings)[0]["agent"]>), branch: "" } });
+    render(await ListingPage({ params: p({ locale: "en", id: "20418" }), searchParams: p({}) }));
+    expect(screen.getByText("MTeam broker")).toHaveTextContent(/^MTeam broker$/);
+  });
+
+  it("gathers share, hide and report behind one button for phones", async () => {
+    render(await ListingPage({ params: p({ locale: "en", id: "20418" }), searchParams: p({}) }));
+    expect(document.querySelector(".more-actions")).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "More actions" }));
+    const menu = within(await waitFor(() => document.querySelector(".more-actions") as HTMLElement));
+    expect(menu.getByRole("button", { name: "Share" })).toBeInTheDocument();
+    expect(menu.getByRole("link", { name: "Hide from results" })).toBeInTheDocument();
+    expect(menu.getByRole("button", { name: "Report" })).toBeInTheDocument();
+  });
+
   it("hides the floor when it is unknown", async () => {
     render(await ListingPage({ params: p({ locale: "en", id: "20440" }), searchParams: p({}) }));
     expect(screen.queryByText("Floor")).toBeNull();
@@ -267,7 +292,9 @@ describe("listing page", () => {
   it("shows the price with a currency switch in the contact box", async () => {
     const view = await ListingPage({ params: p({ locale: "en", id: "20418" }), searchParams: p({}) });
     render(view);
-    expect(screen.getByText("$148,000")).toBeInTheDocument();
+    expect(box().getByText("$148,000")).toBeInTheDocument();
+    expect(document.querySelector(".bar-price")).toHaveTextContent("$148,000");
+    expect(document.querySelector(".bar-price")).toHaveAttribute("aria-hidden", "true");
     expect(screen.getByText("$1,609 / m²")).toBeInTheDocument();
     expect(radio("$")).toBeChecked();
     fireEvent.click(radio("₾"));
@@ -276,7 +303,7 @@ describe("listing page", () => {
 
   it("converts the price when ₾ is chosen", async () => {
     render(await ListingPage({ params: p({ locale: "en", id: "20418" }), searchParams: p({ cur: "gel" }) }));
-    expect(screen.getByText("₾399,600")).toBeInTheDocument();
+    expect(box().getByText("₾399,600")).toBeInTheDocument();
     expect(radio("₾")).toBeChecked();
   });
 
@@ -292,7 +319,7 @@ describe("listing page", () => {
 
   it("shows a rental per month and without a price per m²", async () => {
     render(await ListingPage({ params: p({ locale: "en", id: "20422" }), searchParams: p({}) }));
-    expect(screen.getByText("/ month")).toBeInTheDocument();
+    expect(box().getByText("/ month")).toBeInTheDocument();
     expect(screen.queryByText(/\/ m²/)).toBeNull();
   });
 

@@ -19,6 +19,7 @@ import { currentUser } from "@/lib/session";
 import { setHiddenAction } from "@/lib/account-actions";
 import { ListingGrid } from "@/components/ListingGrid";
 import { ChatForm } from "@/components/ChatForm";
+import { ChatStart, MoreActions } from "@/components/ListingContact";
 import { LoanCalculator } from "@/components/LoanCalculator";
 import { MarketScale } from "@/components/MarketScale";
 import { PhoneReveal } from "@/components/PhoneReveal";
@@ -86,6 +87,25 @@ export default async function ListingPage({
   const hiddenIds = user ? await getHiddenIds(user.id) : [];
   const [similar, sellerCount] = await Promise.all([listSimilarListings(listing, hiddenIds), listing.agent ? 0 : countSellerListings(listing.sellerId)]);
   const hidden = hiddenIds.includes(listing.id);
+  // In a row in the contact box on a wide screen, behind the "more" button on a phone.
+  const actions = (
+    <>
+      <ShareButton title={listing.title} t={t} />
+      {user ? (
+        <form action={setHiddenAction}>
+          <input type="hidden" name="locale" value={locale} />
+          <input type="hidden" name="listingId" value={listing.id} />
+          <input type="hidden" name="want" value={hidden ? "0" : "1"} />
+          <SubmitButton className="btn ghost">{hidden ? t.listing.unhide : t.listing.hide}</SubmitButton>
+        </form>
+      ) : (
+        <LoginLink locale={locale} className="btn ghost">
+          {t.listing.hide}
+        </LoginLink>
+      )}
+      <ReportListing listingId={listing.id} t={t} />
+    </>
+  );
 
   return (
     <>
@@ -93,15 +113,43 @@ export default async function ListingPage({
       <main className="listing">
         <Gallery images={listing.images} title={listing.title} tone={listing.tone} t={t} />
         <div className="lhead">
-          <nav className="crumbs" aria-label={t.listing.path}>
-            <Link href={`/${locale}?deal=${listing.deal}`}>{t.deal[listing.deal]}</Link>
-            <Link href={`/${locale}?deal=${listing.deal}&city=${encodeURIComponent(listing.city)}`}>{placeLabel(listing.city, locale)}</Link>
-            {listing.district && <span>{placeLabel(listing.district, locale)}</span>}
-          </nav>
+          <div className="lhead-top">
+            <nav className="crumbs" aria-label={t.listing.path}>
+              <Link href={`/${locale}?deal=${listing.deal}`}>{t.deal[listing.deal]}</Link>
+              <Link href={`/${locale}?deal=${listing.deal}&city=${encodeURIComponent(listing.city)}`}>{placeLabel(listing.city, locale)}</Link>
+              {listing.district && <span>{placeLabel(listing.district, locale)}</span>}
+            </nav>
+            <MoreActions label={t.ui.moreActions}>{actions}</MoreActions>
+          </div>
           <h1>{listing.title}</h1>
           <span className="meta">
             {listing.address} · ID {listing.id} · {formatDay(listing.updatedAt, locale)}
           </span>
+          <dl className="facts">
+            <Fact icon="area" label={t.listing.area}>
+              {listing.area} {t.units.sqm}
+            </Fact>
+            {listing.rooms > 0 && (
+              <Fact icon="rooms" label={t.listing.rooms}>
+                {listing.rooms}
+              </Fact>
+            )}
+            {listing.floor && (
+              <Fact icon="floor" label={t.listing.floor}>
+                {listing.floor} / {listing.floors}
+              </Fact>
+            )}
+            {listing.building && (
+              <Fact icon="condition" label={t.search.status}>
+                {t.search.building[listing.building]}
+              </Fact>
+            )}
+            {listing.metro && (
+              <Fact icon="metro" label={t.search.metro}>
+                {placeLabel(listing.metro, locale)}
+              </Fact>
+            )}
+          </dl>
         </div>
         <aside className="side">
           <div className="agent">
@@ -141,9 +189,8 @@ export default async function ListingPage({
                 </span>
                 <div>
                   <Link href={`/${locale}/brokers/${listing.agent.id}`}><b>{listing.agent.name}</b></Link>
-                  <div className="meta">
-                    {t.listing.broker} · {listing.agent.branch}
-                  </div>
+                  {/* A broker without a branch has nothing after the dot, so none is shown. */}
+                  <div className="meta">{[t.listing.broker, listing.agent.branch].filter(Boolean).join(" · ")}</div>
                 </div>
               </div>
             ) : (
@@ -154,40 +201,35 @@ export default async function ListingPage({
                 {t.listing.sellerListings.replace("{count}", String(sellerCount))}
               </Link>
             )}
-            {/* An owner who hid the number is reached through chat only, so not even its masked form is sent. */}
-            {!listing.hidePhone && (
-              <div className="btns">
-                <PhoneReveal listingId={listing.id} masked={maskPhone(listing.contactPhone)} t={t} />
-              </div>
-            )}
-          </div>
-          {!ownListing && (
-            <div className="chat-start">
-              {user ? (
-                <ChatForm action={startChatAction} t={t} placeholder={t.chat.write}>
-                  <input type="hidden" name="locale" value={locale} />
-                  <input type="hidden" name="listingId" value={listing.id} />
-                </ChatForm>
-              ) : (
-                <LoginLink locale={locale} className="btn ghost">{t.chat.signIn}</LoginLink>
+            {/* Call, WhatsApp and write. In the box on a wide screen; on a phone a bar fixed to the foot of the screen, with the price. */}
+            <div className="contact-bar">
+              <span className="bar-price" aria-hidden="true">
+                {formatPrice(shown, currency)}
+                {unit && <small className="meta"> {unit}</small>}
+              </span>
+              {/* An owner who hid the number is reached through chat only, so not even its masked form is sent. */}
+              {!listing.hidePhone && (
+                <div className="btns">
+                  <PhoneReveal listingId={listing.id} masked={maskPhone(listing.contactPhone)} t={t} />
+                </div>
               )}
-              {query.chat === "failed" && <p className="note" role="alert">{t.chat.failed}</p>}
+              {!ownListing &&
+                (user ? (
+                  <ChatStart label={t.ui.write} initialOpen={query.chat === "failed"}>
+                    <ChatForm action={startChatAction} t={t} placeholder={t.chat.write}>
+                      <input type="hidden" name="locale" value={locale} />
+                      <input type="hidden" name="listingId" value={listing.id} />
+                    </ChatForm>
+                  </ChatStart>
+                ) : (
+                  <LoginLink locale={locale} className="btn ghost write-button" label={t.chat.signIn}>
+                    {t.ui.write}
+                  </LoginLink>
+                ))}
             </div>
-          )}
-          <div className="listing-actions">
-            <ShareButton title={listing.title} t={t} />
-            {user ? (
-              <form action={setHiddenAction}>
-                <input type="hidden" name="locale" value={locale} />
-                <input type="hidden" name="listingId" value={listing.id} />
-                <input type="hidden" name="want" value={hidden ? "0" : "1"} />
-                <SubmitButton className="btn ghost">{hidden ? t.listing.unhide : t.listing.hide}</SubmitButton>
-              </form>
-            ) : (
-              <LoginLink locale={locale} className="btn ghost">{t.listing.hide}</LoginLink>
-            )}
-            <ReportListing listingId={listing.id} t={t} />
           </div>
+          {!ownListing && query.chat === "failed" && <p className="note" role="alert">{t.chat.failed}</p>}
+          <div className="listing-actions">{actions}</div>
           {listing.marketLevel !== undefined && <MarketScale level={listing.marketLevel} t={t} />}
           {/* Only active listings are shown here, so this is an owner's active listing that no broker has checked. */}
           {user?.id === listing.sellerId && !listing.verified && !listing.agent && <VerifyRequest listingId={listing.id} locale={locale} t={t} hasPhone={user.phone !== null} />}
@@ -205,31 +247,6 @@ export default async function ListingPage({
           )}
         </aside>
         <div className="ldesc">
-          <dl className="facts">
-            <Fact icon="area" label={t.listing.area}>
-              {listing.area} {t.units.sqm}
-            </Fact>
-            {listing.rooms > 0 && (
-              <Fact icon="rooms" label={t.listing.rooms}>
-                {listing.rooms}
-              </Fact>
-            )}
-            {listing.floor && (
-              <Fact icon="floor" label={t.listing.floor}>
-                {listing.floor} / {listing.floors}
-              </Fact>
-            )}
-            {listing.building && (
-              <Fact icon="condition" label={t.search.status}>
-                {t.search.building[listing.building]}
-              </Fact>
-            )}
-            {listing.metro && (
-              <Fact icon="metro" label={t.search.metro}>
-                {placeLabel(listing.metro, locale)}
-              </Fact>
-            )}
-          </dl>
           <p>{listingDescription(listing, locale)}</p>
           <ListingDetails listing={listing} locale={locale} t={t} />
           {listing.lat !== undefined && listing.lng !== undefined && (
