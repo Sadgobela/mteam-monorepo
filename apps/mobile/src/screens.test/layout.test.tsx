@@ -1,4 +1,4 @@
-import { Linking } from "react-native";
+import { AppState, Linking } from "react-native";
 import { render, screen, waitFor } from "@testing-library/react-native";
 import type { NotificationResponse } from "expo-notifications";
 import { answer, serve, signedIn } from "@/test/render";
@@ -21,6 +21,21 @@ describe("openNotification", () => {
     expect(router.push).toHaveBeenCalledTimes(1);
   });
 
+  it("follows only paths on the site, so a push cannot lead to another site", () => {
+    openNotification(tapped({ url: ".evil.test/x" }, "push-evil-1"));
+    openNotification(tapped({ url: "@evil.test" }, "push-evil-2"));
+    expect(openURL).not.toHaveBeenCalled();
+    expect(router.push).not.toHaveBeenCalled();
+  });
+
+  it("switches to a tab from a screen on top of the tabs, instead of stacking the tabs again", () => {
+    router.canDismiss.mockReturnValueOnce(true);
+    openNotification(tapped({ url: "/ka?deal=rent" }, "push-search"));
+    expect(router.dismissAll).toHaveBeenCalled();
+    expect(router.navigate).toHaveBeenCalledWith("/?deal=rent");
+    expect(router.push).not.toHaveBeenCalled();
+  });
+
   it("opens each notification once, and marks it read by its id", async () => {
     const fetchMock = serve({ "POST /api/v1/notifications/n1": answer({ path: "/ka/listings/7" }), "POST /api/v1/notifications/n2": answer({ error: "notFound" }, 404) });
     const then = jest.fn();
@@ -37,14 +52,17 @@ describe("openNotification", () => {
 
 describe("RootLayout", () => {
   it("opens the tap that started the app, listens for taps and arrivals while mounted, and shows the menu", async () => {
-    serve({ "/api/v1/me": answer(signedIn({ unread: 1 })), "POST /api/v1/notifications/n3": answer({ path: "/ka/account/notifications" }) });
+    const fetchMock = serve({ "/api/v1/me": answer(signedIn({ unread: 1 })), "POST /api/v1/notifications/n3": answer({ path: "/ka/account/notifications" }) });
     const removeTap = jest.fn();
     const removeArrival = jest.fn();
     notifications.addNotificationResponseReceivedListener.mockReturnValueOnce({ remove: removeTap });
     notifications.addNotificationReceivedListener.mockReturnValueOnce({ remove: removeArrival });
     notifications.getLastNotificationResponseAsync.mockResolvedValueOnce(tapped({ url: "/ka/account/notifications", tag: "n3" }, "push-3"));
     const view = await render(<RootLayout />);
-    await waitFor(() => expect(router.push).toHaveBeenCalledWith("/notifications"));
+    await waitFor(() => expect(router.navigate).toHaveBeenCalledWith("/notifications"));
+    // Marked read as the signed-in user: the tap waits until the stored session is back.
+    const marked = fetchMock.mock.calls.find(([url]) => url.endsWith("/api/v1/notifications/n3"));
+    expect(marked[1].headers.authorization).toBe("Bearer tok");
     expect(await screen.findByLabelText("მთავარი მენიუ")).toBeOnTheScreen();
     // The splash cover fades away once the session is known.
     await waitFor(() => expect(screen.queryByTestId("boot")).not.toBeOnTheScreen());
@@ -58,6 +76,23 @@ describe("RootLayout", () => {
     await view.unmount();
     expect(removeTap).toHaveBeenCalled();
     expect(removeArrival).toHaveBeenCalled();
+  });
+
+  it("reads the badge again when the app comes back to the front, and stops listening when gone", async () => {
+    const fetchMock = serve({ "/api/v1/me": answer(signedIn({ unread: 1 })) });
+    // React Native's test setup already stands AppState in with a mock; this only watches it.
+    const listen = jest.spyOn(AppState, "addEventListener");
+    const view = await render(<RootLayout />);
+    await waitFor(() => expect(listen).toHaveBeenCalled());
+    const changed = listen.mock.calls[0][1];
+    const profiles = () => fetchMock.mock.calls.filter(([url]) => url.endsWith("/api/v1/me")).length;
+    const before = profiles();
+    changed("background");
+    expect(profiles()).toBe(before);
+    changed("active");
+    await waitFor(() => expect(profiles()).toBe(before + 1));
+    await view.unmount();
+    expect(listen.mock.results[0].value.remove).toHaveBeenCalled();
   });
 
   it("starts without a waiting notification", async () => {

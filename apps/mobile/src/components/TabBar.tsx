@@ -3,8 +3,9 @@ import { Keyboard, Platform, Pressable, StyleSheet, Text, useColorScheme, View }
 import { Ionicons } from "@expo/vector-icons";
 import { BlurView } from "expo-blur";
 import * as Haptics from "expo-haptics";
-import { router, usePathname } from "expo-router";
+import { usePathname } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { switchTab } from "@/lib/follow";
 import { fill, useLocale } from "@/lib/i18n";
 import { useSession } from "@/lib/session";
 import { radius, space, useColors } from "@/lib/theme";
@@ -35,11 +36,10 @@ export function useBarSpace(): number {
   return useSafeAreaInsets().bottom + BAR_LIFT + BAR_HEIGHT + space.lg;
 }
 
-/** Opens a tab from anywhere: screens opened on top of the tabs (a listing) close first. */
+/** Opens a tab from the menu, with a tap felt. */
 export function openTab(href: string): void {
   void Haptics.selectionAsync();
-  if (router.canDismiss()) router.dismissAll();
-  router.navigate(href as never);
+  switchTab(href);
 }
 
 /**

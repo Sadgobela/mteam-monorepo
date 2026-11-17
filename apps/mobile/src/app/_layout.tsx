@@ -1,5 +1,5 @@
 import { useEffect, useRef, type ComponentRef } from "react";
-import { StyleSheet, type View } from "react-native";
+import { AppState, StyleSheet, type View } from "react-native";
 import { BlurTargetView } from "expo-blur";
 import * as Notifications from "expo-notifications";
 import { Stack } from "expo-router";
@@ -39,20 +39,27 @@ function Screens() {
   const { t } = useLocale();
   const session = useSession();
   const behind = useRef<ComponentRef<typeof View>>(null);
-  const { refresh } = session;
+  const { ready, refresh } = session;
 
   useEffect(() => {
+    // Not before the stored session is back: marking the notification read needs it.
+    if (!ready) return;
     const opened = (response: Notifications.NotificationResponse) => openNotification(response, () => void refresh());
-    // A tap that started the app came before this listener: open it once the screens are up.
+    // A tap that started the app came before this listener: open it now.
     void Notifications.getLastNotificationResponseAsync().then((response) => response && opened(response));
     const tapped = Notifications.addNotificationResponseReceivedListener(opened);
     // A notification that arrives while the app is open updates the badge on the menu.
     const arrived = Notifications.addNotificationReceivedListener(() => void refresh());
+    // Those that came while the app was away count too: the badge is read again on the way back.
+    const back = AppState.addEventListener("change", (state) => {
+      if (state === "active") void refresh();
+    });
     return () => {
       tapped.remove();
       arrived.remove();
+      back.remove();
     };
-  }, [refresh]);
+  }, [ready, refresh]);
 
   return (
     <>
