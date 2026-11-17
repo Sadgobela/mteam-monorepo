@@ -39,11 +39,13 @@ function Screens() {
   const { t } = useLocale();
   const session = useSession();
   const behind = useRef<ComponentRef<typeof View>>(null);
-  const { refresh } = session;
+  const { ready, refresh } = session;
 
   useEffect(() => {
+    // Not before the stored session is back: marking the notification read needs it.
+    if (!ready) return;
     const opened = (response: Notifications.NotificationResponse) => openNotification(response, () => void refresh());
-    // A tap that started the app came before this listener: open it once the screens are up.
+    // A tap that started the app came before this listener: open it now.
     void Notifications.getLastNotificationResponseAsync().then((response) => response && opened(response));
     const tapped = Notifications.addNotificationResponseReceivedListener(opened);
     // A notification that arrives while the app is open updates the badge on the menu.
@@ -52,7 +54,7 @@ function Screens() {
       tapped.remove();
       arrived.remove();
     };
-  }, [refresh]);
+  }, [ready, refresh]);
 
   return (
     <>

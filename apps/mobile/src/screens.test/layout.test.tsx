@@ -52,7 +52,7 @@ describe("openNotification", () => {
 
 describe("RootLayout", () => {
   it("opens the tap that started the app, listens for taps and arrivals while mounted, and shows the menu", async () => {
-    serve({ "/api/v1/me": answer(signedIn({ unread: 1 })), "POST /api/v1/notifications/n3": answer({ path: "/ka/account/notifications" }) });
+    const fetchMock = serve({ "/api/v1/me": answer(signedIn({ unread: 1 })), "POST /api/v1/notifications/n3": answer({ path: "/ka/account/notifications" }) });
     const removeTap = jest.fn();
     const removeArrival = jest.fn();
     notifications.addNotificationResponseReceivedListener.mockReturnValueOnce({ remove: removeTap });
@@ -60,6 +60,9 @@ describe("RootLayout", () => {
     notifications.getLastNotificationResponseAsync.mockResolvedValueOnce(tapped({ url: "/ka/account/notifications", tag: "n3" }, "push-3"));
     const view = await render(<RootLayout />);
     await waitFor(() => expect(router.navigate).toHaveBeenCalledWith("/notifications"));
+    // Marked read as the signed-in user: the tap waits until the stored session is back.
+    const marked = fetchMock.mock.calls.find(([url]) => url.endsWith("/api/v1/notifications/n3"));
+    expect(marked[1].headers.authorization).toBe("Bearer tok");
     expect(await screen.findByLabelText("მთავარი მენიუ")).toBeOnTheScreen();
     // The splash cover fades away once the session is known.
     await waitFor(() => expect(screen.queryByTestId("boot")).not.toBeOnTheScreen());
