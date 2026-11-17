@@ -125,6 +125,11 @@ export default async function ListingPage({
           <span className="meta">
             {listing.address} · ID {listing.id} · {formatDay(listing.updatedAt, locale)}
           </span>
+          {/* On a phone the price leads the facts under the title, and the box's own is hidden; on a wide screen the box has it. */}
+          <p className="lhead-price price big">
+            {formatPrice(shown, currency)}
+            {unit && <small className="meta"> {unit}</small>}
+          </p>
           <dl className="facts">
             <Fact icon="area" label={t.listing.area}>
               {listing.area} {t.units.sqm}

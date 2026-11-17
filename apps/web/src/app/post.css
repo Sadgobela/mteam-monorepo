@@ -9,7 +9,9 @@
 .post-page h1 { font-size: 24px; }
 /* The form with its preview beside it; on a phone the preview follows the form. */
 .post-layout { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 24px; align-items: start; }
-.post-aside { display: grid; gap: 16px; position: sticky; top: 16px; }
+.post-aside { position: sticky; top: 16px; }
+/* A <details> does not lay out its children as a grid, so the body inside does. */
+.post-aside-body { display: grid; gap: 16px; }
 .post-aside h2 { font-size: 15px; margin: 0 0 8px; }
 .post-preview .card { pointer-events: none; }
 .post-preview .cbody { display: grid; gap: 4px; padding: 12px; }
@@ -30,7 +32,7 @@
   .post-aside { position: static; }
   /* Below the form, folded away on request. */
   .post-aside > summary { display: flex; align-items: center; min-height: 44px; padding: 0 16px; border: 1px solid var(--line); border-radius: var(--r-md); background: var(--surface); font-weight: 700; cursor: pointer; }
-  .post-aside[open] > summary { margin-bottom: 4px; }
+  .post-aside[open] > summary { margin-bottom: 8px; }
 }
 /* Phones: one column, but short numbers in pairs (area and rooms, floor and floors, price and currency). Back and Next stay at
    the foot of the screen, above the safe area. */

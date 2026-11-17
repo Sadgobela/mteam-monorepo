@@ -395,8 +395,10 @@ export function ListingForm({
       {/* Beside the form on a wide screen, where it cannot be folded; below it on a phone, where it can. */}
       <details className="post-aside" open>
         <summary>{t.post.preview}</summary>
-        <ListingPreview values={snapshot} photo={photos[0]?.preview} locale={locale} t={t} />
-        <QualityMeter values={snapshot} photos={photos.length} t={t} />
+        <div className="post-aside-body">
+          <ListingPreview values={snapshot} photo={photos[0]?.preview} locale={locale} t={t} />
+          <QualityMeter values={snapshot} photos={photos.length} t={t} />
+        </div>
       </details>
     </div>
   );
