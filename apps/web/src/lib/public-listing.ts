@@ -1,7 +1,6 @@
-import type { Listing } from "@mteam/shared";
+import type { Listing, PublicListing } from "@mteam/shared";
 
-/** A listing as the app API sends it: without phone numbers, which are given out one at a time and counted (`/api/listings/[id]/phone`). */
-export type PublicListing = Omit<Listing, "contactPhone" | "agent"> & { agent?: Omit<NonNullable<Listing["agent"]>, "phone"> };
+/** Leaves out the phone numbers, which are given out one at a time and counted (`/api/listings/[id]/phone`). */
 
 export function toPublicListing(listing: Listing): PublicListing {
   const copy: Partial<Pick<Listing, "contactPhone">> & Omit<Listing, "contactPhone"> = { ...listing };

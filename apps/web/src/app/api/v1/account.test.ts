@@ -5,6 +5,7 @@ const db = vi.hoisted(() => ({
   completeOnboarding: vi.fn(),
   deleteSession: vi.fn(),
   getFavoriteIds: vi.fn(),
+  getGelPerUsd: vi.fn(),
   getSessionUser: vi.fn(),
   listFavorites: vi.fn(),
   listMyListings: vi.fn(),
@@ -38,6 +39,7 @@ beforeEach(() => {
   session.clientIp.mockResolvedValue("203.0.113.7");
   session.userAgent.mockResolvedValue("MTeam app");
   session.currentUser.mockResolvedValue(user);
+  db.getGelPerUsd.mockResolvedValue(2.7);
 });
 
 describe("POST /api/v1/auth/code", () => {
@@ -125,7 +127,7 @@ describe("POST /api/v1/onboarding", () => {
 describe("favourites", () => {
   it("lists them without phone numbers", async () => {
     db.listFavorites.mockResolvedValue([{ id: 3, contactPhone: "+995555000000" }]);
-    expect(await read(favorites())).toEqual([200, { listings: [{ id: 3 }] }]);
+    expect(await read(favorites())).toEqual([200, { listings: [{ id: 3 }], gelPerUsd: 2.7 }]);
   });
 
   it("sets a heart to the state asked for", async () => {
@@ -145,7 +147,7 @@ describe("favourites", () => {
 describe("GET /api/v1/my-listings", () => {
   it("lists the user's listings with their status", async () => {
     db.listMyListings.mockResolvedValue([{ listing: { id: 9, contactPhone: "+995555000000" }, status: "PENDING" }]);
-    expect(await read(myListings())).toEqual([200, { listings: [{ id: 9, status: "PENDING" }] }]);
+    expect(await read(myListings())).toEqual([200, { listings: [{ id: 9, status: "PENDING" }], gelPerUsd: 2.7 }]);
     expect(db.listMyListings).toHaveBeenCalledWith("u1");
   });
 });

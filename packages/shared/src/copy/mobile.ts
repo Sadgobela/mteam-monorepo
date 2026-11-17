@@ -1,0 +1,66 @@
+// Copy for the mobile app (apps/mobile), kept in its own file so parallel work does not collide in i18n.ts.
+// The app reuses the site's copy wherever the words are the same; only what is the app's own lives here.
+const ka = {
+  tabs: { search: "ძიება", favorites: "რჩეულები", post: "დამატება", account: "ანგარიში" },
+  loadFailed: "ვერ ჩაიტვირთა. შეამოწმე ინტერნეტი და სცადე თავიდან.",
+  retry: "თავიდან ცდა",
+  listingGone: "ეს განცხადება აღარ არის გამოქვეყნებული.",
+  loadMore: "მეტის ნახვა",
+  anyCity: "ყველა ქალაქი",
+  anyDistrict: "ყველა უბანი",
+  signInFor: "შედი, რომ შეინახო რჩეულები, დაამატო განცხადება და მიიღო შეტყობინებები.",
+  welcome: "გამარჯობა, {name}",
+  appLanguage: "აპის ენა",
+  pushOn: "შეტყობინებები ამ ტელეფონზე",
+  pushHint: "ახალი წერილები, შენი განცხადებების სტატუსი და შენახული ძიებების სიახლეები.",
+  pushBlocked: "შეტყობინებები ტელეფონის პარამეტრებშია გამორთული. იქ ჩართე MTeam-ისთვის.",
+  pushUnavailable: "შეტყობინებები მუშაობს მხოლოდ ნამდვილ ტელეფონზე.",
+  addPhoto: "+ ფოტო",
+  photoAccess: "ფოტოების დასამატებლად დაუშვი წვდომა გალერეაზე.",
+  uploading: "ფოტოები იტვირთება…",
+  callFailed: "ზარი ვერ დაიწყო ამ მოწყობილობაზე.",
+};
+
+const en: typeof ka = {
+  tabs: { search: "Search", favorites: "Favourites", post: "Post", account: "Account" },
+  loadFailed: "Couldn't load. Check your connection and try again.",
+  retry: "Try again",
+  listingGone: "This listing is no longer published.",
+  loadMore: "Show more",
+  anyCity: "Any city",
+  anyDistrict: "Any district",
+  signInFor: "Sign in to keep favourites, post a listing and get notifications.",
+  welcome: "Hello, {name}",
+  appLanguage: "App language",
+  pushOn: "Notifications on this phone",
+  pushHint: "New messages, your listings' status and news from your saved searches.",
+  pushBlocked: "Notifications are off in your phone's settings. Turn them on for MTeam there.",
+  pushUnavailable: "Notifications work on a real phone only.",
+  addPhoto: "+ Photo",
+  photoAccess: "Allow access to your photos to add them.",
+  uploading: "Uploading photos…",
+  callFailed: "Couldn't start a call on this device.",
+};
+
+const ru: typeof ka = {
+  tabs: { search: "Поиск", favorites: "Избранное", post: "Добавить", account: "Аккаунт" },
+  loadFailed: "Не удалось загрузить. Проверьте интернет и попробуйте ещё раз.",
+  retry: "Повторить",
+  listingGone: "Это объявление больше не опубликовано.",
+  loadMore: "Показать ещё",
+  anyCity: "Любой город",
+  anyDistrict: "Любой район",
+  signInFor: "Войдите, чтобы сохранять избранное, публиковать объявления и получать уведомления.",
+  welcome: "Здравствуйте, {name}",
+  appLanguage: "Язык приложения",
+  pushOn: "Уведомления на этом телефоне",
+  pushHint: "Новые сообщения, статус ваших объявлений и новинки сохранённых поисков.",
+  pushBlocked: "Уведомления выключены в настройках телефона. Включите их там для MTeam.",
+  pushUnavailable: "Уведомления работают только на настоящем телефоне.",
+  addPhoto: "+ Фото",
+  photoAccess: "Разрешите доступ к фото, чтобы добавить их.",
+  uploading: "Фото загружаются…",
+  callFailed: "Не удалось начать звонок на этом устройстве.",
+};
+
+export const mobileCopy = { ka, en, ru };

@@ -5,6 +5,7 @@ Real estate listings platform for mTeam (Georgia only). pnpm + Turborepo.
 **Read `docs/PROJECT_BRIEF.md` first**: company, goals, scope and agreed decisions.
 
 - `apps/web`: Next.js 15 App Router, routes under `src/app/[locale]` (ka default, en, ru). Middleware adds the locale prefix.
+- `apps/mobile`: Expo (SDK 58) app with Expo Router, routes under `src/app` (screen tests in `src/screens.test`). Talks to the site through `/api/v1` (`docs/MOBILE_API.md`). Tests are Jest (jest-expo) with the same 100% thresholds.
 - `packages/shared`: types, i18n dictionaries (all three languages must have the same keys).
 - `packages/db`: Prisma schema, migrations, demo seed and listing queries. Pages call these queries, never Prisma directly.
 
