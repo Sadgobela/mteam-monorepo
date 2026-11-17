@@ -24,6 +24,12 @@ describe("ListingScreen", () => {
     expect(router.push).toHaveBeenCalledWith("/login");
   });
 
+  it("names a broker without a branch on its own, with no dangling dot", async () => {
+    serve({ "/api/v1/listings/7": detail({ agent: { id: "a1", name: "Nino", branch: "" } }) });
+    await renderApp(<ListingScreen />);
+    expect(await screen.findByText("Nino")).toBeOnTheScreen();
+  });
+
   it("calls and opens WhatsApp with the number it asks for at the press", async () => {
     serve({ "/api/v1/listings/7": detail(), "/api/listings/7/phone": answer({ phone: "+995555123456" }) });
     await renderApp(<ListingScreen />);

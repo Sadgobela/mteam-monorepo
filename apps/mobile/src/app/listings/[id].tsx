@@ -80,7 +80,7 @@ export default function ListingScreen() {
         <Note>{factsLine(listing, t)}</Note>
         {listing.address ? <Note>{listing.address}</Note> : null}
         {listing.verified && <Text style={[styles.badge, { color: c.brandDeep, backgroundColor: c.brandSoft }]}>MTeam Verified</Text>}
-        {listing.agent && <Note>{`${listing.agent.name} · ${listing.agent.branch}`}</Note>}
+        {listing.agent && <Note>{[listing.agent.name, listing.agent.branch].filter(Boolean).join(" · ")}</Note>}
         <View style={styles.actions}>
           {listing.hidePhone ? null : (
             <>
