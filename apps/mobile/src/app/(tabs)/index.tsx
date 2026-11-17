@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { ActivityIndicator, Alert, FlatList, Pressable, StyleSheet, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { router, useLocalSearchParams } from "expo-router";
@@ -53,25 +53,30 @@ export default function SearchScreen() {
     setState("loading");
   }
 
+  // Only the latest request may show its answer: an older one (the default sales, overtaken by a saved search) can
+  // answer last.
+  const latest = useRef(0);
+
   /** Fetches a page; the caller shows that it is loading. */
-  const load = useCallback(
-    (query: Query, page = 1) =>
-      api
-        .search({ ...query, page: String(page) })
-        .then(
-          (next) => {
-            setResults((current) => (page === 1 ? next : { ...next, listings: [...current.listings, ...next.listings] }));
-            // The order of the results is not part of a saved search.
-            if (page === 1) setSearched(toSearch({ ...query, sort: undefined }).slice(1));
-            setState("ready");
-          },
-          () => {
-            if (page === 1) setState("failed");
-          },
-        )
-        .finally(() => setMore(false)),
-    [],
-  );
+  const load = useCallback((query: Query, page = 1) => {
+    const request = ++latest.current;
+    const current = () => request === latest.current;
+    return api
+      .search({ ...query, page: String(page) })
+      .then(
+        (next) => {
+          if (!current()) return;
+          setResults((shown) => (page === 1 ? next : { ...next, listings: [...shown.listings, ...next.listings] }));
+          // The order of the results is not part of a saved search.
+          if (page === 1) setSearched(toSearch({ ...query, sort: undefined }).slice(1));
+          setState("ready");
+        },
+        () => {
+          if (current() && page === 1) setState("failed");
+        },
+      )
+      .finally(() => current() && setMore(false));
+  }, []);
 
   useEffect(() => {
     void load(startFrom(asked));

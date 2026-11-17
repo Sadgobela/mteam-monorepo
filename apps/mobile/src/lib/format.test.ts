@@ -26,12 +26,12 @@ describe("format", () => {
     expect(whatsappLink("+995 555 12-34-56")).toBe("https://wa.me/995555123456");
   });
 
-  it("opens listings, my listings, notifications and searches in the app, anything else on the site", () => {
+  it("opens listings, my listings and chats as screens, notifications and searches as tabs, anything else on the site", () => {
     expect(routeForPath("/en/listings/7")).toEqual({ screen: "/listings/7" });
     expect(routeForPath("/ka/my-listings")).toEqual({ screen: "/my-listings" });
-    expect(routeForPath("/ka/account/notifications")).toEqual({ screen: "/notifications" });
-    expect(routeForPath("/ka?deal=rent&city=თბილისი")).toEqual({ screen: "/?deal=rent&city=თბილისი" });
-    expect(routeForPath("/en")).toEqual({ screen: "/" });
+    expect(routeForPath("/ka/account/notifications")).toEqual({ tab: "/notifications" });
+    expect(routeForPath("/ka?deal=rent&city=თბილისი")).toEqual({ tab: "/?deal=rent&city=თბილისი" });
+    expect(routeForPath("/en")).toEqual({ tab: "/" });
     expect(routeForPath("/ka/messages/c1")).toEqual({ screen: "/messages/c1" });
     expect(routeForPath("/ka/messages")).toEqual({ screen: "/messages" });
     expect(routeForPath("/ka/saved")).toEqual({ screen: "/saved-searches" });

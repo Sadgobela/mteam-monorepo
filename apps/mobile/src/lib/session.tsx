@@ -1,8 +1,10 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useState, type Dispatch, type ReactNode, type SetStateAction } from "react";
 import { api, ApiError, setApiToken, type Me } from "./api";
 import { readStored, writeStored } from "./storage";
 
 const KEY = "session";
+/** The longest the start-up screen waits for the profile. */
+const BOOT_WAIT_MS = 5000;
 
 interface SessionValue {
   /** False until the stored session has been checked, so screens do not flash the signed-out state. */
@@ -11,7 +13,7 @@ interface SessionValue {
   favoriteIds: Set<number>;
   /** Unread notifications, for the badge in the menu: from the profile, then from the notifications screen. */
   unread: number;
-  setUnread: (count: number) => void;
+  setUnread: Dispatch<SetStateAction<number>>;
   signIn: (token: string) => Promise<void>;
   signOut: () => Promise<void>;
   refresh: () => Promise<void>;
@@ -34,12 +36,13 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       setFavoriteIds(new Set(me.favoriteIds));
       setUnread(me.unread);
     } catch (error) {
-      // An expired or revoked session is forgotten; being offline keeps it for next time.
+      // An expired or revoked session is forgotten. Being offline or a failing server keeps it, and keeps the user signed
+      // in on screen: a refresh after a push must not show the sign-in prompts because of one bad answer.
       if (error instanceof ApiError && error.status === 401) {
         setApiToken(null);
         await writeStored(KEY, null);
+        setUser(null);
       }
-      setUser(null);
     }
   }, []);
 
@@ -47,7 +50,11 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     readStored(KEY).then(async (token) => {
       if (token) {
         setApiToken(token);
-        await load();
+        // The start-up screen waits for the profile, but not on a stalled server: after a few seconds the app opens and
+        // the profile fills in when it comes.
+        let timer: ReturnType<typeof setTimeout> | undefined;
+        await Promise.race([load(), new Promise((done) => (timer = setTimeout(done, BOOT_WAIT_MS)))]);
+        clearTimeout(timer);
       }
       setReady(true);
     });

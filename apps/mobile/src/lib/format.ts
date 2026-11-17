@@ -38,20 +38,20 @@ export function whatsappLink(phone: string): string {
 }
 
 /**
- * The screen a site path from a notification opens: a listing, the user's listings, the notifications, a chat, the saved
- * searches, or the search tab with a saved search's filters; anything else opens the site's page in the browser.
+ * Where a site path from a notification opens: a listing, the user's listings, a chat, the chats or the saved searches as
+ * a screen, the notifications or a saved search's filters as a tab; anything else opens the site's page in the browser.
  */
-export function routeForPath(path: string): { screen: string } | { web: string } {
+export function routeForPath(path: string): { screen: string } | { tab: string } | { web: string } {
   const listing = /^\/[a-z]{2}\/listings\/(\d+)$/.exec(path);
   if (listing) return { screen: `/listings/${listing[1]}` };
   if (/^\/[a-z]{2}\/my-listings$/.test(path)) return { screen: "/my-listings" };
-  if (/^\/[a-z]{2}\/account\/notifications$/.test(path)) return { screen: "/notifications" };
+  if (/^\/[a-z]{2}\/account\/notifications$/.test(path)) return { tab: "/notifications" };
   const chat = /^\/[a-z]{2}\/messages\/([\w-]+)$/.exec(path);
   if (chat) return { screen: `/messages/${chat[1]}` };
   if (/^\/[a-z]{2}\/messages$/.test(path)) return { screen: "/messages" };
   if (/^\/[a-z]{2}\/saved$/.test(path)) return { screen: "/saved-searches" };
   const search = /^\/[a-z]{2}(\?.*)?$/.exec(path);
-  if (search) return { screen: `/${search[1] ?? ""}` };
+  if (search) return { tab: `/${search[1] ?? ""}` };
   return { web: path };
 }
 
@@ -79,5 +79,5 @@ export function initials(name: string): string {
     .slice(0, 2)
     .map((word) => Array.from(word)[0] ?? "")
     .join("")
-    .replace(/[^ა-ჿ]/g, (letter) => letter.toUpperCase());
+    .replace(/[^\u10D0-\u10FF]/g, (letter) => letter.toUpperCase());
 }
