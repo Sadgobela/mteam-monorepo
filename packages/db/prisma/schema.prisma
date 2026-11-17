@@ -98,6 +98,7 @@ model User {
   hidePhoneDefault     Boolean            @default(false) // new listings start with the number hidden, chat only
   notifyPush           Boolean            @default(true) // push notifications on every device the user turned them on for
   pushSubscriptions    PushSubscription[]
+  appPushTokens        AppPushToken[]
   notifications        Notification[]
   emailTokens          EmailToken[]
   invitesSent          AgentInvite[]      @relation("InviteCreator")
@@ -409,6 +410,20 @@ model PushSubscription {
   auth       String
   userAgent  String?
   locale     String   @default("ka") // the language of the page that subscribed, used for the message text
+  createdAt  DateTime @default(now())
+  lastUsedAt DateTime @default(now())
+
+  @@index([userId])
+}
+
+// A phone with the mobile app that turned push on: its Expo push token, sent through Expo's push service.
+model AppPushToken {
+  id         String   @id @default(cuid())
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId     String
+  token      String   @unique // ExponentPushToken[...]
+  platform   String // ios or android
+  locale     String   @default("ka") // the app's language when push was turned on, used for the message text
   createdAt  DateTime @default(now())
   lastUsedAt DateTime @default(now())
 

@@ -2,6 +2,7 @@ import webpush from "web-push";
 import { z } from "zod";
 import { deleteExpiredPushSubscriptions, listPushTargets, markPushSubscriptionsUsed, onNotificationsCreated, type CreatedNotification } from "@mteam/db";
 import { defaultLocale, getDictionary, isLocale, type Locale } from "@mteam/shared";
+import { deliverToApps } from "./app-push";
 import { noticeSubject, noticeText } from "./notice-text";
 
 /** The site's key pair for push services (npx web-push generate-vapid-keys) and a contact they can reach. */
@@ -100,13 +101,13 @@ async function deliver(notices: CreatedNotification[]): Promise<void> {
   }
 }
 
-/** Pushes notifications just created to their users' browsers. Without VAPID keys it does nothing, and it never throws. */
+/**
+ * Pushes notifications just created to their users' browsers and phones with the app. Browsers need the VAPID keys; the
+ * app does not. One failing never stops the other, and it never throws.
+ */
 export async function sendPush(notices: CreatedNotification[]): Promise<void> {
-  try {
-    await deliver(notices);
-  } catch (error) {
-    console.error(error);
-  }
+  const results = await Promise.allSettled([deliver(notices), deliverToApps(notices)]);
+  for (const result of results) if (result.status === "rejected") console.error(result.reason);
 }
 
 /** Called once at server start: every notification saved from then on is also pushed. */
