@@ -78,12 +78,14 @@ const reply = (status: number, body: unknown = { id: 7, status: "PENDING" }) => 
 };
 const sentTo = (path: string) => server.mock.calls.filter(([to]) => to === path).map(([, init]) => init.body as FormData);
 let previews = 0;
+const assign = vi.fn();
 beforeEach(() => {
   vi.resetAllMocks();
   previews = 0;
   session.currentUser.mockResolvedValue({ id: "u1", phone: "+995555123456", onboardedAt: new Date() });
   vi.stubGlobal("fetch", server);
   vi.stubGlobal("URL", Object.assign(URL, { createObjectURL: () => `blob:${++previews}`, revokeObjectURL: vi.fn() }));
+  vi.stubGlobal("location", Object.assign(new URL("http://localhost/"), { assign }));
 });
 
 afterEach(() => vi.unstubAllGlobals());
@@ -122,7 +124,7 @@ describe("ListingForm", () => {
     it("uploads each photo on its own, then sends the listing with their addresses in order, and confirms it", async () => {
       reply(200);
       send("a.jpg", "b.jpg");
-      await waitFor(() => expect(router.push).toHaveBeenCalledWith("/ka/listings/new?sent=1"));
+      await waitFor(() => expect(assign).toHaveBeenCalledWith("/ka/listings/new?sent=1"));
       expect(sentTo("/api/listings/photos").map((body) => (body.get("photo") as File).name)).toEqual(["a.jpg", "b.jpg"]);
       const [listing] = sentTo("/api/listings");
       expect(listing.getAll("photos")).toEqual(["https://cdn/u1.webp", "https://cdn/u2.webp"]);
@@ -162,7 +164,7 @@ describe("ListingForm", () => {
       send("a.jpg", "b.jpg");
       expect(await screen.findByRole("alert")).toHaveTextContent(t.post.errors.photos);
       fireEvent.submit(formOf(t.post.fields.title));
-      await waitFor(() => expect(router.push).toHaveBeenCalled());
+      await waitFor(() => expect(assign).toHaveBeenCalled());
       expect(sentTo("/api/listings/photos").map((body) => (body.get("photo") as File).name)).toEqual(["a.jpg", "b.jpg", "b.jpg"]);
       expect(sentTo("/api/listings")[0].getAll("photos")).toEqual(["https://cdn/u1.webp", "https://cdn/u3.webp"]);
     });
@@ -466,7 +468,7 @@ describe("ListingForm", () => {
       expect(sentTo("/api/listings/photos")).toHaveLength(1);
 
       fireEvent.submit(formOf(t.post.fields.title));
-      await waitFor(() => expect(router.push).toHaveBeenCalledWith("/en/listings/new?sent=1"));
+      await waitFor(() => expect(assign).toHaveBeenCalledWith("/en/listings/new?sent=1"));
       expect([sentTo("/api/listings")[2].get("intent"), sentTo("/api/listings")[2].get("id")]).toEqual(["submit", "12"]);
     });
 
@@ -486,7 +488,7 @@ describe("ListingForm", () => {
       fireEvent.submit(formOf(t.post.fields.title));
       await waitFor(() => expect(uploads).toBe(1));
       finish();
-      await waitFor(() => expect(router.push).toHaveBeenCalledWith("/en/listings/new?sent=1"));
+      await waitFor(() => expect(assign).toHaveBeenCalledWith("/en/listings/new?sent=1"));
       expect(uploads).toBe(1);
       expect(sentTo("/api/listings").map((body) => body.getAll("photos"))).toEqual([["https://cdn/u1.webp"], ["https://cdn/u1.webp"]]);
     });
@@ -652,7 +654,7 @@ describe("editing a listing", () => {
 
     for (let step = 0; step < 4; step++) fireEvent.click(screen.getByRole("button", { name: t.post.next }));
     fireEvent.click(screen.getByRole("button", { name: t.post.save }));
-    await waitFor(() => expect(router.push).toHaveBeenCalledWith("/en/listings/9/edit?saved=1"));
+    await waitFor(() => expect(assign).toHaveBeenCalledWith("/en/listings/9/edit?saved=1"));
     expect(sentTo("/api/listings/photos")).toHaveLength(0);
     const [listing] = sentTo("/api/listings");
     expect([listing.get("id"), listing.get("hidePhone"), listing.getAll("photos")]).toEqual(["9", "on", ["https://cdn/listings/old.webp"]]);
@@ -670,7 +672,7 @@ describe("editing a listing", () => {
     render(<ListingForm gelPerUsd={2.7} locale="en" t={t} initial={{ ...editable, status: "DRAFT", fields: { deal: "sale", type: "apartment", city: "თბილისი" } }} />);
     expect(screen.queryByRole("checkbox", { name: t.post.fields.hidePhone, hidden: true })).not.toBeChecked();
     fireEvent.submit(formOf(t.post.fields.title));
-    await waitFor(() => expect(router.push).toHaveBeenCalledWith("/en/listings/new?sent=1"));
+    await waitFor(() => expect(assign).toHaveBeenCalledWith("/en/listings/new?sent=1"));
   });
 
   it("sends someone whose session ended back to this edit after signing in", async () => {
