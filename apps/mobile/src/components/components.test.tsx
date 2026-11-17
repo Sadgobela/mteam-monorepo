@@ -51,6 +51,11 @@ describe("ui", () => {
     expect(screen.getByText("Wrong")).toBeOnTheScreen();
   });
 
+  it("keeps a field's border when the caller adds a style", async () => {
+    await render(<Field label="About" multiline style={{ minHeight: 120 }} />);
+    expect(screen.getByLabelText("About")).toHaveStyle({ minHeight: 120, borderWidth: 1 });
+  });
+
   it("shows loading, a failure with a retry, and an empty note", async () => {
     const retry = jest.fn();
     await render(
