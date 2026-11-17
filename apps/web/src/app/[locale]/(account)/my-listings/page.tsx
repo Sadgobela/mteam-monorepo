@@ -9,11 +9,12 @@ import { formatDay, formatPrice, getDictionary, sortOrders, type Dict, type Loca
 import { ActionForm } from "@/components/ActionForm";
 import { ConfirmSubmit } from "@/components/ConfirmSubmit";
 import { EmptyState } from "@/components/EmptyState";
+import { cardTitle } from "@/components/ListingCard";
 import { Segmented } from "@/components/Segmented";
 import { SubmitButton } from "@/components/SubmitButton";
 import { archiveListingAction } from "@/lib/account-actions";
 import { resolveLocale } from "@/lib/locale";
-import { bumpListingAction, renewListingAction } from "@/lib/my-listings-actions";
+import { bumpListingAction, deleteDraftAction, renewListingAction } from "@/lib/my-listings-actions";
 import { currentUser } from "@/lib/session";
 import { loginPath } from "@/lib/login-path";
 import type { Query } from "@/lib/url";
@@ -54,24 +55,29 @@ function Row({ mine, locale, t }: { mine: MyListing; locale: Locale; t: Dict }) 
   const nextBump =
     mine.nextBumpAt &&
     new Intl.DateTimeFormat(locale, { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit", timeZone: "Asia/Tbilisi" }).format(mine.nextBumpAt);
+  const draft = status === "DRAFT";
+  // A draft holds only what was filled in so far: a price of 0 or an empty address is left out rather than shown.
+  const facts = [listing.price > 0 ? formatPrice(listing.price, listing.currency) : "", listing.address].filter(Boolean).join(" · ");
   return (
     <li>
       <div className="queue-item">
         <div className={`ph thumb ${listing.tone}`}>{listing.images[0] && <Image src={listing.images[0]} alt={listing.title} fill unoptimized />}</div>
         <div>
           <div className="my-row-title">
-            <b>{listing.title}</b>
+            <b>{listing.title || t.ui.draftTitle}</b>
             <span className="meta">{my.number.replace("{id}", String(listing.id))}</span>
           </div>
-          <div className="meta">
-            {formatPrice(listing.price, listing.currency)} · {listing.address}
-          </div>
-          <div className="my-stats meta">
-            <span>{count(my.views, mine.views)}</span>
-            <span>{count(my.phoneReveals, mine.phoneReveals)}</span>
-            <span>{count(my.favorites, mine.favorites)}</span>
-            <span>{count(my.conversations, mine.conversations)}</span>
-          </div>
+          {/* A draft is named by what it is so far, such as "For sale: apartment, Vake", as nobody has seen it yet. */}
+          {draft && <div className="meta">{cardTitle(listing, locale, t)}</div>}
+          {facts && <div className="meta">{facts}</div>}
+          {!draft && (
+            <div className="my-stats meta">
+              <span>{count(my.views, mine.views)}</span>
+              <span>{count(my.phoneReveals, mine.phoneReveals)}</span>
+              <span>{count(my.favorites, mine.favorites)}</span>
+              <span>{count(my.conversations, mine.conversations)}</span>
+            </div>
+          )}
           {listing.marketLevel && (
             <div className="meta">
               {t.market.heading}: {t.market.levels[listing.marketLevel - 1]}
@@ -107,6 +113,11 @@ function Row({ mine, locale, t }: { mine: MyListing; locale: Locale; t: Dict }) 
         {(status === "ACTIVE" || status === "PENDING") && (
           <RowForm action={archiveListingAction} locale={locale} id={listing.id} t={t} done={t.feedback.archived}>
             <ConfirmSubmit label={t.my.archive} question={t.my.confirmArchive} yes={t.confirm.yes} no={t.confirm.no} />
+          </RowForm>
+        )}
+        {draft && (
+          <RowForm action={deleteDraftAction} locale={locale} id={listing.id} t={t} done={t.ui.draftDeleted}>
+            <ConfirmSubmit label={t.ui.deleteDraft} question={t.ui.confirmDeleteDraft} yes={t.confirm.yes} no={t.confirm.no} />
           </RowForm>
         )}
       </div>
@@ -162,7 +173,19 @@ export default async function MyListingsPage({ params, searchParams }: { params:
               <input type="hidden" name="tab" value={tab} />
               {view.sort !== "new" && <input type="hidden" name="sort" value={view.sort} />}
               <Input name="q" defaultValue={view.q} placeholder={my.search} aria-label={my.search} maxLength={100} allowClear />
-              <Button htmlType="submit">{my.searchButton}</Button>
+              {/* The word is the name; a phone shows only the icon, so the field and button fit one line. */}
+              {/* Drawn here: Ant's icon package cannot render in a server component. */}
+              <Button
+                htmlType="submit"
+                icon={
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" aria-hidden="true">
+                    <circle cx="11" cy="11" r="7" />
+                    <path d="m20 20-3.5-3.5" />
+                  </svg>
+                }
+              >
+                <span className="my-search-word">{my.searchButton}</span>
+              </Button>
             </form>
             <Segmented
               label={my.sortLabel}

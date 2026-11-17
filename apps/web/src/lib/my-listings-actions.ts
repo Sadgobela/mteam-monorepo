@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { bumpListing, parseListingId, renewListing } from "@mteam/db";
+import { bumpListing, deleteDraft, parseListingId, renewListing } from "@mteam/db";
 import { resolveLocale } from "./locale";
 import { currentUser, signInHere } from "./session";
 
@@ -27,4 +27,9 @@ export async function bumpListingAction(form: FormData): Promise<boolean> {
 
 export async function renewListingAction(form: FormData): Promise<boolean> {
   return onOwnListing(form, (ownerId, listingId) => renewListing(ownerId, listingId));
+}
+
+/** Deletes an unfinished draft. Only the owner's own drafts can go; anything else is left alone. */
+export async function deleteDraftAction(form: FormData): Promise<boolean> {
+  return onOwnListing(form, (ownerId, listingId) => deleteDraft(ownerId, listingId));
 }

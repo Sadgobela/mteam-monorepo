@@ -8,17 +8,12 @@ import { LanguageMenu } from "./LanguageMenu";
 import { Logo } from "./Logo";
 import { PhoneMenu } from "./PhoneMenu";
 import { ThemeToggle } from "./ThemeToggle";
-import { SubmitButton } from "./SubmitButton";
 import { LoginLink } from "./LoginLink";
 import { NotificationBell } from "./NotificationBell";
 
-/** For the bell. A stale session counts none. */
-async function unreadNotifications(): Promise<number> {
-  const user = await currentUser();
-  return user ? countUnreadNotifications(user.id) : 0;
-}
-
+/** Kept synchronous, so a page never waits for the header: the user is read once and handed on as promises. */
 export function Header({ locale, t, signedIn, onLoginPage = false }: { locale: Locale; t: Dict; signedIn: boolean; onLoginPage?: boolean }) {
+  const user = signedIn ? currentUser() : null;
   const language = <LanguageMenu locale={locale} label={t.nav.language} />;
   const accountLinks = [
     { href: `/${locale}/favorites`, text: t.nav.favorites },
@@ -28,15 +23,8 @@ export function Header({ locale, t, signedIn, onLoginPage = false }: { locale: L
     { href: `/${locale}/account/profile`, text: t.account.profile },
     { href: `/${locale}/account/settings`, text: t.account.settings },
   ];
-  const session = signedIn ? (
-    <form action={logoutAction}>
-      <input type="hidden" name="locale" value={locale} />
-      <SubmitButton className="btn ghost">{t.nav.logout}</SubmitButton>
-    </form>
-  ) : onLoginPage ? null : (
-    // Not on the sign-in page itself, where it would open the same form over it.
-    <LoginLink locale={locale} className="btn ghost">{t.nav.login}</LoginLink>
-  );
+  // Not on the sign-in page itself, where it would open the same form over it. Sign-out is in the account menu.
+  const login = signedIn || onLoginPage ? null : <LoginLink locale={locale} className="btn ghost">{t.nav.login}</LoginLink>;
   const sections = (
     <nav className="links" aria-label="main">
       <Link href={`/${locale}?deal=sale`}>{t.nav.sale}</Link>
@@ -56,18 +44,33 @@ export function Header({ locale, t, signedIn, onLoginPage = false }: { locale: L
           <Logo />
         </Link>
         <span className="sp" />
-        <Link href={`/${locale}/listings/new`} className="btn">{t.nav.post}</Link>
-        {signedIn && <NotificationBell locale={locale} labels={t.notifications} unread={unreadNotifications()} />}
+        {/* One element at every width: the words on a wide screen, a "+" on a phone. The words stay its name. */}
+        <Link href={`/${locale}/listings/new`} className="btn post-button">
+          <svg className="post-icon" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" aria-hidden="true">
+            <path d="M12 5v14M5 12h14" />
+          </svg>
+          <span className="post-text">{t.nav.post}</span>
+        </Link>
+        {/* A stale session counts none and shows no photo. */}
+        {user && <NotificationBell locale={locale} labels={t.notifications} unread={user.then((person) => (person ? countUnreadNotifications(person.id) : 0))} />}
         <div className="nav-wide">
           {language}
           <ThemeToggle labels={t.theme} />
-          {signedIn && <AccountMenu label={t.nav.account} links={accountLinks} />}
-          {session}
+          {login}
         </div>
+        {user && (
+          <AccountMenu
+            label={t.nav.account}
+            links={accountLinks}
+            person={user.then((person) => person && { name: person.name, avatarUrl: person.avatarUrl })}
+            locale={locale}
+            signOut={t.nav.logout}
+            logout={logoutAction}
+          />
+        )}
         <PhoneMenu label={t.nav.menu}>
           {sections}
-          {signedIn && accountLinks.map(({ href, text }) => <Link key={href} href={href} className="nav-link">{text}</Link>)}
-          {session}
+          {login}
           {language}
           <ThemeToggle labels={t.theme} />
         </PhoneMenu>

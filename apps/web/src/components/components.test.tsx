@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { getDictionary, type Listing } from "@mteam/shared";
 import { fixtureListings } from "@/test-fixtures";
 import { Select } from "antd";
@@ -19,6 +19,8 @@ import { SearchBar } from "./SearchBar";
 import { Segmented } from "./Segmented";
 
 vi.mock("@/lib/auth-actions", () => ({ logoutAction: vi.fn() }));
+const countSearchAction = vi.hoisted(() => vi.fn(async (search: string): Promise<number> => (search ? 12 : 0)));
+vi.mock("@/lib/search-actions", () => ({ countSearchAction }));
 
 const push = vi.hoisted(() => vi.fn());
 vi.mock("next/navigation", () => ({ useRouter: () => ({ push }), usePathname: () => null, useSearchParams: () => null }));
@@ -71,23 +73,13 @@ describe("Header", () => {
       expect(menu()).toHaveAttribute("aria-expanded", "true");
     });
 
-    it("closes on submit rather than on the click, so sign out still reaches the server", () => {
+    it("closes with its own close button and keeps account pages and sign-out out of it", () => {
       render(<Header locale="en" t={t} signedIn />);
       fireEvent.click(menu());
-      const signOut = within(panel()).getByRole("button", { name: "Sign out" });
-      // Cancelled so only the click is seen here; removing the form on the click is what used to lose the submit.
-      panel().addEventListener("click", (event) => event.preventDefault());
-      fireEvent.click(signOut);
-      expect(menu()).toHaveAttribute("aria-expanded", "true");
-      fireEvent.submit(signOut.closest("form") as HTMLFormElement);
-      expectClosed();
-    });
-
-    it("closes with its own close button and offers the signed-in links", () => {
-      render(<Header locale="en" t={t} signedIn />);
-      fireEvent.click(menu());
-      expect(within(panel()).getByRole("link", { name: "My listings" })).toBeInTheDocument();
-      expect(within(panel()).getByRole("button", { name: "Sign out" })).toBeInTheDocument();
+      expect(within(panel()).getByRole("link", { name: "For rent" })).toBeInTheDocument();
+      expect(within(panel()).queryByRole("link", { name: "My listings" })).toBeNull();
+      expect(within(panel()).queryByRole("button", { name: "Sign out" })).toBeNull();
+      expect(within(panel()).queryByRole("link", { name: "Sign in" })).toBeNull();
       fireEvent.click(document.querySelector(".ant-drawer-close") as HTMLElement);
       expectClosed();
     });
@@ -659,6 +651,91 @@ describe("SearchBar", () => {
       bar({ city: "ბათუმი" });
       openMore();
       expect(combo("Metro")).toBeNull();
+    });
+  });
+
+  describe("phone filter sheet", () => {
+    const row = (filters = {}) => render(<SearchBar gelPerUsd={2.7} locale="en" t={t} filters={filters} display={display} results />);
+    const sheet = () => within(document.querySelector(".filter-sheet .ant-drawer-section") as HTMLElement);
+    const openSheet = () => fireEvent.click(screen.getByRole("button", { name: /Filters$/ }));
+    // The search icon is part of the button's name, so names are matched at their end.
+    const named = (text: string) => ({ name: new RegExp(`${text}$`) });
+
+    it("is only on results, counting every filter it holds", () => {
+      bar();
+      expect(screen.queryByRole("button", { name: /Filters$/ })).toBeNull();
+      cleanup();
+      row({ deal: "rent", q: "vake", verified: true, rooms: 2, city: "ბათუმი" });
+      expect(screen.getByRole("search")).toHaveClass("compact");
+      expect(document.querySelector(".filters-badge .ant-badge-count")).toHaveAttribute("title", "4");
+    });
+
+    // Text and label queries: role queries with names walk the whole drawer and take seconds each on CI.
+    const button = (text: string) => sheet().getByText(text, { selector: "button span, button" }).closest("button");
+    const countButton = (count: number) => t.assistant.show.replace("{count}", String(count));
+
+    it("holds the bar's fields and the extra filters, and says how many listings it will show", async () => {
+      row({ deal: "rent", verified: true });
+      openSheet();
+      expect(sheet().getByLabelText("Verified only")).toBeChecked();
+      expect(sheet().getByLabelText("Price from, $")).toBeInTheDocument();
+      expect(sheet().getByText("Deal")).toBeInTheDocument();
+      expect(sheet().getByText("Type")).toBeInTheDocument();
+      expect(button(t.assistant.showResults)).toBeInTheDocument();
+      expect(await sheet().findByText(countButton(12), {}, { timeout: 5000 })).toBeInTheDocument();
+      expect(countSearchAction).toHaveBeenLastCalledWith("deal=rent&cur=usd&view=grid&sort=new&verified=1");
+    });
+
+    it("never shows a count for filters changed since", async () => {
+      let answer: (total: number) => void = () => undefined;
+      countSearchAction.mockClear();
+      countSearchAction.mockReturnValueOnce(new Promise((resolve) => (answer = resolve)));
+      row();
+      openSheet();
+      await waitFor(() => expect(countSearchAction).toHaveBeenCalledTimes(1), { timeout: 5000 });
+      countSearchAction.mockReturnValueOnce(new Promise(() => undefined));
+      fireEvent.change(sheet().getByLabelText("Price from, $"), { target: { value: "500" } });
+      // The count for the filters before the change arrives late, and is not shown.
+      await act(async () => answer(99));
+      expect(sheet().queryByText(countButton(99))).toBeNull();
+      expect(button(t.assistant.showResults)).toBeInTheDocument();
+      await waitFor(() => expect(countSearchAction).toHaveBeenLastCalledWith("deal=&cur=usd&view=grid&sort=new&priceMin=500"), { timeout: 5000 });
+      expect(button(t.assistant.showResults)).toBeInTheDocument();
+    });
+
+    it("searches what was chosen there and closes", async () => {
+      row();
+      openSheet();
+      fireEvent.change(sheet().getByLabelText("ID, street or keyword"), { target: { value: "vake" } });
+      fireEvent.click(sheet().getByLabelText("Verified only"));
+      fireEvent.click(button(t.assistant.showResults) as HTMLElement);
+      await waitFor(() => expect(push).toHaveBeenCalled());
+      expect(Object.fromEntries(pushed())).toMatchObject({ q: "vake", verified: "1" });
+      await waitFor(() => expect(document.querySelector(".filter-sheet .ant-drawer-open")).toBeNull());
+    });
+
+    it("searches on Enter in the keyword, and drops what was switched off", async () => {
+      row({ q: "vake", verified: true });
+      openSheet();
+      fireEvent.click(sheet().getByLabelText("Verified only"));
+      const words = sheet().getByLabelText("ID, street or keyword");
+      fireEvent.change(words, { target: { value: "" } });
+      fireEvent.keyDown(words, { key: "Enter", keyCode: 13 });
+      await waitFor(() => expect(push).toHaveBeenCalled());
+      expect(pushed().has("q")).toBe(false);
+      expect(pushed().has("verified")).toBe(false);
+    });
+
+    it("clears everything but the place, and closes without searching", async () => {
+      row({ deal: "rent", type: "land", q: "vake", verified: true, rooms: 2, city: "ბათუმი" });
+      openSheet();
+      fireEvent.click(within(document.querySelector(".sheet-foot") as HTMLElement).getByText("Clear"));
+      expect(sheet().getByLabelText("Verified only")).not.toBeChecked();
+      expect(sheet().getByLabelText("ID, street or keyword")).toHaveValue("");
+      fireEvent.click(document.querySelector(".filter-sheet .ant-drawer-close") as HTMLElement);
+      expect(push).not.toHaveBeenCalled();
+      expect(document.querySelector(".filters-badge .ant-badge-count")).toBeNull();
+      expect(screen.getByRole("button", { name: "Location: Batumi" })).toBeInTheDocument();
     });
   });
 
