@@ -10,3 +10,5 @@ next-env.d.ts
 coverage
 .vercel
 .idea
+test-results
+playwright-report
