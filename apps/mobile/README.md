@@ -18,13 +18,19 @@ pnpm install
 pnpm --filter @mteam/mobile start      # then open it in Expo Go or a development build
 ```
 
-By default the app talks to `extra.apiUrl` in `app.json` (the Vercel preview). To use a local site, start `apps/web` and set its address, reachable from the phone:
+By default the app talks to `extra.apiUrl` in `app.json` (production, `https://mteam-phi.vercel.app`). To use a local site, start `apps/web` and set its address, reachable from the phone:
 
 ```bash
 EXPO_PUBLIC_API_URL=http://192.168.1.5:3000 pnpm --filter @mteam/mobile start
 ```
 
-The preview is behind Vercel Authentication, so the app needs either a local site or the protection turned off for `/api/*`.
+The site is open only to the team (Vercel Authentication on every deployment, and Vercel cannot exempt one path). The app gets through with the project's "Protection Bypass for Automation" key, sent as the `x-vercel-protection-bypass` header. Put it in `apps/mobile/.env.local`, which git ignores, never in `app.json`:
+
+```bash
+EXPO_PUBLIC_VERCEL_BYPASS=<the key from Vercel → Settings → Deployment Protection>
+```
+
+It is built into the app, so only team builds may carry it, and it opens the whole site, not just the API. Drop it once the site is public.
 
 ## Push notifications
 
