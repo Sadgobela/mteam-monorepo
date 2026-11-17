@@ -2,16 +2,18 @@ import { useCallback, useEffect, useState } from "react";
 import { Alert, Linking, Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View, type NativeScrollEvent, type NativeSyntheticEvent } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { Image } from "expo-image";
-import { Stack, useLocalSearchParams } from "expo-router";
-import { listingDescription } from "@mteam/shared";
+import { router, Stack, useLocalSearchParams } from "expo-router";
+import { convertPrice, listingDescription } from "@mteam/shared";
 import { ListingCard } from "@/components/ListingCard";
+import { LoanCalculator } from "@/components/LoanCalculator";
+import { Avatar } from "@/components/People";
 import { toSignIn } from "@/components/SignInPrompt";
 import { useBarSpace } from "@/components/TabBar";
 import { Button, dimWhenPressed, Heading, Note, ScreenState } from "@/components/ui";
 import { WriteToSeller } from "@/components/WriteToSeller";
 import { api, type ListingPage } from "@/lib/api";
 import { cardTitle, factList, priceLine, whatsappLink } from "@/lib/format";
-import { useLocale } from "@/lib/i18n";
+import { fill, useLocale } from "@/lib/i18n";
 import { useSession } from "@/lib/session";
 import { radius, space, useColors } from "@/lib/theme";
 
@@ -122,11 +124,29 @@ export default function ListingScreen() {
             </View>
           ))}
         </View>
-        {listing.agent && (
-          <View style={[styles.agent, { backgroundColor: c.surface, borderColor: c.line }]}>
-            <Ionicons name="person-circle-outline" size={40} color={c.brand} />
-            <Text style={[styles.agentName, { color: c.fg }]}>{[listing.agent.name, listing.agent.branch].filter(Boolean).join(" · ")}</Text>
-          </View>
+        {listing.agent ? (
+          <Pressable
+            accessibilityRole="link"
+            accessibilityLabel={listing.agent.name}
+            onPress={() => router.push(`/brokers/${listing.agent!.id}`)}
+            style={dimWhenPressed([styles.agent, { backgroundColor: c.surface, borderColor: c.line }])}
+          >
+            <Avatar name={listing.agent.name} />
+            <View style={styles.grow}>
+              <Text style={[styles.agentName, { color: c.fg }]}>{listing.agent.name}</Text>
+              {/* A broker without a branch has nothing after the dot, so none is shown. */}
+              <Text style={{ color: c.muted }}>{[t.listing.broker, listing.agent.branch].filter(Boolean).join(" · ")}</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={18} color={c.muted} />
+          </Pressable>
+        ) : (
+          // An owner's other listings are a link away when there are more than this one, as on the site.
+          page.sellerCount > 1 && (
+            <Pressable accessibilityRole="link" onPress={() => router.push(`/sellers/${listing.sellerId}`)} style={dimWhenPressed(styles.line)}>
+              <Ionicons name="person-outline" size={16} color={c.brandDeep} />
+              <Text style={[styles.link, { color: c.brandDeep }]}>{fill(t.listing.sellerListings, { count: page.sellerCount })}</Text>
+            </Pressable>
+          )
         )}
         {listing.hidePhone ? null : (
           <View style={styles.actions}>
@@ -141,6 +161,7 @@ export default function ListingScreen() {
         {/* An owner who hid the number is reached through chat only; nobody writes about their own or their agency's listing. */}
         {!own && <WriteToSeller listingId={listing.id} />}
         <Text style={[styles.description, { color: c.fg }]}>{listingDescription(listing, locale)}</Text>
+        {listing.deal === "sale" && <LoanCalculator price={convertPrice(listing.price, listing.currency, "usd", gelPerUsd)} symbol="$" />}
         {similar.length > 0 && (
           <View style={styles.similar}>
             <Heading>{t.listing.similar}</Heading>
@@ -169,7 +190,8 @@ const styles = StyleSheet.create({
   fact: { flex: 1, borderWidth: 1, borderRadius: radius.md, padding: space.md, gap: space.xs, alignItems: "flex-start" },
   factText: { fontSize: 14, fontWeight: "600" },
   agent: { flexDirection: "row", alignItems: "center", gap: space.md, borderWidth: 1, borderRadius: radius.lg, padding: space.md },
-  agentName: { flex: 1, fontSize: 15, fontWeight: "600" },
+  agentName: { fontSize: 15, fontWeight: "600" },
+  link: { fontSize: 15, fontWeight: "600" },
   actions: { flexDirection: "row", gap: space.sm },
   grow: { flex: 1 },
   description: { fontSize: 16, lineHeight: 24 },

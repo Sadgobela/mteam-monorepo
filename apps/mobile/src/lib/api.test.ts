@@ -63,6 +63,20 @@ describe("api", () => {
     ["favorites", () => api.favorites(), "/api/v1/favorites", "GET"],
     ["setFavorite", () => api.setFavorite(7, true), "/api/v1/favorites/7", "PUT"],
     ["myListings", () => api.myListings(), "/api/v1/my-listings", "GET"],
+    ["myListings of a tab", () => api.myListings("draft"), "/api/v1/my-listings?tab=draft", "GET"],
+    ["editableListing", () => api.editableListing("7"), "/api/v1/my-listings/7", "GET"],
+    ["deleteDraft", () => api.deleteDraft(7), "/api/v1/my-listings/7", "DELETE"],
+    ["listingAction", () => api.listingAction(7, "bump"), "/api/v1/my-listings/7/bump", "POST"],
+    ["brokers", () => api.brokers(), "/api/v1/brokers", "GET"],
+    ["broker", () => api.broker("b 1"), "/api/v1/brokers/b%201", "GET"],
+    ["branch", () => api.branch("vake"), "/api/v1/branches/vake", "GET"],
+    ["seller", () => api.seller("u1"), "/api/v1/sellers/u1", "GET"],
+    ["prices", () => api.prices("ბათუმი", "rent"), `/api/v1/prices?city=${encodeURIComponent("ბათუმი")}&deal=rent`, "GET"],
+    ["profile", () => api.profile(), "/api/v1/profile", "GET"],
+    ["saveProfile", () => api.saveProfile("Nino", "OWNER"), "/api/v1/profile", "PUT"],
+    ["settings", () => api.settings(), "/api/v1/settings", "GET"],
+    ["setPreference", () => api.setPreference("notifyPush", false), "/api/v1/settings", "PUT"],
+    ["deleteAccount", () => api.deleteAccount(), "/api/v1/account", "DELETE"],
     ["savePush", () => api.savePush("tok", "ios", "en"), "/api/v1/push", "POST"],
     ["deletePush", () => api.deletePush("tok"), "/api/v1/push", "DELETE"],
     ["notifications", () => api.notifications("en"), "/api/v1/notifications?locale=en", "GET"],
@@ -90,6 +104,10 @@ describe("api", () => {
     expect(append).toHaveBeenLastCalledWith("photo", { uri: "file:///a.png", type: "image/png", name: "a.png" });
     await api.uploadPhoto({ uri: "file:///b" });
     expect(append).toHaveBeenLastCalledWith("photo", { uri: "file:///b", type: "image/jpeg", name: "photo.jpeg" });
+    // A profile photo goes up the same way, to its own address.
+    await api.uploadAvatar({ uri: "file:///me.jpg", mimeType: "image/jpeg", fileName: "me.jpg" });
+    expect(lastCall().url).toBe("https://api.test/api/v1/profile/avatar");
+    expect(append).toHaveBeenLastCalledWith("photo", { uri: "file:///me.jpg", type: "image/jpeg", name: "me.jpg" });
     append.mockRestore();
   });
 

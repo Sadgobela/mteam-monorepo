@@ -12,6 +12,7 @@ const prisma = vi.hoisted(() => {
     emailToken: { deleteMany: vi.fn() },
     notification: { deleteMany: vi.fn() },
     pushSubscription: { deleteMany: vi.fn() },
+    appPushToken: { deleteMany: vi.fn() },
     agent: { updateMany: vi.fn() },
     listing: { updateMany: vi.fn() },
     $transaction: vi.fn(),
@@ -88,7 +89,7 @@ describe("deleteAccount", () => {
       where: { id: "u1", role: "USER" },
       data: { name: null, phone: null, email: null, emailVerifiedAt: null, passwordHash: null, avatarUrl: null, deletedAt: expect.any(Date) },
     });
-    for (const table of [prisma.identity, prisma.session, prisma.savedSearch, prisma.favorite, prisma.hiddenListing, prisma.emailToken, prisma.notification, prisma.pushSubscription]) {
+    for (const table of [prisma.identity, prisma.session, prisma.savedSearch, prisma.favorite, prisma.hiddenListing, prisma.emailToken, prisma.notification, prisma.pushSubscription, prisma.appPushToken]) {
       expect(table.deleteMany).toHaveBeenCalledWith({ where: { userId: "u1" } });
     }
     expect(prisma.listing.updateMany).toHaveBeenCalledWith({ where: { ownerId: "u1", status: { not: "ARCHIVED" } }, data: { status: "ARCHIVED" } });

@@ -6,7 +6,7 @@ import ListingScreen from "@/app/listings/[id]";
 const { router, useLocalSearchParams } = jest.requireMock("expo-router");
 const openURL = jest.spyOn(Linking, "openURL").mockResolvedValue(undefined);
 const alert = jest.spyOn(Alert, "alert").mockImplementation(() => undefined);
-const detail = (overrides = {}, similar: unknown[] = []) => answer({ listing: { ...listing, ...overrides }, similar, gelPerUsd: 2.7 });
+const detail = (overrides = {}, similar: unknown[] = [], sellerCount = 1) => answer({ listing: { ...listing, ...overrides }, similar, sellerCount, gelPerUsd: 2.7 });
 
 beforeEach(() => useLocalSearchParams.mockReturnValue({ id: "7" }));
 
@@ -16,7 +16,7 @@ describe("ListingScreen", () => {
     await renderApp(<ListingScreen />);
     expect(await screen.findByText("$120,000")).toBeOnTheScreen();
     expect(screen.getByText("მზიანი ბინა")).toBeOnTheScreen();
-    expect(screen.getByText("Nino · Vake")).toBeOnTheScreen();
+    expect(screen.getByText("MTeam ბროკერი · Vake")).toBeOnTheScreen();
     expect(screen.getByLabelText("ფოტო 2")).toBeOnTheScreen();
     expect(screen.getByText("1 / 2")).toBeOnTheScreen();
     await fireEvent(screen.getByTestId("gallery"), "momentumScrollEnd", { nativeEvent: { contentOffset: { x: 750 } } });
@@ -25,12 +25,30 @@ describe("ListingScreen", () => {
     for (const heart of screen.getAllByRole("button", { name: "რჩეულებში დამატება" })) await fireEvent.press(heart);
     await waitFor(() => expect(router.push).toHaveBeenCalledTimes(2));
     expect(router.push).toHaveBeenCalledWith("/login");
+    // The broker's card opens the broker's page.
+    await fireEvent.press(screen.getByRole("link", { name: "Nino" }));
+    expect(router.push).toHaveBeenLastCalledWith("/brokers/a1");
+    expect(screen.queryByRole("link", { name: /ყველა განცხადება/ })).not.toBeOnTheScreen();
   });
 
   it("names a broker without a branch on its own, with no dangling dot", async () => {
     serve({ "/api/v1/listings/7": detail({ agent: { id: "a1", name: "Nino", branch: "" } }) });
     await renderApp(<ListingScreen />);
-    expect(await screen.findByText("Nino")).toBeOnTheScreen();
+    expect(await screen.findByText("MTeam ბროკერი")).toBeOnTheScreen();
+  });
+
+  it("links an owner's other listings when there are more, and works out a loan for a sale", async () => {
+    serve({ "/api/v1/listings/7": [detail({}, [], 3), detail({ deal: "rent", price: 1000 })] });
+    const view = await renderApp(<ListingScreen />);
+    await fireEvent.press(await screen.findByRole("link", { name: "ყველა განცხადება (3)" }));
+    expect(router.push).toHaveBeenCalledWith("/sellers/u1");
+    expect(screen.getByRole("header", { name: "სესხის კალკულატორი" })).toBeOnTheScreen();
+    expect(screen.getByLabelText("ფასი, $")).toHaveDisplayValue("120000");
+    await view.unmount();
+    await renderApp(<ListingScreen />);
+    expect(await screen.findByText("$1,000 / თვე")).toBeOnTheScreen();
+    expect(screen.queryByRole("link", { name: /ყველა განცხადება/ })).not.toBeOnTheScreen();
+    expect(screen.queryByRole("header", { name: "სესხის კალკულატორი" })).not.toBeOnTheScreen();
   });
 
   it("calls and opens WhatsApp with the number it asks for at the press", async () => {

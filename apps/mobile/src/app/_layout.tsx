@@ -74,6 +74,15 @@ function Screens() {
           <Stack.Screen name="messages/index" options={{ title: t.mobile.messages }} />
           <Stack.Screen name="messages/[id]" options={{ headerShown: false }} />
           <Stack.Screen name="saved-searches" options={{ title: t.saved.heading }} />
+          <Stack.Screen name="brokers/index" options={{ title: t.brokers.heading }} />
+          <Stack.Screen name="brokers/[id]" options={{ title: "" }} />
+          <Stack.Screen name="branches/[id]" options={{ title: "" }} />
+          <Stack.Screen name="sellers/[id]" options={{ title: t.listing.sellerHeading }} />
+          <Stack.Screen name="mortgage" options={{ title: t.nav.mortgage }} />
+          <Stack.Screen name="prices" options={{ title: t.market.statsHeading }} />
+          <Stack.Screen name="profile" options={{ title: t.account.profile }} />
+          <Stack.Screen name="settings" options={{ title: t.account.settings }} />
+          <Stack.Screen name="edit/[id]" options={{ title: t.post.editHeading }} />
         </Stack>
       </BlurTargetView>
       <TabBar blurTarget={behind} />

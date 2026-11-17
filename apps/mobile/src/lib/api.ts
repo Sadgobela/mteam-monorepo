@@ -22,6 +22,8 @@ export interface SearchPage {
 export interface ListingPage {
   listing: PublicListing;
   similar: PublicListing[];
+  /** How many listings the owner has live; 0 for a broker's, whose page lists them. */
+  sellerCount: number;
   gelPerUsd: number;
 }
 
@@ -82,8 +84,90 @@ export interface SavedSearch {
   newCount: number;
 }
 
+/** A broker in a list: the phone is on their own page. */
+export interface BrokerCard {
+  id: string;
+  name: string;
+  branch: string;
+  listingCount: number;
+}
+
+/** An MTeam office; `city` is a place name the app writes in its language. */
+export interface BranchCard {
+  id: string;
+  name: string;
+  city: string;
+  brokerCount: number;
+  listingCount: number;
+}
+
+export interface Broker {
+  id: string;
+  name: string;
+  branch: string;
+  phone: string;
+  photoUrl: string | null;
+  bio: string | null;
+}
+
+/** Listings on someone's page, with the rate their prices are shown in lari at. */
+export interface ListingsOf {
+  listings: PublicListing[];
+  gelPerUsd: number;
+}
+
+/** Typical price per m² of an apartment in one district, by room count; 4 means four or more. */
+export interface PriceStat {
+  district: string;
+  rooms: number;
+  median: number;
+}
+
+export type Intent = "SEEKING" | "OWNER" | "BROKER";
+
+export interface Profile {
+  name: string | null;
+  avatarUrl: string | null;
+  intent: Intent | null;
+  createdAt: string;
+}
+
+export const preferenceKeys = ["notifyMessages", "notifySavedSearches", "notifyPriceDrops", "notifyListingUpdates", "notifyPush", "hidePhoneDefault"] as const;
+export type PreferenceKey = (typeof preferenceKeys)[number];
+
 export type ListingStatus = "DRAFT" | "PENDING" | "ACTIVE" | "ARCHIVED" | "REJECTED";
-export type MyListing = PublicListing & { status: ListingStatus };
+export const myListingTabs = ["active", "pending", "draft", "expiring", "archived", "rejected"] as const;
+export type MyListingTab = (typeof myListingTabs)[number];
+
+/** One of the user's own listings, with its numbers and what can be done with it now. */
+export type MyListing = PublicListing & {
+  status: ListingStatus;
+  views: number;
+  phoneReveals: number;
+  favorites: number;
+  conversations: number;
+  canRenew: boolean;
+  canBump: boolean;
+  expiresAt: string | null;
+  nextBumpAt: string | null;
+};
+
+export interface MyListingsPage {
+  tab: MyListingTab;
+  counts: Record<MyListingTab, number>;
+  listings: MyListing[];
+  gelPerUsd: number;
+}
+
+/** One of the user's listings as the posting form's values, every field by name, and its photo addresses. */
+export interface EditableListing {
+  id: number;
+  status: ListingStatus;
+  fields: Record<string, string>;
+  images: string[];
+}
+
+export type ListingAction = "bump" | "renew" | "archive";
 export type Query = Record<string, string | string[] | undefined>;
 
 let sessionToken: string | null = null;
@@ -146,6 +230,14 @@ export interface PickedPhoto {
   fileName?: string | null;
 }
 
+/** A form with one picked photo as `photo`: React Native's FormData takes a file as its address, type and name. */
+function photoForm(photo: PickedPhoto): FormData {
+  const form = new FormData();
+  const type = photo.mimeType || "image/jpeg";
+  form.append("photo", { uri: photo.uri, type, name: photo.fileName || `photo.${type.split("/")[1]}` } as unknown as Blob);
+  return form;
+}
+
 export const api = {
   search: (query: Query) => call<SearchPage>(`/api/v1/listings${toSearch(query)}`),
   listing: (id: string) => call<ListingPage>(`/api/v1/listings/${encodeURIComponent(id)}`),
@@ -157,14 +249,13 @@ export const api = {
   onboard: (name: string, intent: "SEEKING" | "OWNER" | "BROKER") => call<{ ok: true }>("/api/v1/onboarding", { json: { name, intent, terms: true } }),
   favorites: () => call<{ listings: PublicListing[]; gelPerUsd: number }>("/api/v1/favorites"),
   setFavorite: (id: number, favorite: boolean) => call<{ id: number; favorite: boolean }>(`/api/v1/favorites/${id}`, { method: "PUT", json: { favorite } }),
-  myListings: () => call<{ listings: MyListing[]; gelPerUsd: number }>("/api/v1/my-listings"),
-  uploadPhoto: (photo: PickedPhoto) => {
-    const form = new FormData();
-    const type = photo.mimeType || "image/jpeg";
-    // React Native's FormData takes a file as its address, type and name.
-    form.append("photo", { uri: photo.uri, type, name: photo.fileName || `photo.${type.split("/")[1]}` } as unknown as Blob);
-    return call<{ url: string }>("/api/listings/photos", { form });
-  },
+  /** One tab of the user's listings; without one, the first tab with something in it. */
+  myListings: (tab?: MyListingTab) => call<MyListingsPage>(`/api/v1/my-listings${toSearch({ tab })}`),
+  editableListing: (id: string) => call<EditableListing>(`/api/v1/my-listings/${encodeURIComponent(id)}`),
+  deleteDraft: (id: number) => call<{ ok: true }>(`/api/v1/my-listings/${id}`, { method: "DELETE" }),
+  listingAction: (id: number, action: ListingAction) => call<{ ok: true }>(`/api/v1/my-listings/${id}/${action}`, { method: "POST" }),
+  uploadPhoto: (photo: PickedPhoto) => call<{ url: string }>("/api/listings/photos", { form: photoForm(photo) }),
+  /** Sends a listing for review; with an `id` among the fields it saves an edit of the user's own. */
   submitListing: (fields: Record<string, string>, photos: string[]) => {
     const form = new URLSearchParams({ ...fields, intent: "submit" });
     for (const url of photos) form.append("photos", url);
@@ -183,6 +274,18 @@ export const api = {
   deleteSavedSearch: (id: string) => call<{ ok: true }>(`/api/v1/saved-searches/${encodeURIComponent(id)}`, { method: "DELETE" }),
   /** Counts its results as seen, and answers with its filters. */
   openSavedSearch: (id: string) => call<{ query: string }>(`/api/v1/saved-searches/${encodeURIComponent(id)}/open`, { method: "POST" }),
+  brokers: () => call<{ branches: BranchCard[]; brokers: BrokerCard[] }>("/api/v1/brokers"),
+  broker: (id: string) => call<ListingsOf & { broker: Broker }>(`/api/v1/brokers/${encodeURIComponent(id)}`),
+  branch: (id: string) => call<ListingsOf & { branch: { id: string; name: string; city: string }; brokers: BrokerCard[] }>(`/api/v1/branches/${encodeURIComponent(id)}`),
+  seller: (id: string) => call<ListingsOf & { seller: { name: string | null; avatarUrl: string | null } }>(`/api/v1/sellers/${encodeURIComponent(id)}`),
+  prices: (city: string, deal: "sale" | "rent") => call<{ city: string; deal: "sale" | "rent"; stats: PriceStat[] }>(`/api/v1/prices${toSearch({ city, deal })}`),
+  profile: () => call<Profile>("/api/v1/profile"),
+  saveProfile: (name: string, intent: Intent) => call<{ ok: true }>("/api/v1/profile", { method: "PUT", json: { name, intent } }),
+  uploadAvatar: (photo: PickedPhoto) => call<{ avatarUrl: string }>("/api/v1/profile/avatar", { form: photoForm(photo) }),
+  settings: () => call<{ preferences: Record<PreferenceKey, boolean>; canDelete: boolean }>("/api/v1/settings"),
+  setPreference: (key: PreferenceKey, value: boolean) => call<{ ok: true }>("/api/v1/settings", { method: "PUT", json: { key, value } }),
+  /** Deletes the account for good, ending every session; the server refuses brokers and admins. */
+  deleteAccount: () => call<{ ok: true }>("/api/v1/account", { method: "DELETE", json: { confirm: "yes" } }),
   savePush: (token: string, platform: "ios" | "android", locale: string) => call<{ ok: true }>("/api/v1/push", { json: { token, platform, locale } }),
   deletePush: (token: string) => call<{ ok: true }>("/api/v1/push", { method: "DELETE", json: { token } }),
 };

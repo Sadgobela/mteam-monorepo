@@ -9,7 +9,6 @@ const db = vi.hoisted(() => ({
   getGelPerUsd: vi.fn(),
   getSessionUser: vi.fn(),
   listFavorites: vi.fn(),
-  listMyListings: vi.fn(),
   parseListingId: vi.fn(),
   requestLoginCode: vi.fn(),
   setFavorite: vi.fn(),
@@ -25,7 +24,6 @@ import { POST as verify } from "./auth/verify/route";
 import { PUT as setFavorite } from "./favorites/[id]/route";
 import { GET as favorites } from "./favorites/route";
 import { GET as me } from "./me/route";
-import { GET as myListings } from "./my-listings/route";
 import { POST as onboard } from "./onboarding/route";
 
 const json = (body: unknown) => new Request("http://localhost/api/v1/x", { method: "POST", body: typeof body === "string" ? body : JSON.stringify(body) });
@@ -94,7 +92,6 @@ describe("signed-out requests", () => {
   it.each([
     ["me", () => me()],
     ["favorites", () => favorites()],
-    ["my listings", () => myListings()],
     ["onboarding", () => onboard(json({}))],
     ["a favourite", () => setFavorite(json({ favorite: true }), { params: Promise.resolve({ id: "1" }) })],
   ])("%s says signed out", async (_name, call) => {
@@ -143,13 +140,5 @@ describe("favourites", () => {
     expect(await read(setFavorite(json({ favorite: true }), { params: Promise.resolve({ id: "x" }) }))).toEqual([400, { error: "invalid" }]);
     expect(await read(setFavorite(json({ favorite: "yes" }), { params: Promise.resolve({ id: "3" }) }))).toEqual([400, { error: "invalid" }]);
     expect(db.setFavorite).not.toHaveBeenCalled();
-  });
-});
-
-describe("GET /api/v1/my-listings", () => {
-  it("lists the user's listings with their status", async () => {
-    db.listMyListings.mockResolvedValue([{ listing: { id: 9, contactPhone: "+995555000000" }, status: "PENDING" }]);
-    expect(await read(myListings())).toEqual([200, { listings: [{ id: 9, status: "PENDING" }], gelPerUsd: 2.7 }]);
-    expect(db.listMyListings).toHaveBeenCalledWith("u1");
   });
 });

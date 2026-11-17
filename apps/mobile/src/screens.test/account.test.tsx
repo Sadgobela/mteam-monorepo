@@ -3,18 +3,24 @@ import * as Device from "expo-device";
 import { answer, listing, renderApp, serve, signedIn } from "@/test/render";
 import AccountScreen from "@/app/(tabs)/account";
 import FavoritesScreen from "@/app/(tabs)/favorites";
-import MyListingsScreen from "@/app/my-listings";
 
 const { router } = jest.requireMock("expo-router");
 const notifications = jest.requireMock("expo-notifications");
 const device = Device as { isDevice: boolean };
 
 describe("AccountScreen", () => {
-  it("offers sign-in and the language to a signed-out user", async () => {
+  it("offers sign-in, the brokers, the mortgage calculator, prices and the language to a signed-out user", async () => {
     serve({});
     await renderApp(<AccountScreen />);
     await fireEvent.press(await screen.findByRole("button", { name: "შესვლა" }));
     expect(router.push).toHaveBeenCalledWith("/login");
+    expect(screen.queryByRole("button", { name: "პროფილი" })).not.toBeOnTheScreen();
+    await fireEvent.press(screen.getByRole("button", { name: "ბროკერები" }));
+    expect(router.push).toHaveBeenCalledWith("/brokers");
+    await fireEvent.press(screen.getByRole("button", { name: "იპოთეკა" }));
+    expect(router.push).toHaveBeenCalledWith("/mortgage");
+    await fireEvent.press(screen.getByRole("button", { name: "ფასები" }));
+    expect(router.push).toHaveBeenCalledWith("/prices");
     await fireEvent.press(screen.getByText("English"));
     expect(await screen.findByText("App language")).toBeOnTheScreen();
     await fireEvent.press(screen.getByText("English"));
@@ -31,6 +37,10 @@ describe("AccountScreen", () => {
     expect(router.push).toHaveBeenCalledWith("/messages");
     await fireEvent.press(screen.getByRole("button", { name: "შენახული ძიებები" }));
     expect(router.push).toHaveBeenCalledWith("/saved-searches");
+    await fireEvent.press(screen.getByRole("button", { name: "პროფილი" }));
+    expect(router.push).toHaveBeenCalledWith("/profile");
+    await fireEvent.press(screen.getByRole("button", { name: "პარამეტრები" }));
+    expect(router.push).toHaveBeenCalledWith("/settings");
 
     const toggle = screen.getByLabelText("შეტყობინებები ამ ტელეფონზე");
     await fireEvent(toggle, "valueChange", true);
@@ -87,17 +97,5 @@ describe("FavoritesScreen", () => {
     serve({ "/api/v1/me": answer(signedIn()), "/api/v1/favorites": answer({ listings: [listing], gelPerUsd: 2.7 }) });
     await renderApp(<FavoritesScreen />);
     expect(await screen.findByText("$120,000")).toBeOnTheScreen();
-  });
-});
-
-describe("MyListingsScreen", () => {
-  it("lists the user's listings with their status, and retries a failure", async () => {
-    serve({ "/api/v1/me": answer(signedIn()), "/api/v1/my-listings": [new TypeError("offline"), answer({ listings: [{ ...listing, status: "PENDING" }], gelPerUsd: 2.7 }), answer({ listings: [], gelPerUsd: 2.7 })] });
-    const view = await renderApp(<MyListingsScreen />);
-    await fireEvent.press(await screen.findByRole("button", { name: "თავიდან ცდა" }));
-    expect(await screen.findByText("მოდერაციაზე")).toBeOnTheScreen();
-    await view.unmount();
-    await renderApp(<MyListingsScreen />);
-    expect(await screen.findByText("ჯერ განცხადება არ დაგიმატებია.")).toBeOnTheScreen();
   });
 });

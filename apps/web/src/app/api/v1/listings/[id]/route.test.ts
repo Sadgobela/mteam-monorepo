@@ -1,7 +1,7 @@
 // @vitest-environment node
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const db = vi.hoisted(() => ({ getGelPerUsd: vi.fn(), getListing: vi.fn(), listSimilarListings: vi.fn() }));
+const db = vi.hoisted(() => ({ countSellerListings: vi.fn(), getGelPerUsd: vi.fn(), getListing: vi.fn(), listSimilarListings: vi.fn() }));
 vi.mock("@mteam/db", () => db);
 
 import { GET } from "./route";
@@ -17,11 +17,20 @@ beforeEach(() => {
 });
 
 describe("GET /api/v1/listings/[id]", () => {
-  it("returns the listing and similar ones without phone numbers", async () => {
-    db.getListing.mockResolvedValue({ id: 5, contactPhone: "+995555000000" });
+  it("returns the listing, similar ones and the owner's count, without phone numbers", async () => {
+    db.getListing.mockResolvedValue({ id: 5, sellerId: "u1", contactPhone: "+995555000000" });
     db.listSimilarListings.mockResolvedValue([{ id: 6, contactPhone: "+995555111111" }]);
-    expect(await get("5")).toEqual([200, { listing: { id: 5 }, similar: [{ id: 6 }], gelPerUsd: 2.7 }]);
+    db.countSellerListings.mockResolvedValue(3);
+    expect(await get("5")).toEqual([200, { listing: { id: 5, sellerId: "u1" }, similar: [{ id: 6 }], sellerCount: 3, gelPerUsd: 2.7 }]);
     expect(db.getListing).toHaveBeenCalledWith("5");
+    expect(db.countSellerListings).toHaveBeenCalledWith("u1");
+  });
+
+  it("does not count a broker's listings: the broker's page lists them", async () => {
+    db.getListing.mockResolvedValue({ id: 5, sellerId: "u1", agent: { id: "a1", name: "Nino", phone: "+995555000000" } });
+    db.listSimilarListings.mockResolvedValue([]);
+    expect((await get("5"))[1]).toMatchObject({ sellerCount: 0 });
+    expect(db.countSellerListings).not.toHaveBeenCalled();
   });
 
   it("says not found for an unknown or unpublished listing", async () => {
