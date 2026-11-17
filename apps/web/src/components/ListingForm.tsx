@@ -64,9 +64,10 @@ async function send(path: string, body: FormData): Promise<unknown> {
 const valuesOf = (form: HTMLFormElement): Record<string, string> =>
   Object.fromEntries(Array.from(new FormData(form)).filter((entry): entry is [string, string] => typeof entry[1] === "string"));
 
-function Input({ label, ...input }: { label: string } & React.InputHTMLAttributes<HTMLInputElement>) {
+/** `short` for a number that shares a row with another on a phone; every other field takes the whole row there. */
+function Input({ label, short = false, ...input }: { label: string; short?: boolean } & React.InputHTMLAttributes<HTMLInputElement>) {
   return (
-    <label className="field">
+    <label className={short ? "field short" : "field"}>
       <small>{label}</small>
       <input {...input} />
     </label>
@@ -112,6 +113,8 @@ export function ListingForm({
   const [district, setDistrict] = useState(values.district ?? "");
   const [streetsModule, setStreetsModule] = useState<StreetsModule | null>(null);
   const streets = streetsModule?.streetsIn(city, district ? [district] : []) ?? [];
+  // Asked for before a district is chosen in a city that has districts; elsewhere it is just empty.
+  const streetHint = districts.length > 0 && !district ? t.ui.streetHint : undefined;
   // The street saved with the listing applies only while its own city and district are chosen.
   const street = city === values.city && district === values.district ? values.street : "";
   const here = initial ? `/${locale}/listings/${initial.id}/edit` : `/${locale}/listings/new`;
@@ -262,7 +265,8 @@ export function ListingForm({
         </ol>
         <div className="steps">
           <fieldset {...stepProps(PLACE)}>
-            <div className="form-row">
+            {/* A fixed grid: every field keeps its place while the form is filled. District and street are always there, disabled until they apply. */}
+            <div className="post-grid">
               <FormSelect name="deal" label={t.search.deal} initial={values.deal || dealTypes[0]} options={dealTypes.map((d) => ({ value: d, label: t.deal[d] }))} onChange={changed} />
               <FormSelect
                 name="type"
@@ -285,41 +289,49 @@ export function ListingForm({
                   changed();
                 }}
               />
-            </div>
-            <div className="form-row">
-              {districts.length > 0 && (
-                <FormSelect
-                  key={city}
-                  name="district"
-                  label={f.district}
-                  initial={district}
-                  options={districts.map((name) => ({ value: name, label: placeLabel(name, locale) }))}
-                  onChange={(value) => {
-                    setDistrict(value);
-                    changed();
-                  }}
-                />
-              )}
-              {streets.length > 0 && (
-                <FormSelect key={`${city}/${district}`} name="street" optional label={f.street} initial={street} options={streets.map((name) => ({ value: name, label: placeLabel(name, locale) }))} />
-              )}
-              <Input label={f.address} name="address" required maxLength={200} pattern=".*\S.*" defaultValue={values.address} />
+              <FormSelect
+                key={city}
+                name="district"
+                label={f.district}
+                initial={district}
+                disabled={districts.length === 0}
+                options={districts.map((name) => ({ value: name, label: placeLabel(name, locale) }))}
+                onChange={(value) => {
+                  setDistrict(value);
+                  changed();
+                }}
+              />
+              <FormSelect
+                key={`${city}/${district}`}
+                name="street"
+                optional
+                label={f.street}
+                initial={street}
+                disabled={streets.length === 0}
+                hint={streetHint}
+                options={streets.map((name) => ({ value: name, label: placeLabel(name, locale) }))}
+              />
               {city === METRO_CITY && (
                 <FormSelect name="metro" optional label={t.search.metro} initial={values.metro} options={metroStations.map((name) => ({ value: name, label: placeLabel(name, locale) }))} />
               )}
+              <div className="wide">
+                <Input label={f.address} name="address" required maxLength={200} pattern=".*\S.*" defaultValue={values.address} />
+              </div>
             </div>
             <LocationPicker label={f.pin} clearLabel={f.pinClear} initial={values.lat && values.lng ? { lat: values.lat, lng: values.lng } : null} />
-            <Input label={f.cadastralCode} name="cadastralCode" maxLength={40} pattern="\s*\d+(\.\d+)*\s*" inputMode="decimal" defaultValue={values.cadastralCode} />
+            <div className="post-grid">
+              <Input label={f.cadastralCode} name="cadastralCode" maxLength={40} pattern="\s*\d+(\.\d+)*\s*" inputMode="decimal" defaultValue={values.cadastralCode} />
+            </div>
           </fieldset>
           <fieldset {...stepProps(DETAILS)}>
-            {type !== "land" && (
-              <FormSelect name="building" optional label={t.search.status} initial={values.building} options={buildingStatuses.map((status) => ({ value: status, label: t.search.building[status] }))} onChange={changed} />
-            )}
-            <div className="form-row">
-              <Input label={f.area} name="area" type="number" required min={0.01} step={0.01} defaultValue={values.area} />
-              {showsRooms && <Input label={f.rooms} name="rooms" type="number" min={1} max={50} required={type !== "hotel"} defaultValue={values.rooms} />}
-              {type !== "land" && <Input label={f.floor} name="floor" type="number" min={1} max={200} defaultValue={values.floor} />}
-              {type !== "land" && <Input label={f.floors} name="floors" type="number" min={1} max={200} defaultValue={values.floors} />}
+            <div className="post-grid">
+              {type !== "land" && (
+                <FormSelect name="building" optional label={t.search.status} initial={values.building} options={buildingStatuses.map((status) => ({ value: status, label: t.search.building[status] }))} onChange={changed} />
+              )}
+              <Input short label={f.area} name="area" type="number" required min={0.01} step={0.01} defaultValue={values.area} />
+              {showsRooms && <Input short label={f.rooms} name="rooms" type="number" min={1} max={50} required={type !== "hotel"} defaultValue={values.rooms} />}
+              {type !== "land" && <Input short label={f.floor} name="floor" type="number" min={1} max={200} defaultValue={values.floor} />}
+              {type !== "land" && <Input short label={f.floors} name="floors" type="number" min={1} max={200} defaultValue={values.floors} />}
             </div>
             <Input label={f.title} name="title" required maxLength={120} defaultValue={values.title} />
             <label className="field">
@@ -351,9 +363,9 @@ export function ListingForm({
             )}
           </fieldset>
           <fieldset {...stepProps(PRICE)}>
-            <div className="form-row">
-              <Input label={f.price} name="price" type="number" required min={1} max={2000000000} defaultValue={values.price} />
-              <FormSelect name="currency" label={f.currency} initial={values.currency || currencies[0]} options={currencies.map((c) => ({ value: c, label: c }))} onChange={changed} />
+            <div className="post-grid">
+              <Input short label={f.price} name="price" type="number" required min={1} max={2000000000} defaultValue={values.price} />
+              <FormSelect className="field short" name="currency" label={f.currency} initial={values.currency || currencies[0]} options={currencies.map((c) => ({ value: c, label: c }))} onChange={changed} />
             </div>
             <PriceHint values={snapshot} gelPerUsd={gelPerUsd} t={t} />
           </fieldset>
@@ -380,10 +392,12 @@ export function ListingForm({
           )}
         </div>
       </form>
-      <aside className="post-aside">
+      {/* Beside the form on a wide screen, where it cannot be folded; below it on a phone, where it can. */}
+      <details className="post-aside" open>
+        <summary>{t.post.preview}</summary>
         <ListingPreview values={snapshot} photo={photos[0]?.preview} locale={locale} t={t} />
         <QualityMeter values={snapshot} photos={photos.length} t={t} />
-      </aside>
+      </details>
     </div>
   );
 }
