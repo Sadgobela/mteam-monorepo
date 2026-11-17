@@ -35,7 +35,9 @@ Today mTeam posts its listings on existing portals (ss.ge, myhome.ge style). We 
 
 ## Before public launch
 Development runs entirely locally for now. These must be done before real users arrive:
-- Real SMS provider (Georgia only; compare smsoffice.ge and others on price). Production refuses to issue codes until then.
+- Real SMS provider: **ubill.ge** (chosen 2026-11-17). 0.01 GEL per SMS from the first one, 0.008 GEL from 50,000; no monthly fee, bought SMS never expire, HTTP API. smsoffice.ge was the alternative: 0.03 GEL, smallest pack 5,000 SMS for 150 GEL. Irakli opens the account (company details), the code gets `SMS_PROVIDER=ubill`, and the sender name "MTeam" is registered with them. Production refuses to issue codes until then.
+- Real email provider: **Resend**, free plan (3,000 emails a month, at most 100 a day; Pro is 20 USD a month for 50,000). It needs our own domain to send from, so it comes with the real domain. Until then `EMAIL_PROVIDER=log`.
+- Mobile app: drop `EXPO_PUBLIC_VERCEL_BYPASS` once the site is public (it lets team builds through the team-only protection), and ship store builds without it.
 - Cloudflare R2 instead of local SeaweedFS (R2 needs a payment method on the account; change the `STORAGE_` values). If uploads ever go straight to R2, photos still need a server step that removes their metadata.
 - Set `LOGIN_CODE_SECRET` to the output of `openssl rand -hex 32`, never the example value.
 - Hosting: the proxy in front of the site must add the visitor's address as the last `x-forwarded-for` entry, because the limit on login codes trusts only that entry. It must also allow 4.5 MB requests to `/api/listings/photos`, which takes one photo at a time.
