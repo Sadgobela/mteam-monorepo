@@ -33,7 +33,11 @@ jest.mock("expo-router", () => {
     router,
     useLocalSearchParams: jest.fn(() => ({})),
     useFocusEffect: (effect) => React.useEffect(effect, [effect]),
-    Link: ({ children }) => children,
+    // Like expo-router's Slot, which an asChild Link renders through: it throws on an array of styles.
+    Link: ({ children, asChild }) => {
+      if (asChild && Array.isArray(children.props.style)) throw new Error("[expo-router]: You are passing an array of styles to a child of <Slot>.");
+      return children;
+    },
     Stack: navigator("Stack"),
     Tabs: navigator("Tabs"),
   };

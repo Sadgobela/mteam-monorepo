@@ -18,8 +18,9 @@ export function ListingCard({ listing, gelPerUsd, onSignIn }: { listing: PublicL
     if (!(await session.toggleFavorite(listing.id))) onSignIn();
   };
   return (
+    // One style object: Link's asChild (Slot) refuses an array of styles, and the whole list failed to render.
     <Link href={`/listings/${listing.id}`} asChild>
-      <Pressable accessibilityRole="link" style={[styles.card, { backgroundColor: c.surface, borderColor: c.line }]}>
+      <Pressable accessibilityRole="link" style={StyleSheet.flatten([styles.card, { backgroundColor: c.surface, borderColor: c.line }])}>
         {cover ? (
           <Image source={{ uri: thumbUrl(cover) }} style={styles.photo} contentFit="cover" accessibilityLabel={t.card.photo} />
         ) : (
