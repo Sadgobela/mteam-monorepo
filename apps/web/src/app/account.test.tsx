@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { getDictionary } from "@mteam/shared";
 import { fixtureListings } from "@/test-fixtures";
 
@@ -35,6 +35,7 @@ vi.mock("next/navigation", () => ({
 }));
 
 import { Header } from "@/components/Header";
+import { logoutAction } from "@/lib/auth-actions";
 import { archiveListingAction, setFavoriteAction, setHiddenAction } from "@/lib/account-actions";
 import HomePage from "./[locale]/(home)/page";
 import FavoritesPage from "./[locale]/(account)/favorites/page";
@@ -149,5 +150,65 @@ describe("Header account links", () => {
   it("hides them from a visitor", () => {
     render(<Header locale="en" t={t} signedIn={false} />);
     expect(screen.queryByRole("button", { name: new RegExp(t.nav.account) })).toBeNull();
+  });
+});
+
+describe("avatar menu", () => {
+  const avatar = () => screen.getByRole("button", { name: t.nav.account });
+  const openMenu = async () => {
+    fireEvent.click(avatar());
+    return screen.findByRole("menu");
+  };
+
+  it("shows the user's photo, their name above their pages, and sign-out last", async () => {
+    session.currentUser.mockResolvedValue({ id: "u1", name: "Nino Beridze", avatarUrl: "https://cdn/a.jpg" });
+    render(<Header locale="en" t={t} signedIn />);
+    await waitFor(() => expect(avatar().querySelector("img")).toHaveAttribute("src", "https://cdn/a.jpg"));
+    const menu = await openMenu();
+    expect(within(menu).getByText("Nino Beridze")).not.toHaveAttribute("role", "menuitem");
+    const items = within(menu).getAllByRole("menuitem");
+    expect(items[0]).toHaveTextContent(t.nav.favorites);
+    expect(items.at(-1)).toHaveTextContent(t.nav.logout);
+    expect(menu.querySelector(".ant-dropdown-menu-item-divider")).not.toBeNull();
+    // Sign-out lives here only, not as its own button in the header.
+    expect(screen.getAllByRole("button", { name: t.nav.logout })).toHaveLength(1);
+  });
+
+  it("shows initials without a photo, and a plain icon for a stale session", async () => {
+    session.currentUser.mockResolvedValue({ id: "u1", name: "Nino Beridze", avatarUrl: null });
+    const { unmount } = render(<Header locale="en" t={t} signedIn />);
+    await waitFor(() => expect(avatar()).toHaveTextContent("NB"));
+    unmount();
+
+    session.currentUser.mockResolvedValue(null);
+    render(<Header locale="en" t={t} signedIn />);
+    await waitFor(() => expect(session.currentUser).toHaveBeenCalled());
+    expect(avatar().querySelector(".anticon-user")).not.toBeNull();
+    const menu = await openMenu();
+    expect(within(menu).getAllByRole("menuitem")[0]).toHaveTextContent(t.nav.favorites);
+  });
+
+  it("keeps the icon when the session cannot be read", async () => {
+    session.currentUser.mockRejectedValue(new Error("down"));
+    render(<Header locale="en" t={t} signedIn />);
+    await waitFor(() => expect(session.currentUser).toHaveBeenCalled());
+    expect(avatar().querySelector(".anticon-user")).not.toBeNull();
+  });
+
+  it("signs out through the server from the button, and from the item itself as Enter does", async () => {
+    session.currentUser.mockResolvedValue({ id: "u1", name: null, avatarUrl: null });
+    render(<Header locale="en" t={t} signedIn />);
+    const menu = await openMenu();
+    fireEvent.click(within(menu).getByRole("button", { name: t.nav.logout }));
+    await waitFor(() => expect(logoutAction).toHaveBeenCalledTimes(1));
+    expect((vi.mocked(logoutAction).mock.calls[0][0] as FormData).get("locale")).toBe("en");
+
+    await openMenu();
+    fireEvent.click(within(menu).getAllByRole("menuitem").at(-1) as HTMLElement);
+    await waitFor(() => expect(logoutAction).toHaveBeenCalledTimes(2));
+    // Another item is just a link.
+    await openMenu();
+    fireEvent.click(within(menu).getAllByRole("menuitem")[0]);
+    expect(logoutAction).toHaveBeenCalledTimes(2);
   });
 });

@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { getDictionary } from "@mteam/shared";
 
@@ -290,9 +290,11 @@ describe("Header account links", () => {
     nav.query = "deal=sale";
   });
 
-  it("offers sign-out when signed in", () => {
+  it("offers sign-out in the account menu when signed in", async () => {
+    session.currentUser.mockResolvedValue(null);
     render(<Header locale="en" t={t} signedIn />);
-    expect(screen.getByRole("button", { name: t.nav.logout })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: t.nav.account }));
+    expect(await screen.findByRole("button", { name: t.nav.logout })).toBeInTheDocument();
     expect(screen.queryByRole("link", { name: t.nav.login })).toBeNull();
   });
 });

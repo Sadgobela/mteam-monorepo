@@ -139,6 +139,15 @@ export async function bumpListing(ownerId: string, id: number, now = new Date())
   return count > 0;
 }
 
+/**
+ * Deletes one of the user's unfinished drafts; its photo rows go with it. False when it is not the user's or no longer a draft.
+ * ponytail: the photo files stay in storage, as storage has no delete call yet (see profile.ts). Remove them here once it has.
+ */
+export async function deleteDraft(ownerId: string, id: number): Promise<boolean> {
+  const { count } = await db().listing.deleteMany({ where: { id, ownerId, status: "DRAFT" } });
+  return count > 0;
+}
+
 /** Nightly: archives owners' listings whose 60 days have passed. Returns how many. */
 export async function archiveExpiredListings(now = new Date()): Promise<number> {
   const { count } = await db().listing.updateMany({

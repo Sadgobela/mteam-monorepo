@@ -11,19 +11,19 @@ export function DetailFields({ locale, t, showsRooms, values = {}, onChange }: {
   const [features, setFeatures] = useState<string[]>(() => (values.features ? values.features.split("|") : []));
   // No browser limits: a field in the closed section could not show its message and would silently block Next. The draft check reports it instead.
   const number = (name: string, label: string) => (
-    <label className="field">
+    <label className="field short">
       <small>{label}</small>
       <input name={name} type="number" step="any" defaultValue={values[name]} />
     </label>
   );
   return (
     <div className="detail-fields">
-      <div className="form-row">
+      <div className="post-grid">
         {showsRooms && number("bedrooms", f.bedrooms)}
         {number("ceiling", f.ceiling)}
         {number("yearBuilt", f.yearBuilt)}
       </div>
-      <div className="form-row">
+      <div className="post-grid">
         {specNames.map((name) => (
           <FormSelect key={name} name={name} optional initial={values[name]} onChange={onChange} label={specTitles[name][locale]} options={specKeys(name).map((key) => ({ value: key, label: specLabel(name, key, locale) }))} />
         ))}

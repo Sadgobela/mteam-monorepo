@@ -1,4 +1,4 @@
-import { act, render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { getDictionary } from "@mteam/shared";
 import { fixtureListings } from "@/test-fixtures";
@@ -76,6 +76,22 @@ describe("listing page", () => {
     await open({ chat: "failed" });
     expect(screen.getByRole("textbox", { name: t.chat.write })).toBeInTheDocument();
     expect(screen.getByText(t.chat.failed)).toBeInTheDocument();
+    // After a failed send the box is open again, with the message to retry.
+    expect(screen.getByRole("button", { name: /Write$/ })).toHaveAttribute("aria-expanded", "true");
+  });
+
+  it("opens the message box from the write button, into the box, and closes it again", async () => {
+    await open();
+    const write = screen.getByRole("button", { name: /Write$/ });
+    const start = write.closest(".chat-start") as HTMLElement;
+    expect(write).toHaveAttribute("aria-expanded", "false");
+    expect(start).not.toHaveAttribute("data-open");
+    fireEvent.click(write);
+    expect(write).toHaveAttribute("aria-expanded", "true");
+    expect(start).toHaveAttribute("data-open");
+    expect(screen.getByRole("textbox", { name: t.chat.write })).toHaveFocus();
+    fireEvent.click(write);
+    expect(start).not.toHaveAttribute("data-open");
   });
 
   it("sends a visitor to sign in", async () => {

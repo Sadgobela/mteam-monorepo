@@ -3,13 +3,19 @@
 import { useId, useState } from "react";
 import { Select } from "antd";
 
-/** A searchable dropdown for plain forms. */
+/**
+ * A searchable dropdown for plain forms. A disabled one keeps its place in the layout, says why in `hint`, and sends nothing,
+ * so a field that only applies later never makes the fields around it move.
+ */
 export function FormSelect({
   name,
   label,
   options,
   initial = "",
   optional = false,
+  disabled = false,
+  hint,
+  className = "field",
   onChange,
 }: {
   name: string;
@@ -17,6 +23,9 @@ export function FormSelect({
   options: { value: string; label: string }[];
   initial?: string;
   optional?: boolean;
+  disabled?: boolean;
+  hint?: string;
+  className?: string;
   onChange?: (value: string) => void;
 }) {
   const id = useId();
@@ -28,13 +37,14 @@ export function FormSelect({
   }
 
   return (
-    <div className="field">
+    <div className={className}>
       <label htmlFor={id}>
         <small>{label}</small>
       </label>
-      <Select id={id} showSearch={{ optionFilterProp: "label" }} allowClear={optional} suffix={null} placeholder="—" value={value || undefined} options={options} onChange={choose} />
+      <Select id={id} showSearch={{ optionFilterProp: "label" }} allowClear={optional} suffix={null} placeholder="—" value={value || undefined} options={options} disabled={disabled} onChange={choose} />
+      {hint && <small>{hint}</small>}
       {/* Ant's Select is not a form control. This puts the value in the form and lets the browser enforce "required". Not readOnly, which would switch that off; the empty handler keeps anything typed here or autofilled out. */}
-      <input className="select-guard" name={name} required={!optional} value={value} onChange={() => undefined} autoComplete="off" tabIndex={-1} aria-hidden="true" />
+      <input className="select-guard" name={name} required={!optional} disabled={disabled} value={value} onChange={() => undefined} autoComplete="off" tabIndex={-1} aria-hidden="true" />
     </div>
   );
 }

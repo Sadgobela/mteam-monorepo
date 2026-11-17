@@ -38,8 +38,8 @@ vi.mock("next/navigation", () => ({
 // Ant's Select lists options lazily in a portal. A native one lets these tests read every choice; FormSelect has its own test with the real thing.
 vi.mock("antd", async (importOriginal) => ({
   ...(await importOriginal<typeof import("antd")>()),
-  Select: ({ id, value, options, onChange }: { id: string; value?: string; options: { value: string; label: string }[]; onChange: (value: string) => void }) => (
-    <select id={id} value={value ?? ""} onChange={(event) => onChange(event.target.value)}>
+  Select: ({ id, value, options, disabled, onChange }: { id: string; value?: string; options: { value: string; label: string }[]; disabled?: boolean; onChange: (value: string) => void }) => (
+    <select id={id} value={value ?? ""} disabled={disabled} onChange={(event) => onChange(event.target.value)}>
       <option value="" />
       {options.map((option) => (
         <option key={option.value} value={option.value}>
@@ -278,15 +278,29 @@ describe("ListingForm", () => {
 
     it("offers the district's streets once one is chosen, and keeps them optional", async () => {
       render(<ListingForm gelPerUsd={2.7} locale="en" t={t} />);
-      expect(screen.queryByLabelText(t.post.fields.street)).toBeNull();
+      // Always in its place, so choosing a district moves nothing: disabled, saying what it waits for, and sending nothing.
+      expect(screen.getByLabelText(t.post.fields.street)).toBeDisabled();
+      expect(screen.getByText(t.ui.streetHint)).toBeInTheDocument();
+      expect(document.querySelector("input[name=street]")).toBeDisabled();
       fill(t.post.fields.district, "ვაკე");
-      fireEvent.change(await screen.findByLabelText(t.post.fields.street), { target: { value: "ჭავჭავაძე ი. გამზირი" } });
+      await waitFor(() => expect(screen.getByLabelText(t.post.fields.street)).toBeEnabled());
+      expect(screen.queryByText(t.ui.streetHint)).toBeNull();
+      fireEvent.change(screen.getByLabelText(t.post.fields.street), { target: { value: "ჭავჭავაძე ი. გამზირი" } });
       expect(screen.getByLabelText(t.post.fields.street)).toHaveValue("ჭავჭავაძე ი. გამზირი");
       expect(document.querySelector("input[name=street]")).not.toBeRequired();
       fill(t.search.city, "რუსთავი");
       expect((await screen.findByLabelText(t.post.fields.street)).querySelectorAll("option").length).toBe(116);
       fill(t.search.city, "ბათუმი");
-      expect(screen.queryByLabelText(t.post.fields.street)).toBeNull();
+      expect(screen.getByLabelText(t.post.fields.street)).toBeDisabled();
+    });
+
+    it("lays out short numbers in pairs and keeps the preview foldable below the form", () => {
+      render(<ListingForm gelPerUsd={2.7} locale="en" t={t} />);
+      for (const name of ["area", "rooms", "floor", "floors", "price"]) expect(document.querySelector(`input[name=${name}]`)?.closest(".field")).toHaveClass("short");
+      expect(document.querySelector("input[name=currency]")?.closest(".field")).toHaveClass("short");
+      expect(document.querySelector("input[name=title]")?.closest(".field")).not.toHaveClass("short");
+      const preview = screen.getByText(t.post.preview, { selector: "summary" }).closest("details") as HTMLDetailsElement;
+      expect(preview).toHaveAttribute("open");
     });
 
     it("offers the chosen city's districts, and none where it has none", () => {
@@ -296,7 +310,8 @@ describe("ListingForm", () => {
       expect(screen.queryByRole("option", { name: "Vake" })).toBeNull();
       expect(screen.getByRole("option", { name: "Makhinjauri" })).toBeInTheDocument();
       fill(t.search.city, "რუსთავი");
-      expect(screen.queryByLabelText(t.post.fields.district)).toBeNull();
+      expect(screen.getByLabelText(t.post.fields.district)).toBeDisabled();
+      expect(document.querySelector("input[name=district]")).toBeDisabled();
       fill(t.post.fields.address, "Main 1");
       next();
       expect(current()).toBe("2 Details");
