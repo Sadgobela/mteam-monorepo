@@ -35,3 +35,7 @@ pnpm e2e
 - A failed test leaves a screenshot and a trace in `e2e/test-results`: `pnpm --filter @mteam/e2e exec playwright show-trace <trace.zip>`. The HTML report is in `e2e/playwright-report`.
 - On CI the report and traces of a failed run are attached to the run as the `playwright-report` artifact.
 - The server runs without the AI, push and social sign-in keys, so the tests also check those features hide themselves.
+
+## Known flaky step
+
+Now and then (about 1 run in 10 of the posting test, and rarer for "the profile saves a new name") the page after a save never arrives: the Save button keeps spinning and the address does not change, although the save itself went through. Measured while it hung: the server had answered both requests in full (the same requests replayed in 20 ms), the database had no waiting queries or locks, and it happens with and without request routing in the test. So the browser side of Next's router never applies a response it has, which a visitor would see as a stuck Save button. It is not fixed yet; CI retries a failed test once and lists it as flaky, so it is visible in the report.
