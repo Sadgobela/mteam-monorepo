@@ -1,5 +1,5 @@
 import { answer } from "@/test/render";
-import { api, ApiError, setApiToken, toSearch } from "./api";
+import { api, ApiError, fromSearch, setApiToken, toSearch } from "./api";
 
 const fetchMock = jest.fn();
 globalThis.fetch = fetchMock;
@@ -19,6 +19,13 @@ describe("toSearch", () => {
   it("leaves out empty filters and repeats lists", () => {
     expect(toSearch({ deal: "sale", city: "", type: undefined, district: ["a", "b"] })).toBe("?deal=sale&district=a&district=b");
     expect(toSearch({})).toBe("");
+  });
+});
+
+describe("fromSearch", () => {
+  it("reads filters back, a repeated name as a list", () => {
+    expect(fromSearch("?deal=rent&district=a&district=b&district=c")).toEqual({ deal: "rent", district: ["a", "b", "c"] });
+    expect(fromSearch("")).toEqual({});
   });
 });
 
@@ -58,6 +65,9 @@ describe("api", () => {
     ["myListings", () => api.myListings(), "/api/v1/my-listings", "GET"],
     ["savePush", () => api.savePush("tok", "ios", "en"), "/api/v1/push", "POST"],
     ["deletePush", () => api.deletePush("tok"), "/api/v1/push", "DELETE"],
+    ["notifications", () => api.notifications("en"), "/api/v1/notifications?locale=en", "GET"],
+    ["openNotification", () => api.openNotification("n 1", "en"), "/api/v1/notifications/n%201", "POST"],
+    ["readAllNotifications", () => api.readAllNotifications(), "/api/v1/notifications", "POST"],
   ])("%s calls its endpoint", async (_name, run, path, method) => {
     await run();
     expect(lastCall()).toMatchObject({ url: `https://api.test${path}`, method });

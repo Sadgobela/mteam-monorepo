@@ -18,6 +18,9 @@ describe("ListingScreen", () => {
     expect(screen.getByText("მზიანი ბინა")).toBeOnTheScreen();
     expect(screen.getByText("Nino · Vake")).toBeOnTheScreen();
     expect(screen.getByLabelText("ფოტო 2")).toBeOnTheScreen();
+    expect(screen.getByText("1 / 2")).toBeOnTheScreen();
+    await fireEvent(screen.getByTestId("gallery"), "momentumScrollEnd", { nativeEvent: { contentOffset: { x: 750 } } });
+    expect(screen.getByText("2 / 2")).toBeOnTheScreen();
     expect(screen.getByText("$99,000")).toBeOnTheScreen();
     for (const heart of screen.getAllByRole("button", { name: "რჩეულებში დამატება" })) await fireEvent.press(heart);
     await waitFor(() => expect(router.push).toHaveBeenCalledTimes(2));

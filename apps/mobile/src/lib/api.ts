@@ -32,6 +32,17 @@ export interface Me {
   role: string;
   onboarded: boolean;
   favoriteIds: number[];
+  /** Unread notifications, for the badge in the menu. */
+  unread: number;
+}
+
+/** One notification, in the app's language: what it is about, and what happened. */
+export interface Notice {
+  id: string;
+  read: boolean;
+  at: string;
+  title: string;
+  body: string;
 }
 
 export type ListingStatus = "DRAFT" | "PENDING" | "ACTIVE" | "ARCHIVED" | "REJECTED";
@@ -53,6 +64,16 @@ export function toSearch(query: Query): string {
   }
   const search = params.toString();
   return search ? `?${search}` : "";
+}
+
+/** Filters from a query string, the reverse of toSearch: a repeated name becomes a list. */
+export function fromSearch(search: string): Query {
+  const query: Query = {};
+  for (const [name, value] of new URLSearchParams(search)) {
+    const had = query[name];
+    query[name] = had === undefined ? value : [...(Array.isArray(had) ? had : [had]), value];
+  }
+  return query;
 }
 
 async function call<T>(path: string, init: { method?: string; json?: unknown; form?: FormData; fields?: URLSearchParams } = {}): Promise<T> {
@@ -112,6 +133,10 @@ export const api = {
     for (const url of photos) form.append("photos", url);
     return call<{ id: number; status: ListingStatus }>("/api/listings", { fields: form });
   },
+  notifications: (locale: string) => call<{ notifications: Notice[]; unread: number }>(`/api/v1/notifications${toSearch({ locale })}`),
+  /** Marks one read and answers with the site path it leads to. */
+  openNotification: (id: string, locale: string) => call<{ path: string }>(`/api/v1/notifications/${encodeURIComponent(id)}`, { json: { locale } }),
+  readAllNotifications: () => call<{ ok: true }>("/api/v1/notifications", { method: "POST" }),
   savePush: (token: string, platform: "ios" | "android", locale: string) => call<{ ok: true }>("/api/v1/push", { json: { token, platform, locale } }),
   deletePush: (token: string) => call<{ ok: true }>("/api/v1/push", { method: "DELETE", json: { token } }),
 };

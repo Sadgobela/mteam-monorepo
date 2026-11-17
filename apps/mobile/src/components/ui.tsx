@@ -1,11 +1,38 @@
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, TextInput, View, type TextInputProps } from "react-native";
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, TextInput, View, type PressableStateCallbackType, type StyleProp, type TextInputProps, type ViewStyle } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 import { useLocale } from "@/lib/i18n";
 import { radius, space, useColors } from "@/lib/theme";
+import { MarkLoader } from "./Brand";
 
-/** The main action of a screen, or a quieter one with `quiet`. Shows a spinner and ignores presses while busy. */
-export function Button({ label, onPress, busy = false, quiet = false, disabled = false }: { label: string; onPress: () => void; busy?: boolean; quiet?: boolean; disabled?: boolean }) {
+/** A Pressable style that dims while pressed. */
+export const dimWhenPressed =
+  (style: StyleProp<ViewStyle>) =>
+  ({ pressed }: PressableStateCallbackType): StyleProp<ViewStyle> => [style, pressed && styles.dim];
+
+/**
+ * The main action of a screen, or a quieter one with `quiet`; `color` paints it another colour (WhatsApp's green) and
+ * `icon` puts an icon before the words. Shows a spinner and ignores presses while busy.
+ */
+export function Button({
+  label,
+  onPress,
+  busy = false,
+  quiet = false,
+  disabled = false,
+  color,
+  icon,
+}: {
+  label: string;
+  onPress: () => void;
+  busy?: boolean;
+  quiet?: boolean;
+  disabled?: boolean;
+  color?: string;
+  icon?: keyof typeof Ionicons.glyphMap;
+}) {
   const c = useColors();
   const off = busy || disabled;
+  const ink = quiet ? c.brandDeep : c.onAction;
   return (
     <Pressable
       accessibilityRole="button"
@@ -13,9 +40,16 @@ export function Button({ label, onPress, busy = false, quiet = false, disabled =
       accessibilityState={{ disabled: off, busy }}
       disabled={off}
       onPress={onPress}
-      style={({ pressed }) => [styles.button, quiet ? { backgroundColor: c.brandSoft } : { backgroundColor: c.action }, (pressed || off) && styles.dim]}
+      style={({ pressed }) => [styles.button, { backgroundColor: color ?? (quiet ? c.brandSoft : c.action) }, (pressed || off) && styles.dim]}
     >
-      {busy ? <ActivityIndicator color={quiet ? c.brandDeep : c.onAction} /> : <Text style={[styles.buttonText, { color: quiet ? c.brandDeep : c.onAction }]}>{label}</Text>}
+      {busy ? (
+        <ActivityIndicator color={ink} />
+      ) : (
+        <>
+          {icon && <Ionicons name={icon} size={18} color={ink} />}
+          <Text style={[styles.buttonText, { color: ink }]}>{label}</Text>
+        </>
+      )}
     </Pressable>
   );
 }
@@ -60,6 +94,29 @@ export function ChipRow<T extends string>({
   );
 }
 
+/** Two to four choices side by side in one track, one always chosen, as the site's deal switch. */
+export function Segmented<T extends string>({ options, value, onChange, label }: { options: readonly T[]; value: T; onChange: (value: T) => void; label: (value: T) => string }) {
+  const c = useColors();
+  return (
+    <View style={[styles.track, { backgroundColor: c.brandSoft }]}>
+      {options.map((option) => {
+        const on = option === value;
+        return (
+          <Pressable
+            key={option}
+            accessibilityRole="button"
+            accessibilityState={{ selected: on }}
+            onPress={() => onChange(option)}
+            style={[styles.segment, on && { backgroundColor: c.surface }]}
+          >
+            <Text style={[styles.segmentText, { color: on ? c.brandDeep : c.muted }]}>{label(option)}</Text>
+          </Pressable>
+        );
+      })}
+    </View>
+  );
+}
+
 /** A labelled text field. */
 export function Field({ label, style, ...input }: { label: string } & TextInputProps) {
   const c = useColors();
@@ -92,7 +149,7 @@ export function ScreenState({ state, onRetry, empty }: { state: "loading" | "fai
   const { t } = useLocale();
   return (
     <View style={styles.state}>
-      {state === "loading" && <ActivityIndicator accessibilityLabel="loading" color={c.brand} size="large" />}
+      {state === "loading" && <MarkLoader label="loading" color={c.logo} />}
       {state === "failed" && (
         <>
           <Note>{t.mobile.loadFailed}</Note>
@@ -105,11 +162,14 @@ export function ScreenState({ state, onRetry, empty }: { state: "loading" | "fai
 }
 
 const styles = StyleSheet.create({
-  button: { minHeight: 48, borderRadius: radius.md, alignItems: "center", justifyContent: "center", paddingHorizontal: space.lg },
+  button: { minHeight: 48, borderRadius: radius.md, flexDirection: "row", gap: space.sm, alignItems: "center", justifyContent: "center", paddingHorizontal: space.lg },
   buttonText: { fontSize: 16, fontWeight: "600" },
   dim: { opacity: 0.7 },
   chip: { borderWidth: 1, borderRadius: radius.pill, paddingHorizontal: space.md, paddingVertical: space.sm, minHeight: 36, justifyContent: "center" },
   chips: { flexDirection: "row", flexWrap: "wrap", gap: space.sm },
+  track: { flexDirection: "row", borderRadius: radius.md, padding: 4, gap: 4 },
+  segment: { flex: 1, minHeight: 40, borderRadius: radius.sm, alignItems: "center", justifyContent: "center" },
+  segmentText: { fontSize: 15, fontWeight: "600" },
   chipLine: { flexDirection: "row", gap: space.sm },
   field: { gap: space.xs },
   label: { fontSize: 13 },

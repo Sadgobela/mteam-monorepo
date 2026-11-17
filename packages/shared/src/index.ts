@@ -6,3 +6,4 @@ export * from "./format";
 export * from "./places";
 export * from "./details";
 export * from "./assistant";
+export * from "./brand";

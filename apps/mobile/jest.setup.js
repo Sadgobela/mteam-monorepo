@@ -11,7 +11,21 @@ jest.mock("expo-notifications", () => ({
   requestPermissionsAsync: jest.fn(async () => ({ status: "granted" })),
   getExpoPushTokenAsync: jest.fn(async () => ({ data: "ExponentPushToken[test]" })),
   addNotificationResponseReceivedListener: jest.fn(() => ({ remove: jest.fn() })),
+  addNotificationReceivedListener: jest.fn(() => ({ remove: jest.fn() })),
+  getLastNotificationResponseAsync: jest.fn(async () => null),
 }));
+// The glass needs the phone's blur; in tests it is a plain view.
+jest.mock("expo-blur", () => {
+  const React = require("react");
+  const { View } = require("react-native");
+  return {
+    BlurView: (props) => React.createElement(View, props),
+    BlurTargetView: React.forwardRef(function BlurTargetView(props, ref) {
+      return React.createElement(View, { ...props, ref });
+    }),
+  };
+});
+jest.mock("expo-haptics", () => ({ selectionAsync: jest.fn(async () => undefined) }));
 jest.mock("expo-image-picker", () => ({
   requestMediaLibraryPermissionsAsync: jest.fn(async () => ({ granted: true })),
   launchImageLibraryAsync: jest.fn(async () => ({ canceled: true, assets: null })),
@@ -26,12 +40,13 @@ jest.mock("react-native-safe-area-context", () => require("react-native-safe-are
 jest.mock("expo-status-bar", () => ({ StatusBar: () => null }));
 jest.mock("expo-router", () => {
   const React = require("react");
-  const router = { push: jest.fn(), replace: jest.fn(), back: jest.fn() };
+  const router = { push: jest.fn(), replace: jest.fn(), back: jest.fn(), navigate: jest.fn(), dismissAll: jest.fn(), canDismiss: jest.fn(() => false) };
   const Screen = () => null;
   const navigator = (name) => Object.assign(({ children }) => React.createElement(React.Fragment, null, children), { Screen, displayName: name });
   return {
     router,
     useLocalSearchParams: jest.fn(() => ({})),
+    usePathname: jest.fn(() => "/"),
     useFocusEffect: (effect) => React.useEffect(effect, [effect]),
     // Like expo-router's Slot, which an asChild Link renders through: it throws on an array of styles.
     Link: ({ children, asChild }) => {

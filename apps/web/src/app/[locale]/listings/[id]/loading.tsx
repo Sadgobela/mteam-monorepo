@@ -1,3 +1,4 @@
+import { PageLoader } from "@/components/Loader";
 import { HeaderSkeleton, ListingSkeleton } from "@/components/Skeletons";
 
 export default function ListingLoading() {
@@ -5,6 +6,7 @@ export default function ListingLoading() {
     <>
       <HeaderSkeleton />
       <ListingSkeleton />
+      <PageLoader />
     </>
   );
 }

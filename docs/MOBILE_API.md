@@ -19,15 +19,18 @@ The app signs in with a phone code and keeps the session token in the phone's se
 | `POST /api/v1/auth/code` `{ phone }` | Sends the SMS code, with the site's limits. 400 `invalidPhone`, 429 `tooSoon`. |
 | `POST /api/v1/auth/verify` `{ phone, code }` | `{ token, onboarded }`, or 401 `wrongCode`. |
 | `POST /api/v1/auth/logout` | Ends the session. |
-| `GET /api/v1/me` | `{ id, name, phone, role, onboarded, favoriteIds }`. |
+| `GET /api/v1/me` | `{ id, name, phone, role, onboarded, favoriteIds, unread }`; `unread` is the number of unread notifications, for the badge in the app's menu. |
 | `POST /api/v1/onboarding` `{ name, intent, terms: true }` | The first-visit answers, which posting needs. |
 | `GET /api/v1/favorites`, `PUT /api/v1/favorites/<id>` `{ favorite }` | The hearts. |
 | `GET /api/v1/my-listings` | The user's listings, each with its `status`. |
 | `POST /api/listings/photos`, `POST /api/listings` | The site's posting endpoints: one photo per request, then the form fields with the photo addresses. |
 | `POST /api/v1/push` `{ token, platform, locale }`, `DELETE /api/v1/push` `{ token }` | Turns push on or off for this phone (an Expo push token). |
+| `GET /api/v1/notifications?locale=<ka\|en\|ru>` | `{ notifications: [{ id, read, at, title, body }], unread }`, newest first, written as on the site's notifications page. |
+| `POST /api/v1/notifications/<id>` `{ locale }` | Marks one read and answers `{ path }`, the site path it leads to (a saved search is opened, as on the site). 404 `notFound` for someone else's. |
+| `POST /api/v1/notifications` | Marks them all read. |
 
 Every signed-out call answers 401 `signedOut`.
 
 ## Push to the app
 
-Each notification that goes to browsers also goes to the user's phones through Expo's push service (`apps/web/src/lib/app-push.ts`), with the site path it leads to in `data.url`, which the app opens as its own screen. It needs no keys; set `EXPO_ACCESS_TOKEN` only if the Expo project turns on "enhanced push security". The settings switch for push covers both.
+Each notification that goes to browsers also goes to the user's phones through Expo's push service (`apps/web/src/lib/app-push.ts`), with the site path it leads to in `data.url`, which the app opens as its own screen, and the notification's id in `data.tag`, which the app marks read with `POST /api/v1/notifications/<id>`. It needs no keys; set `EXPO_ACCESS_TOKEN` only if the Expo project turns on "enhanced push security". The settings switch for push covers both.

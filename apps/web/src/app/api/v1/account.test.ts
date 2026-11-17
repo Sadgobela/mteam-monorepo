@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const db = vi.hoisted(() => ({
   completeOnboarding: vi.fn(),
+  countUnreadNotifications: vi.fn(),
   deleteSession: vi.fn(),
   getFavoriteIds: vi.fn(),
   getGelPerUsd: vi.fn(),
@@ -103,9 +104,10 @@ describe("signed-out requests", () => {
 });
 
 describe("GET /api/v1/me", () => {
-  it("returns the user and their favourites", async () => {
+  it("returns the user, their favourites and the unread notifications", async () => {
     db.getFavoriteIds.mockResolvedValue([3, 4]);
-    expect(await read(me())).toEqual([200, { id: "u1", name: "Nino", phone: "+995555123456", role: "USER", onboarded: true, favoriteIds: [3, 4] }]);
+    db.countUnreadNotifications.mockResolvedValue(2);
+    expect(await read(me())).toEqual([200, { id: "u1", name: "Nino", phone: "+995555123456", role: "USER", onboarded: true, favoriteIds: [3, 4], unread: 2 }]);
     session.currentUser.mockResolvedValue({ ...user, onboardedAt: null });
     expect((await read(me()))[1]).toMatchObject({ onboarded: false });
   });

@@ -5,6 +5,7 @@ import * as ImagePicker from "expo-image-picker";
 import { router } from "expo-router";
 import { cityDistricts, currencies, MAX_PHOTOS, parseListingDraft, placeLabel, popularCities, propertyTypes } from "@mteam/shared";
 import { SignInPrompt } from "@/components/SignInPrompt";
+import { useBarSpace } from "@/components/TabBar";
 import { Button, ChipRow, Field, Heading, Note } from "@/components/ui";
 import { api, ApiError, type PickedPhoto } from "@/lib/api";
 import { useLocale } from "@/lib/i18n";
@@ -22,6 +23,7 @@ const empty = { deal: "sale", type: "apartment", city: "", district: "", address
  */
 export default function PostScreen() {
   const c = useColors();
+  const barSpace = useBarSpace();
   const { locale, t } = useLocale();
   const session = useSession();
   const [fields, setFields] = useState<Record<string, string>>(empty);
@@ -95,7 +97,7 @@ export default function PostScreen() {
   };
 
   return (
-    <ScrollView contentContainerStyle={styles.page} keyboardShouldPersistTaps="handled">
+    <ScrollView contentContainerStyle={[styles.page, { paddingBottom: barSpace }]} keyboardShouldPersistTaps="handled">
       <Heading>{t.post.steps.place}</Heading>
       <ChipRow options={deals} value={fields.deal as (typeof deals)[number]} onChange={set("deal")} label={(deal) => t.deal[deal]} />
       <ChipRow options={propertyTypes} value={fields.type as (typeof propertyTypes)[number]} onChange={set("type")} label={(type) => t.propertyType[type]} />
