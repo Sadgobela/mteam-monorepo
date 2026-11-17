@@ -9,6 +9,9 @@
   --sans: "Noto Sans Georgian", system-ui, sans-serif;
   /* One radius scale for the whole site (Ant's matches it in AntProvider). Spacing keeps to 4, 8, 12, 16 and 24 px. */
   --r-sm: 8px; --r-md: 12px; --r-lg: 16px;
+  /* Controls laid over photos: the same in both themes, since a photo is not themed. */
+  --on-photo: rgb(255 255 255 / 0.92); --on-photo-fg: #1f1828; --photo-label: rgb(20 12 30 / 0.72);
+  --card-shadow: 0 12px 28px -8px rgb(60 35 95 / 0.22);
   /* The sign-in picture panel: deep enough for white text in both themes. */
   --art-from: #7b52ab; --art-to: #4c2f72;
   /* The sign-in providers' own colours, from their button guidelines. */
@@ -16,6 +19,7 @@
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
+    --card-shadow: 0 12px 28px -8px rgb(0 0 0 / 0.55);
     --brand: #a57fd0; --brand-deep: #c8aee6; --brand-soft: #2a2136;
     --apple-bg: #ffffff; --apple-fg: #000000;
     --bg: #141019; --surface: #1d1724; --fg: #f1ecf6; --muted: #a79db3; --line: #332a3e; --focus: #d9b65e; --action: #986dc6; --on-action: #ffffff; --logo: #ffffff;
@@ -23,6 +27,7 @@
   }
 }
 :root[data-theme="dark"] {
+    --card-shadow: 0 12px 28px -8px rgb(0 0 0 / 0.55);
   --brand: #a57fd0; --brand-deep: #c8aee6; --brand-soft: #2a2136;
   --apple-bg: #ffffff; --apple-fg: #000000;
   --bg: #141019; --surface: #1d1724; --fg: #f1ecf6; --muted: #a79db3; --line: #332a3e; --focus: #d9b65e; --action: #986dc6; --on-action: #ffffff; --logo: #ffffff;
@@ -205,32 +210,41 @@ h1, h2, h3 { margin: 0; text-wrap: balance; overflow-wrap: anywhere; }
 .section { display: grid; gap: 16px; padding: 24px max(16px, env(safe-area-inset-left, 0px)); }
 .row { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; flex-wrap: wrap; }
 .cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(270px, 1fr)); gap: 16px; }
-/* Phones: one card per row, the photo at full width. */
-@media (max-width: 640px) { .cards { grid-template-columns: minmax(0, 1fr); } }
+/* Phones: one card per row, the photo at full width, and no row to line up with, so a short title keeps no empty line. */
+@media (max-width: 640px) { .cards { grid-template-columns: minmax(0, 1fr); } .ctitle { min-height: 0; } }
 .card, .card-wrap, .cbody { min-width: 0; }
-.ctitle, .cfoot, .cbroker, .cfacts { overflow-wrap: anywhere; }
-.cfoot > * { min-width: 0; }
-.card { display: grid; grid-template-rows: auto 1fr; background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-lg); overflow: hidden; }
-.ph { position: relative; aspect-ratio: 4 / 3; max-width: 100%; background: linear-gradient(135deg, #cdb9e3, #8f6bb8); }
+.ctitle { overflow-wrap: anywhere; }
+/* A column of fixed slots, so every card in a row has the same height and its lines sit at the same places:
+   price, a title of two lines, the address and the facts on one line each, and the broker and date at the foot. */
+.card { display: flex; flex-direction: column; background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-lg); overflow: hidden; }
+.ph { position: relative; flex: none; aspect-ratio: 4 / 3; max-width: 100%; background: linear-gradient(135deg, #cdb9e3, #8f6bb8); }
 .ph.sand { background: linear-gradient(135deg, #d9cbb0, #9a8a6c); }
 .ph.steel { background: linear-gradient(135deg, #b7c7d8, #6f87a3); }
 .ph.rose { background: linear-gradient(135deg, #e2c9d6, #a86f8c); }
-.badge { position: absolute; left: 10px; top: 10px; display: flex; align-items: center; gap: 8px; background: #fff; color: #5b3a86; font-size: 12px; font-weight: 800; padding: 4px 12px; border-radius: var(--r-sm); }
-.count { position: absolute; right: 10px; bottom: 10px; background: rgba(20, 12, 30, 0.8); color: #fff; font-size: 12px; padding: 2px 8px; border-radius: var(--r-sm); }
-.checked { position: absolute; left: 10px; bottom: 10px; max-width: calc(100% - 90px); background: rgba(20, 12, 30, 0.8); color: #fff; font-size: 12px; padding: 2px 8px; border-radius: var(--r-sm); }
+.badge { position: absolute; left: 12px; top: 12px; display: flex; align-items: center; gap: 6px; background: var(--on-photo); color: #5b3a86; font-size: 12px; font-weight: 800; padding: 4px 10px; border-radius: 999px; box-shadow: 0 1px 4px rgb(0 0 0 / 0.12); }
+.count { position: absolute; right: 12px; bottom: 12px; background: var(--photo-label); color: #fff; font-size: 12px; font-weight: 500; padding: 2px 8px; border-radius: 999px; backdrop-filter: blur(6px); pointer-events: none; }
+.checked { position: absolute; left: 12px; bottom: 12px; max-width: calc(100% - 96px); background: var(--photo-label); color: #fff; font-size: 12px; padding: 2px 8px; border-radius: var(--r-sm); backdrop-filter: blur(6px); pointer-events: none; }
 /* Phones have no hover, so there the line simply stays visible. */
 @media (hover: hover) {
   .checked { opacity: 0; transition: opacity 0.15s; }
-  .card:hover .checked, .card:focus-visible .checked { opacity: 1; }
+  .card-wrap:hover .checked, .card:focus-visible .checked { opacity: 1; }
 }
-.cbody { display: flex; flex-direction: column; gap: 4px; padding: 12px 16px 16px; }
+.cbody { flex: 1 1 auto; display: flex; flex-direction: column; gap: 4px; padding: 12px 16px 14px; }
 .price { font-weight: 800; font-size: 19px; font-variant-numeric: tabular-nums; }
 .price.big { font-size: 26px; }
 .meta { color: var(--muted); font-size: 13px; font-variant-numeric: tabular-nums; }
 .cprice { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
-.ctitle { font-size: 15px; font-weight: 700; line-height: 1.35; }
-.cfacts { display: flex; gap: 16px; flex-wrap: wrap; font-size: 13px; color: var(--muted); }
-.cfoot { display: flex; justify-content: space-between; gap: 8px; flex-wrap: wrap; margin-top: auto; padding-top: 4px; }
+.ctitle { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; min-height: calc(2em * 1.35); font-size: 15px; font-weight: 700; line-height: 1.35; text-wrap: pretty; }
+.caddr { display: flex; align-items: center; gap: 4px; margin: 0; }
+.caddr svg { flex: none; }
+.caddr span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* One line: a fact that does not fit wraps out of sight whole, rather than being cut mid-word. */
+.cfacts { display: flex; flex-wrap: wrap; height: 20px; overflow: hidden; margin: 0; font-size: 13px; line-height: 20px; color: var(--muted); }
+.cfacts > span { white-space: nowrap; }
+.cfacts > span + span::before { content: "·"; margin-inline: 8px; opacity: 0.6; }
+.cfoot { display: flex; justify-content: space-between; align-items: center; gap: 12px; min-height: 45px; margin-top: auto; padding-top: 12px; border-top: 1px solid var(--line); }
+.cfoot > :first-child { min-width: 0; }
+.cfoot time { flex: none; }
 
 .listing { display: grid; grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr); grid-template-rows: auto auto 1fr; gap: 24px; padding: 20px max(16px, env(safe-area-inset-left, 0px)); max-width: 1240px; margin: 0 auto; }
 .lhead { display: grid; gap: 4px; grid-column: 1; }
@@ -391,16 +405,26 @@ html:has(.viewer[open]) { overflow: hidden; }
 .toolbar { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
 :root .ant-segmented .ant-segmented-item-label { min-width: 44px; min-height: 44px; line-height: 44px; }
 .cards.list { grid-template-columns: minmax(0, 1fr); }
-.cards.list .card { grid-template-columns: minmax(0, 300px) minmax(0, 1fr); }
-@media (max-width: 640px) { .cards.list .card { grid-template-columns: minmax(0, 1fr); } }
+.cards.list .ctitle { min-height: 0; }
+.cards.list .card { display: grid; grid-template-columns: minmax(0, 300px) minmax(0, 1fr); }
+@media (max-width: 640px) { .cards.list .card { display: flex; } }
 .pager { display: flex; justify-content: center; font-weight: 700; }
 .strip { position: absolute; inset: 0; display: flex; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; }
 .strip::-webkit-scrollbar { display: none; }
 .strip-photo { position: relative; flex: 0 0 100%; overflow: hidden; scroll-snap-align: start; }
-.strip-nav { display: none; position: absolute; top: 50%; transform: translateY(-50%); width: 32px; height: 32px; padding: 0; border: 0; border-radius: 50%; background: var(--surface); color: var(--fg); font-size: 20px; line-height: 1; cursor: pointer; }
-.strip-nav.previous { left: 8px; }
-.strip-nav.next { right: 8px; }
-@media (hover: hover) { .card:hover .strip-nav { display: block; } }
+/* Quiet arrows over the photo: they fade in with the pointer and step aside at either end. */
+.strip-nav { display: none; position: absolute; top: 50%; width: 30px; height: 30px; place-items: center; padding: 0; border: 0; border-radius: 50%; background: var(--on-photo); color: var(--on-photo-fg); box-shadow: 0 1px 4px rgb(0 0 0 / 0.18); backdrop-filter: blur(6px); cursor: pointer; opacity: 0; transform: translateY(-50%) scale(0.85); transition: opacity 0.2s, transform 0.2s, background-color 0.2s; }
+.strip-nav svg { display: block; }
+.strip-nav.previous { left: 10px; }
+.strip-nav.next { right: 10px; }
+.strip-nav.previous svg { margin-inline-start: -2px; }
+.strip-nav.next svg { margin-inline-end: -2px; }
+@media (hover: hover) {
+  .strip-nav { display: grid; }
+  .card-wrap:hover .strip-nav:not([data-off]) { opacity: 1; transform: translateY(-50%) scale(1); }
+  .strip-nav:hover { background: #fff; }
+}
+.strip-nav[data-off] { pointer-events: none; }
 .crumbs { display: flex; flex-wrap: wrap; gap: 8px; font-size: 13px; color: var(--muted); }
 .crumbs > * + *::before { content: "/"; margin-inline-end: 6px; opacity: 0.6; }
 @media (hover: hover) { .crumbs a:hover { color: var(--brand-deep); } }
@@ -419,8 +443,9 @@ html:has(.viewer[open]) { overflow: hidden; }
 @media (max-width: 520px) { .band .form-row > .field:nth-child(3), .band .lead-submit { grid-column: 1 / -1; } }
 .band .lead-error { grid-column: 1 / -1; }
 .nav-link { display: inline-flex; align-items: center; min-height: 44px; padding: 0 4px; font-weight: 600; }
-.card-wrap { position: relative; display: grid; }
-.fav { position: absolute; right: 8px; top: 8px; width: 44px; height: 44px; border-radius: 50%; border: 0; background: var(--surface); color: var(--brand-deep); display: grid; place-items: center; cursor: pointer; }
+.card-wrap { position: relative; display: flex; flex-direction: column; }
+.card-wrap > .card { flex: 1 1 auto; }
+.fav { position: absolute; right: 8px; top: 8px; width: 44px; height: 44px; border-radius: 50%; border: 0; background: var(--surface); color: var(--brand-deep); box-shadow: 0 1px 4px rgb(0 0 0 / 0.12); display: grid; place-items: center; cursor: pointer; }
 .cards.list .fav { left: 248px; right: auto; }
 @media (max-width: 640px) { .cards.list .fav { left: auto; right: 8px; } }
 .mine { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
@@ -439,7 +464,9 @@ html:has(.viewer[open]) { overflow: hidden; }
 .queue-item p, .saved-list li > *, .notice-text, .meta { overflow-wrap: anywhere; }
 .ph.thumb { flex: 0 0 96px; width: 96px; height: 72px; aspect-ratio: auto; border-radius: var(--r-sm); overflow: hidden; }
 .queue-actions { display: flex; flex-wrap: wrap; gap: 8px; }
-.cbroker { display: inline-flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; }
+.cbroker { display: inline-flex; align-items: center; gap: 8px; min-width: 0; font-size: 13px; font-weight: 600; color: var(--fg); }
+.cbroker > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cbroker i { flex: none; }
 .cbroker i { width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center; background: var(--action); color: var(--on-action); font-style: normal; font-size: 12px; }
 .tile.broker { display: flex; align-items: center; gap: 12px; }
 .tile.broker .av { flex: none; }
@@ -475,15 +502,18 @@ html:has(.viewer[open]) { overflow: hidden; }
 
 /* Motion. Colours ease everywhere; movement only where a mouse can trigger it, and never against the system setting. */
 .btn, .tile, .card, .chip, .chips a, .fav, .links a, .nav-link, .pager a { transition: background-color 0.2s, border-color 0.2s, color 0.2s, box-shadow 0.2s, transform 0.2s; }
-.ph img { transition: transform 0.35s; }
-@keyframes appear { from { opacity: 0; transform: translateY(6px); } }
-.card-wrap { animation: appear 0.3s both; }
+.ph img { transition: transform 0.5s cubic-bezier(0.2, 0.7, 0.2, 1); }
+@keyframes appear { from { opacity: 0; transform: translateY(8px); } }
+/* Cards rise in a few at a time. Filled backwards only, so the hover lift below is not held off by a finished animation. */
+.card-wrap { animation: appear 0.35s ease-out backwards; animation-delay: calc(var(--i, 0) * 40ms); transition: transform 0.25s ease; }
 @media (hover: hover) {
   .btn:hover { filter: brightness(1.07); }
   .btn.ghost:hover, .tile:hover { border-color: var(--brand); }
   .links a:hover, .nav-link:hover, .pager a:hover { color: var(--brand-deep); }
-  .card:hover { transform: translateY(-3px); box-shadow: 0 10px 24px rgba(60, 35, 95, 0.14); }
-  .card:hover .ph img { transform: scale(1.04); }
+  /* The whole card lifts, its heart button with it, and stays lifted while the pointer is on the heart. */
+  .card-wrap:hover { transform: translateY(-3px); }
+  .card-wrap:hover > .card { border-color: color-mix(in srgb, var(--brand) 35%, var(--line)); box-shadow: var(--card-shadow); }
+  .card-wrap:hover .ph img { transform: scale(1.04); }
   .tile:hover { transform: translateY(-2px); }
   .fav:hover { transform: scale(1.1); }
 }

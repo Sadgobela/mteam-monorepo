@@ -65,7 +65,15 @@ export function ListingCard({
           )}
         </div>
         <h2 className="ctitle">{cardTitle(listing, locale, t)}</h2>
-        <div className="cfacts">
+        <p className="caddr meta">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+            <path d="M12 21s-7-6.2-7-11.5a7 7 0 0 1 14 0C19 14.8 12 21 12 21z" />
+            <circle cx="12" cy="9.5" r="2.5" />
+          </svg>
+          <span>{[listing.address, listing.district].filter(Boolean).join(", ") || placeName(listing, locale)}</span>
+        </p>
+        {/* One line in every card, so the rows line up. The floor comes before bedrooms, so bedrooms are what a narrow card leaves out. */}
+        <p className="cfacts">
           <span>
             {listing.area} {t.units.sqm}
           </span>
@@ -74,28 +82,27 @@ export function ListingCard({
               {listing.rooms} {t.units.rooms}
             </span>
           )}
-          {listing.bedrooms && (
-            <span>
-              {listing.bedrooms} {t.units.bedrooms}
-            </span>
-          )}
           {listing.floor && (
             <span>
               {listing.floor}/{listing.floors} {t.units.floor}
             </span>
           )}
-        </div>
-        {listing.agent?.name && (
-          <span className="cbroker">
-            <i aria-hidden="true">{listing.agent.name.slice(0, 1)}</i>
-            {listing.agent.name}
-          </span>
-        )}
+          {listing.bedrooms && (
+            <span>
+              {listing.bedrooms} {t.units.bedrooms}
+            </span>
+          )}
+        </p>
         <div className="cfoot meta">
-          <span>
-            {[listing.address, listing.district].filter(Boolean).join(", ")}
-          </span>
-          <span>{formatDay(listing.updatedAt, locale)}</span>
+          {listing.agent?.name ? (
+            <span className="cbroker">
+              <i aria-hidden="true">{listing.agent.name.slice(0, 1)}</i>
+              <span>{listing.agent.name}</span>
+            </span>
+          ) : (
+            <span />
+          )}
+          <time dateTime={listing.updatedAt}>{formatDay(listing.updatedAt, locale)}</time>
         </div>
       </div>
     </Link>
