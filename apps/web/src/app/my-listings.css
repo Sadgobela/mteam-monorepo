@@ -1,10 +1,16 @@
 /* Track C: my listings. Colours come from the tokens in globals.css. */
-.my-tabs { max-width: 100%; overflow-x: auto; }
+/* The tabs stay on one line and scroll sideways; the padding keeps their focus ring in view. */
+.my-tabs { max-width: 100%; overflow-x: auto; scrollbar-width: none; padding: 4px; margin: -4px; }
+.my-tabs::-webkit-scrollbar { display: none; }
+.my-tabs .ant-segmented-group { flex-wrap: nowrap; }
+.my-tabs .ant-segmented-item { flex: none; white-space: nowrap; }
 .my-tools { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
 .my-search { display: flex; gap: 8px; flex: 1 1 260px; min-width: 0; }
 .my-search .ant-input-affix-wrapper, .my-search .ant-input { min-height: 44px; }
-.my-search .ant-btn { min-height: 44px; }
+.my-search .ant-input-affix-wrapper { flex: 1 1 auto; min-width: 0; }
+.my-search .ant-btn { min-height: 44px; flex: none; }
 .my-row-title { display: flex; flex-wrap: wrap; gap: 4px 8px; align-items: baseline; }
+.my-row-title b { overflow-wrap: anywhere; }
 .my-stats { display: flex; flex-wrap: wrap; gap: 4px 12px; margin-top: 4px; }
 .my-note { margin-top: 4px; color: var(--brand-deep); font-size: 13px; }
 .my-actions { display: flex; flex-wrap: wrap; gap: 8px; flex: 1 1 100%; }
@@ -12,4 +18,9 @@
 .my-actions .btn, .my-actions .ant-btn { min-height: 44px; }
 @media (max-width: 520px) {
   .my-actions .btn, .my-actions .ant-btn { flex: 1 1 calc(50% - 4px); }
+  /* The search field and its icon button on one line; the sort switch below it, scrolling sideways if it must. */
+  .my-search { flex: 1 1 100%; }
+  .my-search .ant-btn { width: 44px; padding: 0; }
+  .my-search-word { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+  .my-tools > .ant-segmented { max-width: 100%; overflow-x: auto; }
 }

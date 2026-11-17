@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { getDictionary } from "@mteam/shared";
 import { fixtureListings } from "@/test-fixtures";
 
@@ -34,6 +34,7 @@ vi.mock("next/navigation", () => ({
 
 import { bumpListingAction, deleteDraftAction, renewListingAction } from "@/lib/my-listings-actions";
 import MyListingsPage from "./[locale]/(account)/my-listings/page";
+import { cardTitle } from "@/components/ListingCard";
 
 const t = getDictionary("en");
 const my = t.myListings;
@@ -131,6 +132,33 @@ describe("MyListingsPage", () => {
     expect(screen.getAllByRole("button", { name: t.my.archive })).toHaveLength(2);
     expect(screen.getAllByRole("link", { name: my.open })).toHaveLength(1);
     expect(screen.getByText(t.my.status.REJECTED)).toBeInTheDocument();
+  });
+
+  it("names an unfinished draft by what it has so far, without a price of 0, and offers to delete it after asking", async () => {
+    const bare = { ...fixtureListings[0], id: 31, title: "", price: 0, address: "" };
+    db.listMyListingsTab.mockResolvedValue([
+      mine({ listing: bare, status: "DRAFT" }),
+      mine({ listing: { ...fixtureListings[0], id: 32, title: "", address: "Main 1" }, status: "DRAFT" }),
+    ]);
+    render(await open({ tab: "draft" }));
+    expect(screen.getAllByText(t.ui.draftTitle)).toHaveLength(2);
+    expect(screen.getAllByText(cardTitle(bare, "en", t))).toHaveLength(2);
+    expect(screen.queryByText(/\$0/)).toBeNull();
+    expect(screen.getByText(/· Main 1$/)).toBeInTheDocument();
+    // A draft nobody has seen has no numbers to show.
+    expect(screen.queryByText(/Views:/)).toBeNull();
+    expect(screen.queryByRole("link", { name: my.open })).toBeNull();
+    const [remove] = screen.getAllByRole("button", { name: t.ui.deleteDraft });
+    fireEvent.click(remove);
+    expect(await screen.findByText(t.ui.confirmDeleteDraft)).toBeInTheDocument();
+    expect(remove.closest("form")?.querySelector("input[name=listingId]")).toHaveValue("31");
+  });
+
+  it("offers no delete for anything but a draft", async () => {
+    db.listMyListingsTab.mockResolvedValue([mine(), mine({ listing: fixtureListings[2], status: "PENDING" })]);
+    render(await open());
+    expect(screen.queryByRole("button", { name: t.ui.deleteDraft })).toBeNull();
+    expect(screen.getAllByText(/Views:/)).toHaveLength(2);
   });
 
   it("links staff to the admin panel, and nobody else", async () => {
