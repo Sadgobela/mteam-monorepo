@@ -1,5 +1,5 @@
 import { useEffect, useRef, type ComponentRef } from "react";
-import { StyleSheet, type View } from "react-native";
+import { AppState, StyleSheet, type View } from "react-native";
 import { BlurTargetView } from "expo-blur";
 import * as Notifications from "expo-notifications";
 import { Stack } from "expo-router";
@@ -50,9 +50,14 @@ function Screens() {
     const tapped = Notifications.addNotificationResponseReceivedListener(opened);
     // A notification that arrives while the app is open updates the badge on the menu.
     const arrived = Notifications.addNotificationReceivedListener(() => void refresh());
+    // Those that came while the app was away count too: the badge is read again on the way back.
+    const back = AppState.addEventListener("change", (state) => {
+      if (state === "active") void refresh();
+    });
     return () => {
       tapped.remove();
       arrived.remove();
+      back.remove();
     };
   }, [ready, refresh]);
 

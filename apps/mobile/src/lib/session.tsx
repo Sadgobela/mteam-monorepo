@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useState, type Dispatch, type ReactNode, type SetStateAction } from "react";
 import { api, ApiError, setApiToken, type Me } from "./api";
 import { readStored, writeStored } from "./storage";
 
@@ -13,7 +13,7 @@ interface SessionValue {
   favoriteIds: Set<number>;
   /** Unread notifications, for the badge in the menu: from the profile, then from the notifications screen. */
   unread: number;
-  setUnread: (count: number) => void;
+  setUnread: Dispatch<SetStateAction<number>>;
   signIn: (token: string) => Promise<void>;
   signOut: () => Promise<void>;
   refresh: () => Promise<void>;

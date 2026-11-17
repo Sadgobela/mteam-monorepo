@@ -1,4 +1,4 @@
-import { Linking } from "react-native";
+import { AppState, Linking } from "react-native";
 import { render, screen, waitFor } from "@testing-library/react-native";
 import type { NotificationResponse } from "expo-notifications";
 import { answer, serve, signedIn } from "@/test/render";
@@ -76,6 +76,23 @@ describe("RootLayout", () => {
     await view.unmount();
     expect(removeTap).toHaveBeenCalled();
     expect(removeArrival).toHaveBeenCalled();
+  });
+
+  it("reads the badge again when the app comes back to the front, and stops listening when gone", async () => {
+    const fetchMock = serve({ "/api/v1/me": answer(signedIn({ unread: 1 })) });
+    // React Native's test setup already stands AppState in with a mock; this only watches it.
+    const listen = jest.spyOn(AppState, "addEventListener");
+    const view = await render(<RootLayout />);
+    await waitFor(() => expect(listen).toHaveBeenCalled());
+    const changed = listen.mock.calls[0][1];
+    const profiles = () => fetchMock.mock.calls.filter(([url]) => url.endsWith("/api/v1/me")).length;
+    const before = profiles();
+    changed("background");
+    expect(profiles()).toBe(before);
+    changed("active");
+    await waitFor(() => expect(profiles()).toBe(before + 1));
+    await view.unmount();
+    expect(listen.mock.results[0].value.remove).toHaveBeenCalled();
   });
 
   it("starts without a waiting notification", async () => {

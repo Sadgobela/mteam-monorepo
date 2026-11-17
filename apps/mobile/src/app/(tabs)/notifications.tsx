@@ -52,7 +52,8 @@ export default function NotificationsScreen() {
   const markRead = (id?: string) => setNotices((current) => current.map((notice) => (id === undefined || notice.id === id ? { ...notice, read: true } : notice)));
   const open = async (notice: Notice) => {
     markRead(notice.id);
-    if (!notice.read) setUnread(Math.max(0, unread - 1));
+    // From the server's count, not this list, which holds only the newest 50.
+    if (!notice.read) setUnread((count) => Math.max(0, count - 1));
     try {
       followPath((await api.openNotification(notice.id, locale)).path);
     } catch {
