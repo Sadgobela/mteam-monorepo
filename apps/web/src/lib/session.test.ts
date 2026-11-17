@@ -45,6 +45,19 @@ describe("currentUser", () => {
     expect(db.getSessionUser).toHaveBeenCalledWith("tok");
   });
 
+  it("takes the app's bearer token when there is no cookie, and ignores a malformed one", async () => {
+    store.get.mockReturnValue(undefined);
+    db.getSessionUser.mockResolvedValue({ id: "u1" });
+    const token = "a".repeat(43);
+    requestHeaders.get.mockReturnValueOnce(`Bearer ${token}`).mockReturnValueOnce("Bearer bad token").mockReturnValueOnce(`Basic ${token}`);
+    expect(await currentUser()).toEqual({ id: "u1" });
+    expect(db.getSessionUser).toHaveBeenCalledWith(token);
+    expect(requestHeaders.get).toHaveBeenCalledWith("authorization");
+    expect(await currentUser()).toBeNull();
+    expect(await currentUser()).toBeNull();
+    expect(db.getSessionUser).toHaveBeenCalledTimes(1);
+  });
+
   it("is null without a cookie", async () => {
     store.get.mockReturnValue(undefined);
     expect(await currentUser()).toBeNull();
