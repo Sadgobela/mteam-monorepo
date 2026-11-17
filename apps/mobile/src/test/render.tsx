@@ -1,16 +1,20 @@
-import type { ReactElement } from "react";
+import type { ReactElement, ReactNode } from "react";
 import { render } from "@testing-library/react-native";
 import type { Me } from "@/lib/api";
 import { LocaleProvider } from "@/lib/i18n";
 import { SessionProvider } from "@/lib/session";
 
-/** Renders a screen inside the app's providers, as the root layout does. */
-export async function renderApp(ui: ReactElement) {
-  return await render(
+function Providers({ children }: { children: ReactNode }) {
+  return (
     <LocaleProvider>
-      <SessionProvider>{ui}</SessionProvider>
-    </LocaleProvider>,
+      <SessionProvider>{children}</SessionProvider>
+    </LocaleProvider>
   );
+}
+
+/** Renders a screen inside the app's providers, as the root layout does; a rerender keeps them. */
+export async function renderApp(ui: ReactElement) {
+  return await render(ui, { wrapper: Providers });
 }
 
 /** A fetch answer with a JSON body. */
@@ -62,7 +66,7 @@ export function serve(routes: Record<string, Reply | Reply[]>) {
   return fetchMock as jest.Mock;
 }
 
-export const me: Me = { id: "u1", name: "Nino", phone: "+995555123456", role: "USER", onboarded: true, favoriteIds: [] };
+export const me: Me = { id: "u1", name: "Nino", phone: "+995555123456", role: "USER", onboarded: true, favoriteIds: [], unread: 0 };
 
 /** Starts the next render signed in as `user`. */
 export function signedIn(user: Partial<Me> = {}): Me {

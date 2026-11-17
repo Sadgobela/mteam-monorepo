@@ -3,6 +3,7 @@ import { ScrollView, StyleSheet, Switch, Text, View } from "react-native";
 import { router } from "expo-router";
 import { languageNames, locales } from "@mteam/shared";
 import { SignInPrompt } from "@/components/SignInPrompt";
+import { useBarSpace } from "@/components/TabBar";
 import { Button, ChipRow, Heading, Note } from "@/components/ui";
 import { fill, useLocale } from "@/lib/i18n";
 import { pushIsOn, turnOffPush, turnOnPush, type PushResult } from "@/lib/push";
@@ -12,6 +13,7 @@ import { space, useColors } from "@/lib/theme";
 /** The account tab: the language for everyone; for a signed-in user also their listings, push on this phone and signing out. */
 export default function AccountScreen() {
   const c = useColors();
+  const barSpace = useBarSpace();
   const { locale, t, setLocale } = useLocale();
   const session = useSession();
   const [push, setPush] = useState(false);
@@ -44,7 +46,7 @@ export default function AccountScreen() {
   };
 
   return (
-    <ScrollView contentContainerStyle={styles.page}>
+    <ScrollView contentContainerStyle={[styles.page, { paddingBottom: barSpace }]}>
       {user ? (
         <>
           <Heading>{user.name ? fill(t.mobile.welcome, { name: user.name }) : t.account.heading}</Heading>

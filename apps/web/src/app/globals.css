@@ -529,6 +529,19 @@ main { animation: fade-in 0.25s ease-out; }
 @keyframes nav-progress { from { transform: scaleX(0); } }
 @keyframes nav-done { from, 50% { opacity: 1; } }
 /* Loading stand-ins: the shapes of what is coming, in the soft brand tint of both themes. */
+/* The page loader (Loader.tsx): the mark's arrows gather into the logo, rest, and part again. */
+.page-loader { position: fixed; inset: 0; z-index: 1000; display: grid; place-items: center; pointer-events: none; }
+.page-loader .loader { box-sizing: content-box; width: 60px; height: 60px; padding: 20px; border-radius: 50%; background: var(--surface); box-shadow: 0 8px 32px rgb(31 24 40 / 0.12); }
+.loader { display: block; overflow: visible; color: var(--logo); }
+.loader-mark, .loader-arm { transform-box: view-box; transform-origin: 50% 50%; }
+.loader-mark { animation: loader-settle 2.2s infinite; }
+.loader-arm { animation: loader-arm 2.2s infinite; }
+@keyframes loader-arm {
+  0% { transform: translate(calc(var(--dx) * 54px), calc(var(--dy) * 54px)); opacity: 0; animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1); }
+  30%, 76% { transform: translate(0, 0); opacity: 1; animation-timing-function: cubic-bezier(0.7, 0, 0.84, 0); }
+  100% { transform: translate(calc(var(--dx) * 54px), calc(var(--dy) * 54px)); opacity: 0; }
+}
+@keyframes loader-settle { 0%, 28% { transform: scale(1); } 36% { transform: scale(1.04); } 46%, 100% { transform: scale(1); } }
 .skeleton-block, .ph.skeleton-block { background: var(--brand-soft); animation: pulse 1.4s ease-in-out infinite; }
 @keyframes pulse { 50% { opacity: 0.6; } }
 .skeleton-card { pointer-events: none; }

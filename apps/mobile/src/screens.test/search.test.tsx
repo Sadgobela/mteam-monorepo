@@ -20,10 +20,36 @@ describe("SearchScreen", () => {
     await fireEvent.press(screen.getByRole("button", { name: "ფილტრები" }));
     await fireEvent.changeText(screen.getByLabelText("ფასი, $ დან"), "500");
     await fireEvent.changeText(screen.getByLabelText("ფასი, $ მდე"), "900");
-    await fireEvent.press(screen.getByText("2"));
+    // The rooms chip, above the cards (a card's photo count can read 2 as well).
+    await fireEvent.press(screen.getAllByText("2")[0]);
     await fireEvent.press(screen.getByRole("button", { name: "ძებნა" }));
     await waitFor(() => expect(query(fetchMock).get("deal")).toBe("rent"));
     expect(Object.fromEntries(query(fetchMock))).toEqual({ deal: "rent", type: "house", city: "თბილისი", priceMin: "500", priceMax: "900", rooms: "2", page: "1" });
+  });
+
+  it("sorts the results at once, and back to newest first", async () => {
+    const fetchMock = serve({ "/api/v1/listings": page([listing], 1) });
+    await renderApp(<SearchScreen />);
+    await fireEvent.press(await screen.findByText("ფასი ↑"));
+    await waitFor(() => expect(query(fetchMock).get("sort")).toBe("asc"));
+    await fireEvent.press(await screen.findByText("ფასი ↑"));
+    await waitFor(() => expect(query(fetchMock).get("sort")).toBeNull());
+    expect(fetchMock).toHaveBeenCalledTimes(3);
+  });
+
+  it("opens with a saved search's filters from its address, and starts over for another", async () => {
+    const { useLocalSearchParams } = jest.requireMock("expo-router");
+    useLocalSearchParams.mockReturnValue({ deal: "rent", city: "ბათუმი" });
+    const fetchMock = serve({ "/api/v1/listings": page([listing], 1) });
+    const view = await renderApp(<SearchScreen />);
+    await waitFor(() => expect(query(fetchMock).toString()).toBe("deal=rent&city=%E1%83%91%E1%83%90%E1%83%97%E1%83%A3%E1%83%9B%E1%83%98&page=1"));
+    expect(screen.getByRole("button", { name: "ქირავდება" })).toBeSelected();
+    useLocalSearchParams.mockReturnValue({ type: "house" });
+    await view.rerender(<SearchScreen />);
+    await waitFor(() => expect(query(fetchMock).toString()).toBe("type=house&page=1"));
+    // No deal in the address: the switch shows sales.
+    expect(screen.getByRole("button", { name: "იყიდება" })).toBeSelected();
+    useLocalSearchParams.mockReturnValue({});
   });
 
   it("adds the next page under the first", async () => {

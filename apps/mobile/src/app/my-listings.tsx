@@ -3,6 +3,7 @@ import { FlatList, StyleSheet, Text, View } from "react-native";
 import { useFocusEffect } from "expo-router";
 import { ListingCard } from "@/components/ListingCard";
 import { toSignIn } from "@/components/SignInPrompt";
+import { useBarSpace } from "@/components/TabBar";
 import { ScreenState } from "@/components/ui";
 import { api, type MyListing } from "@/lib/api";
 import { useLocale } from "@/lib/i18n";
@@ -11,6 +12,7 @@ import { radius, space, useColors } from "@/lib/theme";
 /** Everything the user posted, each with its status: a draft, in review, live, taken down or rejected. */
 export default function MyListingsScreen() {
   const c = useColors();
+  const barSpace = useBarSpace();
   const { t } = useLocale();
   const [listings, setListings] = useState<MyListing[]>([]);
   const [gelPerUsd, setGelPerUsd] = useState(0);
@@ -36,7 +38,7 @@ export default function MyListingsScreen() {
 
   return (
     <FlatList
-      contentContainerStyle={styles.list}
+      contentContainerStyle={[styles.list, { paddingBottom: barSpace }]}
       data={state === "ready" ? listings : []}
       keyExtractor={(listing) => String(listing.id)}
       renderItem={({ item }) => (

@@ -9,7 +9,7 @@ const store = SecureStore as jest.Mocked<typeof SecureStore>;
 const fetchMock = jest.fn();
 globalThis.fetch = fetchMock;
 
-const me = { id: "u1", name: "Nino", phone: "+995555123456", role: "USER", onboarded: true, favoriteIds: [3] };
+const me = { id: "u1", name: "Nino", phone: "+995555123456", role: "USER", onboarded: true, favoriteIds: [3], unread: 2 };
 const wrapper = ({ children }: { children: ReactNode }) => <SessionProvider>{children}</SessionProvider>;
 const lastHeaders = () => fetchMock.mock.calls.at(-1)[1].headers;
 
@@ -32,13 +32,16 @@ describe("SessionProvider", () => {
     await act(async () => expect(await session.current.toggleFavorite(3)).toBe(false));
   });
 
-  it("restores a stored session with its favourites", async () => {
+  it("restores a stored session with its favourites and unread count", async () => {
     store.getItemAsync.mockResolvedValueOnce("tok");
     fetchMock.mockResolvedValue(answer(me));
     const session = await start();
     expect(session.current.user).toEqual(me);
     expect(session.current.favoriteIds.has(3)).toBe(true);
+    expect(session.current.unread).toBe(2);
     expect(lastHeaders().authorization).toBe("Bearer tok");
+    await act(() => session.current.setUnread(0));
+    expect(session.current.unread).toBe(0);
   });
 
   it("forgets a session the server no longer knows, but keeps it when offline", async () => {
@@ -73,6 +76,7 @@ describe("SessionProvider", () => {
     await act(() => session.current.signOut());
     expect(session.current.user).toBeNull();
     expect(session.current.favoriteIds.size).toBe(0);
+    expect(session.current.unread).toBe(0);
     expect(store.deleteItemAsync).toHaveBeenCalledWith("session");
   });
 

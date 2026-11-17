@@ -26,7 +26,7 @@
       "expo-router",
       "expo-secure-store",
       "expo-localization",
-      ["expo-splash-screen", { "image": "./assets/splash-icon.png", "imageWidth": 160, "backgroundColor": "#FAF8FC", "dark": { "backgroundColor": "#141019" } }],
+      ["expo-splash-screen", { "image": "./assets/splash-mark.png", "imageWidth": 96, "backgroundColor": "#986DC6", "dark": { "backgroundColor": "#141019" } }],
       ["expo-notifications", { "color": "#986DC6" }],
       ["expo-image-picker", { "photosPermission": "MTeam needs your photos to add them to your listing." }]
     ],

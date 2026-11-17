@@ -9,6 +9,9 @@ interface SessionValue {
   ready: boolean;
   user: Me | null;
   favoriteIds: Set<number>;
+  /** Unread notifications, for the badge in the menu: from the profile, then from the notifications screen. */
+  unread: number;
+  setUnread: (count: number) => void;
   signIn: (token: string) => Promise<void>;
   signOut: () => Promise<void>;
   refresh: () => Promise<void>;
@@ -22,12 +25,14 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   const [ready, setReady] = useState(false);
   const [user, setUser] = useState<Me | null>(null);
   const [favoriteIds, setFavoriteIds] = useState<Set<number>>(new Set());
+  const [unread, setUnread] = useState(0);
 
   const load = useCallback(async () => {
     try {
       const me = await api.me();
       setUser(me);
       setFavoriteIds(new Set(me.favoriteIds));
+      setUnread(me.unread);
     } catch (error) {
       // An expired or revoked session is forgotten; being offline keeps it for next time.
       if (error instanceof ApiError && error.status === 401) {
@@ -53,6 +58,8 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       ready,
       user,
       favoriteIds,
+      unread,
+      setUnread,
       refresh: load,
       signIn: async (token) => {
         setApiToken(token);
@@ -65,6 +72,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
         await writeStored(KEY, null);
         setUser(null);
         setFavoriteIds(new Set());
+        setUnread(0);
       },
       toggleFavorite: async (id) => {
         if (!user) return false;
@@ -85,7 +93,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
         return true;
       },
     }),
-    [ready, user, favoriteIds, load],
+    [ready, user, favoriteIds, unread, load],
   );
   return <SessionContext.Provider value={value}>{children}</SessionContext.Provider>;
 }

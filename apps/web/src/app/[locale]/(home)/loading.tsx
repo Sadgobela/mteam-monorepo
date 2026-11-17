@@ -1,3 +1,4 @@
+import { PageLoader } from "@/components/Loader";
 import { CardGridSkeleton, HeaderSkeleton } from "@/components/Skeletons";
 
 /**
@@ -9,6 +10,7 @@ export default function HomeLoading() {
     <>
       <HeaderSkeleton />
       <main className="page" aria-busy="true">
+        <PageLoader />
         <div className="skeleton-block skeleton-search" aria-hidden="true" />
         <CardGridSkeleton />
       </main>

@@ -17,12 +17,19 @@ export function priceLine(listing: PublicListing, t: Dict, gelPerUsd: number): s
   return unit ? `${formatPrice(usd, "USD")} ${unit}` : formatPrice(usd, "USD");
 }
 
-/** Area, rooms and floor, the facts a card shows under the price. */
+/** Area, rooms and floor, each with what it is, for the facts on the listing screen. */
+export function factList(listing: PublicListing, t: Dict): { kind: "area" | "rooms" | "floor"; text: string }[] {
+  const facts: { kind: "area" | "rooms" | "floor"; text: string }[] = [{ kind: "area", text: `${listing.area} ${t.units.sqm}` }];
+  if (listing.rooms > 0) facts.push({ kind: "rooms", text: `${listing.rooms} ${t.units.rooms}` });
+  if (listing.floor !== undefined) facts.push({ kind: "floor", text: `${listing.floor}/${listing.floors} ${t.units.floor}` });
+  return facts;
+}
+
+/** The same facts in one line, as a card shows them under the price. */
 export function factsLine(listing: PublicListing, t: Dict): string {
-  const facts = [`${listing.area} ${t.units.sqm}`];
-  if (listing.rooms > 0) facts.push(`${listing.rooms} ${t.units.rooms}`);
-  if (listing.floor !== undefined) facts.push(`${listing.floor}/${listing.floors} ${t.units.floor}`);
-  return facts.join(" · ");
+  return factList(listing, t)
+    .map((fact) => fact.text)
+    .join(" · ");
 }
 
 /** The digits WhatsApp wants in its link: the number without the plus. */
@@ -31,12 +38,15 @@ export function whatsappLink(phone: string): string {
 }
 
 /**
- * The screen a site path from a notification opens: a listing, or the user's listings for news about their own; anything
- * else (messages, saved searches) opens the site's page in the browser until the app has those screens.
+ * The screen a site path from a notification opens: a listing, the user's listings, the notifications, or the search tab
+ * with a saved search's filters; anything else (messages) opens the site's page in the browser until the app has it.
  */
 export function routeForPath(path: string): { screen: string } | { web: string } {
   const listing = /^\/[a-z]{2}\/listings\/(\d+)$/.exec(path);
   if (listing) return { screen: `/listings/${listing[1]}` };
   if (/^\/[a-z]{2}\/my-listings$/.test(path)) return { screen: "/my-listings" };
+  if (/^\/[a-z]{2}\/account\/notifications$/.test(path)) return { screen: "/notifications" };
+  const search = /^\/[a-z]{2}(\?.*)?$/.exec(path);
+  if (search) return { screen: `/${search[1] ?? ""}` };
   return { web: path };
 }

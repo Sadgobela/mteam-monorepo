@@ -4,7 +4,7 @@ import type { PublicListing } from "@mteam/shared";
 import { answer, listing, renderApp } from "@/test/render";
 import { ListingCard } from "./ListingCard";
 import { SignInPrompt } from "./SignInPrompt";
-import { Button, ChipRow, Field, Heading, Note, ScreenState } from "./ui";
+import { Button, ChipRow, dimWhenPressed, Field, Heading, Note, ScreenState, Segmented } from "./ui";
 
 const fetchMock = jest.fn();
 globalThis.fetch = fetchMock;
@@ -27,6 +27,25 @@ describe("ui", () => {
     await fireEvent.press(screen.getByRole("button", { name: "Busy" }));
     await fireEvent.press(screen.getByRole("button", { name: "Off" }));
     expect(press).toHaveBeenCalledTimes(2);
+  });
+
+  it("dims a pressable while pressed", () => {
+    const style = { padding: 1 };
+    expect(dimWhenPressed(style)({ pressed: false })).toEqual([style, false]);
+    expect(dimWhenPressed(style)({ pressed: true })).toEqual([style, { opacity: 0.7 }]);
+  });
+
+  it("paints a button another colour with an icon", async () => {
+    await render(<Button label="WhatsApp" icon="logo-whatsapp" color="#1f9d57" onPress={jest.fn()} />);
+    expect(screen.getByRole("button", { name: "WhatsApp" })).toHaveStyle({ backgroundColor: "#1f9d57" });
+  });
+
+  it("switches between segments, one always chosen", async () => {
+    const change = jest.fn();
+    await render(<Segmented options={["a", "b"]} value="a" onChange={change} label={(v) => v.toUpperCase()} />);
+    expect(screen.getByRole("button", { name: "A" })).toBeSelected();
+    await fireEvent.press(screen.getByText("B"));
+    expect(change).toHaveBeenCalledWith("b");
   });
 
   it("chooses a chip, and clears it when chosen again", async () => {

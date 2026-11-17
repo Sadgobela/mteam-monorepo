@@ -1,7 +1,9 @@
 // Copy for the mobile app (apps/mobile), kept in its own file so parallel work does not collide in i18n.ts.
 // The app reuses the site's copy wherever the words are the same; only what is the app's own lives here.
 const ka = {
-  tabs: { search: "ძიება", favorites: "რჩეულები", post: "დამატება", account: "ანგარიში" },
+  tabs: { search: "ძიება", favorites: "რჩეულები", post: "დამატება", notifications: "სიახლეები", account: "ანგარიში" },
+  searchHeading: "იპოვე შენი შემდეგი სახლი",
+  tabsLabel: "მთავარი მენიუ",
   loadFailed: "ვერ ჩაიტვირთა. შეამოწმე ინტერნეტი და სცადე თავიდან.",
   retry: "თავიდან ცდა",
   listingGone: "ეს განცხადება აღარ არის გამოქვეყნებული.",
@@ -22,7 +24,9 @@ const ka = {
 };
 
 const en: typeof ka = {
-  tabs: { search: "Search", favorites: "Favourites", post: "Post", account: "Account" },
+  tabs: { search: "Search", favorites: "Favourites", post: "Post", notifications: "Updates", account: "Account" },
+  searchHeading: "Find your next home",
+  tabsLabel: "Main menu",
   loadFailed: "Couldn't load. Check your connection and try again.",
   retry: "Try again",
   listingGone: "This listing is no longer published.",
@@ -43,7 +47,9 @@ const en: typeof ka = {
 };
 
 const ru: typeof ka = {
-  tabs: { search: "Поиск", favorites: "Избранное", post: "Добавить", account: "Аккаунт" },
+  tabs: { search: "Поиск", favorites: "Избранное", post: "Добавить", notifications: "Новости", account: "Аккаунт" },
+  searchHeading: "Найдите свой следующий дом",
+  tabsLabel: "Главное меню",
   loadFailed: "Не удалось загрузить. Проверьте интернет и попробуйте ещё раз.",
   retry: "Повторить",
   listingGone: "Это объявление больше не опубликовано.",

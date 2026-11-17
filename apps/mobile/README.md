@@ -4,11 +4,14 @@ Expo (SDK 58) with Expo Router, for iOS and Android. It talks to the site's API 
 
 ## What it does
 
-- **Search** (tab 1): deal, type, city, price and rooms, with results a page at a time.
-- **Listing**: photos to swipe, price and facts, description in the app's language, call and WhatsApp (the number is asked for at the press, as on the site), similar listings.
-- **Favourites** (tab 2) and **my listings**, once signed in.
-- **Posting** (tab 3): the fields every listing needs and photos from the gallery. The site's posting endpoints check everything again.
-- **Account** (tab 4): sign-in with an SMS code, first-visit questions, push on this phone, app language, sign-out.
+- **Menu**: a frosted-glass bar floating over every screen (`src/components/TabBar.tsx`), drawn by the root layout rather than the tabs, so it stays on a listing too. Posting is the raised button in the middle; notifications carry the unread count.
+- **Search**: deal, type, city, price and rooms, sorting, and results a page at a time. A saved search opened from a notification arrives as the screen's query.
+- **Listing**: photos to swipe with a counter, price, facts, description in the app's language, call and WhatsApp (the number is asked for at the press, as on the site), similar listings.
+- **Favourites** and **my listings**, once signed in.
+- **Posting**: the fields every listing needs and photos from the gallery. The site's posting endpoints check everything again.
+- **Notifications**: the site's notifications list; opening one marks it read and goes to its screen. A tapped push does the same, also when it started the app.
+- **Account**: sign-in with an SMS code, first-visit questions, push on this phone, app language, sign-out.
+- **Loader**: the site's logo loader (`src/components/Brand.tsx`). The splash image (`assets/splash-mark.png`, white mark and word on the brand colour) is the first frame of the start-up screen, which then moves until the session is known.
 - Light and dark themes follow the phone, with the site's colour tokens.
 
 ## Running it
