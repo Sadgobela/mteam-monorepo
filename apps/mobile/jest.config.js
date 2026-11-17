@@ -3,6 +3,9 @@ module.exports = {
   preset: "jest-expo",
   setupFiles: ["./jest.setup.js"],
   setupFilesAfterEnv: ["./jest.after-env.js"],
+  // The same 20-second limit as the web and db tests: on CI the four packages test at once, and a file's first render,
+  // which loads React Native and Expo Router, can pass Jest's default of 5 seconds.
+  testTimeout: 20_000,
   // Every test starts from fresh mocks: each sets what it needs.
   resetMocks: false,
   clearMocks: true,
