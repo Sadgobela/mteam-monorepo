@@ -26,6 +26,8 @@ export default function SearchScreen() {
   const [results, setResults] = useState<Results>({ listings: [], total: 0, page: 1, pageSize: 0, gelPerUsd: FALLBACK_GEL_PER_USD });
   const [state, setState] = useState<"loading" | "failed" | "ready">("loading");
   const [more, setMore] = useState(false);
+  // Price and rooms fold away so the results start on the first screen.
+  const [allFilters, setAllFilters] = useState(false);
 
   /** Fetches a page; the caller shows that it is loading, so the first load from the effect sets no state before the answer. */
   const load = useCallback(
@@ -62,19 +64,25 @@ export default function SearchScreen() {
 
   const header = (
     <View style={styles.filters}>
-      <ChipRow options={deals} value={filters.deal as (typeof deals)[number] | undefined} onChange={set("deal")} label={(deal) => t.deal[deal]} />
-      <ChipRow options={propertyTypes} value={filters.type as (typeof propertyTypes)[number] | undefined} onChange={set("type")} label={(type) => t.propertyType[type]} />
-      <ChipRow options={popularCities} value={filters.city as string | undefined} onChange={set("city")} label={(city) => placeLabel(city, locale)} />
-      <View style={styles.row}>
-        <View style={styles.half}>
-          <Field label={t.search.priceMin} keyboardType="number-pad" value={(filters.priceMin as string) ?? ""} onChangeText={set("priceMin")} />
-        </View>
-        <View style={styles.half}>
-          <Field label={t.search.priceMax} keyboardType="number-pad" value={(filters.priceMax as string) ?? ""} onChangeText={set("priceMax")} />
-        </View>
-      </View>
-      <Note>{t.search.rooms}</Note>
-      <ChipRow options={rooms} value={filters.rooms as (typeof rooms)[number] | undefined} onChange={set("rooms")} label={(count) => count} />
+      <ChipRow scroll options={deals} value={filters.deal as (typeof deals)[number] | undefined} onChange={set("deal")} label={(deal) => t.deal[deal]} />
+      <ChipRow scroll options={propertyTypes} value={filters.type as (typeof propertyTypes)[number] | undefined} onChange={set("type")} label={(type) => t.propertyType[type]} />
+      <ChipRow scroll options={popularCities} value={filters.city as string | undefined} onChange={set("city")} label={(city) => placeLabel(city, locale)} />
+      {allFilters ? (
+        <>
+          <View style={styles.row}>
+            <View style={styles.half}>
+              <Field label={t.search.priceMin} keyboardType="number-pad" value={(filters.priceMin as string) ?? ""} onChangeText={set("priceMin")} />
+            </View>
+            <View style={styles.half}>
+              <Field label={t.search.priceMax} keyboardType="number-pad" value={(filters.priceMax as string) ?? ""} onChangeText={set("priceMax")} />
+            </View>
+          </View>
+          <Note>{t.search.rooms}</Note>
+          <ChipRow options={rooms} value={filters.rooms as (typeof rooms)[number] | undefined} onChange={set("rooms")} label={(count) => count} />
+        </>
+      ) : (
+        <Button quiet label={t.ui.filters} onPress={() => setAllFilters(true)} />
+      )}
       <Button label={t.search.submit} onPress={submit} />
       {state === "ready" && <Note>{fill(t.results.found, { count: results.total })}</Note>}
     </View>

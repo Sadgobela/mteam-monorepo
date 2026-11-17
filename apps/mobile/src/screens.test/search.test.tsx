@@ -15,6 +15,9 @@ describe("SearchScreen", () => {
     await fireEvent.press(screen.getByText("ქირავდება"));
     await fireEvent.press(screen.getByText("სახლი"));
     await fireEvent.press(screen.getAllByText("თბილისი")[0]);
+    // Price and rooms are folded away until asked for.
+    expect(screen.queryByLabelText("ფასი, $ დან")).toBeNull();
+    await fireEvent.press(screen.getByRole("button", { name: "ფილტრები" }));
     await fireEvent.changeText(screen.getByLabelText("ფასი, $ დან"), "500");
     await fireEvent.changeText(screen.getByLabelText("ფასი, $ მდე"), "900");
     await fireEvent.press(screen.getByText("2"));
