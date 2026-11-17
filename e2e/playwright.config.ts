@@ -12,13 +12,17 @@ export default defineConfig({
   fullyParallel: true,
   workers: process.env.CI ? 2 : 4,
   forbidOnly: Boolean(process.env.CI),
-  // None locally, so a flaky test shows up; one on CI, where a slow machine can miss a timing once. Retried tests are listed as flaky.
+  // None locally, so a flaky test shows up; one on CI, where a slow machine can miss a timing once. Retried tests are listed
+  // as flaky. Known: now and then the page after saving an edit, or after saving the profile, never arrives in the browser
+  // although the server answered in full (docs/E2E.md); a retry is reported, never hidden.
   retries: process.env.CI ? 1 : 0,
   timeout: 60_000,
   expect: { timeout: 10_000 },
   reporter: [["list"], ["html", { open: "never" }]],
   use: {
     baseURL: BASE_URL,
+    // A navigation that has not finished in 20 seconds is stuck; failing then keeps a hang from using up the whole test.
+    navigationTimeout: 20_000,
     trace: "retain-on-failure",
     screenshot: "only-on-failure",
     locale: "en-US",
