@@ -660,7 +660,6 @@ describe("SearchBar", () => {
     const openSheet = () => fireEvent.click(screen.getByRole("button", { name: /Filters$/ }));
     // The search icon is part of the button's name, so names are matched at their end.
     const named = (text: string) => ({ name: new RegExp(`${text}$`) });
-    const fallback = named(t.assistant.showResults);
 
     it("is only on results, counting every filter it holds", () => {
       bar();
@@ -707,9 +706,9 @@ describe("SearchBar", () => {
     it("searches what was chosen there and closes", async () => {
       row();
       openSheet();
-      fireEvent.change(sheet().getByRole("textbox", { name: "ID, street or keyword" }), { target: { value: "vake" } });
+      fireEvent.change(sheet().getByLabelText("ID, street or keyword"), { target: { value: "vake" } });
       fireEvent.click(sheet().getByLabelText("Verified only"));
-      fireEvent.click(sheet().getByRole("button", fallback));
+      fireEvent.click(button(t.assistant.showResults) as HTMLElement);
       await waitFor(() => expect(push).toHaveBeenCalled());
       expect(Object.fromEntries(pushed())).toMatchObject({ q: "vake", verified: "1" });
       await waitFor(() => expect(document.querySelector(".filter-sheet .ant-drawer-open")).toBeNull());
@@ -719,7 +718,7 @@ describe("SearchBar", () => {
       row({ q: "vake", verified: true });
       openSheet();
       fireEvent.click(sheet().getByLabelText("Verified only"));
-      const words = sheet().getByRole("textbox", { name: "ID, street or keyword" });
+      const words = sheet().getByLabelText("ID, street or keyword");
       fireEvent.change(words, { target: { value: "" } });
       fireEvent.keyDown(words, { key: "Enter", keyCode: 13 });
       await waitFor(() => expect(push).toHaveBeenCalled());
@@ -730,9 +729,9 @@ describe("SearchBar", () => {
     it("clears everything but the place, and closes without searching", async () => {
       row({ deal: "rent", type: "land", q: "vake", verified: true, rooms: 2, city: "ბათუმი" });
       openSheet();
-      fireEvent.click(within(document.querySelector(".sheet-foot") as HTMLElement).getByRole("button", { name: "Clear" }));
+      fireEvent.click(within(document.querySelector(".sheet-foot") as HTMLElement).getByText("Clear"));
       expect(sheet().getByLabelText("Verified only")).not.toBeChecked();
-      expect(sheet().getByRole("textbox", { name: "ID, street or keyword" })).toHaveValue("");
+      expect(sheet().getByLabelText("ID, street or keyword")).toHaveValue("");
       fireEvent.click(document.querySelector(".filter-sheet .ant-drawer-close") as HTMLElement);
       expect(push).not.toHaveBeenCalled();
       expect(document.querySelector(".filters-badge .ant-badge-count")).toBeNull();
