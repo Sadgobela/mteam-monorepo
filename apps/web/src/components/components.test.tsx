@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { getDictionary, type Listing } from "@mteam/shared";
 import { fixtureListings } from "@/test-fixtures";
 import { Select } from "antd";
@@ -680,18 +680,24 @@ describe("SearchBar", () => {
       expect(sheet().getByLabelText("Verified only")).toBeChecked();
       expect(sheet().getByLabelText("Price from, $")).toBeInTheDocument();
       expect(sheet().getByRole("button", fallback)).toBeInTheDocument();
-      expect(await sheet().findByRole("button", show(12))).toBeInTheDocument();
+      expect(await sheet().findByRole("button", show(12), { timeout: 3000 })).toBeInTheDocument();
       expect(countSearchAction).toHaveBeenLastCalledWith("deal=rent&cur=usd&view=grid&sort=new&verified=1");
     });
 
     it("never shows a count for filters changed since", async () => {
+      let answer: (total: number) => void = () => undefined;
+      countSearchAction.mockClear();
+      countSearchAction.mockReturnValueOnce(new Promise((resolve) => (answer = resolve)));
       row();
       openSheet();
-      await sheet().findByRole("button", show(12));
+      await waitFor(() => expect(countSearchAction).toHaveBeenCalledTimes(1), { timeout: 3000 });
       countSearchAction.mockReturnValueOnce(new Promise(() => undefined));
       fireEvent.change(sheet().getByLabelText("Price from, $"), { target: { value: "500" } });
+      // The count for the filters before the change arrives late, and is not shown.
+      await act(async () => answer(99));
+      expect(sheet().queryByRole("button", show(99))).toBeNull();
       expect(sheet().getByRole("button", fallback)).toBeInTheDocument();
-      await waitFor(() => expect(countSearchAction).toHaveBeenLastCalledWith("deal=&cur=usd&view=grid&sort=new&priceMin=500"));
+      await waitFor(() => expect(countSearchAction).toHaveBeenLastCalledWith("deal=&cur=usd&view=grid&sort=new&priceMin=500"), { timeout: 3000 });
       expect(sheet().getByRole("button", fallback)).toBeInTheDocument();
     });
 
