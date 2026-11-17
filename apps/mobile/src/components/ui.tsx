@@ -47,12 +47,13 @@ export function ChipRow<T extends string>({ options, value, onChange, label }: {
 }
 
 /** A labelled text field. */
-export function Field({ label, ...input }: { label: string } & TextInputProps) {
+export function Field({ label, style, ...input }: { label: string } & TextInputProps) {
   const c = useColors();
   return (
     <View style={styles.field}>
       <Text style={[styles.label, { color: c.muted }]}>{label}</Text>
-      <TextInput accessibilityLabel={label} placeholderTextColor={c.muted} style={[styles.input, { borderColor: c.line, color: c.fg, backgroundColor: c.surface }]} {...input} />
+      {/* A caller's style adds to the box (a taller description), it does not replace its border and colours. */}
+      <TextInput accessibilityLabel={label} placeholderTextColor={c.muted} style={[styles.input, { borderColor: c.line, color: c.fg, backgroundColor: c.surface }, style]} {...input} />
     </View>
   );
 }
