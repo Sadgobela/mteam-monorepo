@@ -2,6 +2,7 @@
   "expo": {
     "name": "MTeam",
     "slug": "mteam",
+    "owner": "sadgobelas-team",
     "scheme": "mteam",
     "version": "0.1.0",
     "orientation": "portrait",
@@ -33,7 +34,8 @@
       "typedRoutes": true
     },
     "extra": {
-      "apiUrl": "https://mteam-phi.vercel.app"
+      "apiUrl": "https://mteam-phi.vercel.app",
+      "eas": { "projectId": "9a12e918-5725-4012-9a4e-e62c6e384e27" }
     }
   }
 }
