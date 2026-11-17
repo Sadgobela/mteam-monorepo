@@ -38,15 +38,15 @@ export function whatsappLink(phone: string): string {
 }
 
 /**
- * The screen a site path from a notification opens: a listing, the user's listings, the notifications, or the search tab
- * with a saved search's filters; anything else (messages) opens the site's page in the browser until the app has it.
+ * Where a site path from a notification opens: a listing or the user's listings as a screen, the notifications or a saved
+ * search's filters as a tab; anything else (messages) opens the site's page in the browser until the app has it.
  */
-export function routeForPath(path: string): { screen: string } | { web: string } {
+export function routeForPath(path: string): { screen: string } | { tab: string } | { web: string } {
   const listing = /^\/[a-z]{2}\/listings\/(\d+)$/.exec(path);
   if (listing) return { screen: `/listings/${listing[1]}` };
   if (/^\/[a-z]{2}\/my-listings$/.test(path)) return { screen: "/my-listings" };
-  if (/^\/[a-z]{2}\/account\/notifications$/.test(path)) return { screen: "/notifications" };
+  if (/^\/[a-z]{2}\/account\/notifications$/.test(path)) return { tab: "/notifications" };
   const search = /^\/[a-z]{2}(\?.*)?$/.exec(path);
-  if (search) return { screen: `/${search[1] ?? ""}` };
+  if (search) return { tab: `/${search[1] ?? ""}` };
   return { web: path };
 }

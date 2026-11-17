@@ -21,6 +21,21 @@ describe("openNotification", () => {
     expect(router.push).toHaveBeenCalledTimes(1);
   });
 
+  it("follows only paths on the site, so a push cannot lead to another site", () => {
+    openNotification(tapped({ url: ".evil.test/x" }, "push-evil-1"));
+    openNotification(tapped({ url: "@evil.test" }, "push-evil-2"));
+    expect(openURL).not.toHaveBeenCalled();
+    expect(router.push).not.toHaveBeenCalled();
+  });
+
+  it("switches to a tab from a screen on top of the tabs, instead of stacking the tabs again", () => {
+    router.canDismiss.mockReturnValueOnce(true);
+    openNotification(tapped({ url: "/ka?deal=rent" }, "push-search"));
+    expect(router.dismissAll).toHaveBeenCalled();
+    expect(router.navigate).toHaveBeenCalledWith("/?deal=rent");
+    expect(router.push).not.toHaveBeenCalled();
+  });
+
   it("opens each notification once, and marks it read by its id", async () => {
     const fetchMock = serve({ "POST /api/v1/notifications/n1": answer({ path: "/ka/listings/7" }), "POST /api/v1/notifications/n2": answer({ error: "notFound" }, 404) });
     const then = jest.fn();
@@ -44,7 +59,7 @@ describe("RootLayout", () => {
     notifications.addNotificationReceivedListener.mockReturnValueOnce({ remove: removeArrival });
     notifications.getLastNotificationResponseAsync.mockResolvedValueOnce(tapped({ url: "/ka/account/notifications", tag: "n3" }, "push-3"));
     const view = await render(<RootLayout />);
-    await waitFor(() => expect(router.push).toHaveBeenCalledWith("/notifications"));
+    await waitFor(() => expect(router.navigate).toHaveBeenCalledWith("/notifications"));
     expect(await screen.findByLabelText("მთავარი მენიუ")).toBeOnTheScreen();
     // The splash cover fades away once the session is known.
     await waitFor(() => expect(screen.queryByTestId("boot")).not.toBeOnTheScreen());
