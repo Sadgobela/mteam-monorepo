@@ -1,7 +1,9 @@
+import { Alert } from "react-native";
 import { fireEvent, screen, waitFor } from "@testing-library/react-native";
-import { cityDistricts, getDictionary } from "@mteam/shared";
+import { cities, cityDistricts, getDictionary, popularCities } from "@mteam/shared";
 import { answer, renderApp, serve, signedIn } from "@/test/render";
 import PostScreen from "@/app/(tabs)/post";
+import EditListingScreen from "@/app/edit/[id]";
 
 const { router } = jest.requireMock("expo-router");
 const picker = jest.requireMock("expo-image-picker");
@@ -101,5 +103,73 @@ describe("PostScreen", () => {
     expect(screen.queryByText(district)).not.toBeOnTheScreen();
     await addPhotos(...Array.from({ length: 17 }, (_, index) => `file:///${index}.jpg`).slice(0, 16));
     expect(screen.queryByRole("button", { name: "+ ფოტო" })).not.toBeOnTheScreen();
+  });
+});
+
+describe("EditListingScreen", () => {
+  const { useLocalSearchParams } = jest.requireMock("expo-router");
+  const alert = jest.spyOn(Alert, "alert").mockImplementation(() => undefined);
+  const fields = { deal: "sale", type: "apartment", city: "თბილისი", district, street: "ჭავჭავაძის გამზირი", address: "Chavchavadze 1", title: "Sunny flat", description: "Near the park", price: "120000", currency: "USD", area: "80", rooms: "3", floor: "", floors: "", features: "balcony|parking", ceiling: "" };
+  const editable = (status: string, extra: object = {}) => answer({ id: 7, status, fields: { ...fields, ...extra }, images: ["https://cdn/old-1.jpg", "https://cdn/old-2.jpg"] });
+  const sentFields = (fetchMock: jest.Mock) => new URLSearchParams(fetchMock.mock.calls.find(([url, init]) => url.endsWith("/api/listings") && init.method === "POST")[1].body);
+
+  beforeEach(() => useLocalSearchParams.mockReturnValue({ id: "7" }));
+  afterEach(() => useLocalSearchParams.mockReturnValue({}));
+
+  it("asks a signed-out user to sign in, and a new account to finish onboarding", async () => {
+    serve({});
+    const view = await renderApp(<EditListingScreen />);
+    expect(await screen.findByRole("button", { name: "შესვლა" })).toBeOnTheScreen();
+    await view.unmount();
+    serve({ "/api/v1/me": answer(signedIn({ onboarded: false })) });
+    await renderApp(<EditListingScreen />);
+    await fireEvent.press(await screen.findByRole("button", { name: t.profile.start }));
+    expect(router.push).toHaveBeenCalledWith("/onboarding");
+  });
+
+  it("fills the form with the listing, sends back every field and the photos it keeps, and goes back", async () => {
+    const fetchMock = serve({
+      "/api/v1/me": answer(signedIn()),
+      "GET /api/v1/my-listings/7": [new TypeError("offline"), editable("ACTIVE")],
+      "/api/listings/photos": answer({ url: "https://cdn/new.jpg" }),
+      "/api/listings": answer({ id: 7, status: "ACTIVE" }),
+    });
+    await renderApp(<EditListingScreen />);
+    await fireEvent.press(await screen.findByRole("button", { name: "თავიდან ცდა" }));
+    expect(await screen.findByLabelText(t.post.fields.title)).toHaveDisplayValue("Sunny flat");
+    expect(screen.getByLabelText(t.post.fields.price)).toHaveDisplayValue("120000");
+    await fireEvent.press(screen.getByLabelText(`${t.post.fields.photoRemove} 1`));
+    await addPhotos("file:///new.jpg");
+    await fireEvent.changeText(screen.getByLabelText(t.post.fields.price), "115000");
+    await fireEvent.press(screen.getByRole("button", { name: t.post.save }));
+    await waitFor(() => expect(alert).toHaveBeenCalledWith(t.post.savedLive));
+    expect(router.back).toHaveBeenCalled();
+    const sent = sentFields(fetchMock);
+    // The details the app does not show are kept, as they came.
+    expect(Object.fromEntries(sent)).toMatchObject({ id: "7", price: "115000", street: "ჭავჭავაძის გამზირი", features: "balcony|parking", intent: "submit" });
+    expect(sent.has("floor")).toBe(false);
+    expect(sent.getAll("photos")).toEqual(["https://cdn/old-2.jpg", "https://cdn/new.jpg"]);
+    expect(fetchMock.mock.calls.filter(([url]) => url.endsWith("/api/listings/photos"))).toHaveLength(1);
+  });
+
+  it("clears the street when the district changes, and says an edit is back in review", async () => {
+    const fetchMock = serve({ "/api/v1/me": answer(signedIn()), "GET /api/v1/my-listings/7": editable("PENDING"), "/api/listings": answer({ id: 7, status: "PENDING" }) });
+    await renderApp(<EditListingScreen />);
+    await screen.findByLabelText(t.post.fields.title);
+    await fireEvent.press(screen.getAllByText(cityDistricts("თბილისი")[1])[0]);
+    await fireEvent.press(screen.getByRole("button", { name: t.post.save }));
+    await waitFor(() => expect(alert).toHaveBeenCalledWith(t.post.savedReview));
+    expect(sentFields(fetchMock).has("street")).toBe(false);
+  });
+
+  it("finishes a draft from a city off the short list, and opens my listings when there is nothing behind", async () => {
+    const town = cities.find((city) => !popularCities.includes(city))!;
+    serve({ "/api/v1/me": answer(signedIn()), "GET /api/v1/my-listings/7": editable("DRAFT", { city: town, district: cityDistricts(town)[0], street: "" }), "/api/listings": answer({ id: 7, status: "PENDING" }) });
+    router.canGoBack.mockReturnValueOnce(false);
+    await renderApp(<EditListingScreen />);
+    expect(await screen.findByRole("button", { name: town })).toBeSelected();
+    await fireEvent.press(screen.getByRole("button", { name: t.post.submit }));
+    await waitFor(() => expect(alert).toHaveBeenCalledWith(t.post.sent));
+    expect(router.replace).toHaveBeenCalledWith("/my-listings");
   });
 });

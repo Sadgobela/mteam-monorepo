@@ -15,8 +15,8 @@ describe("openNotification", () => {
   it("opens the app's screen for a listing, the site for anything else, and nothing without an address", () => {
     openNotification(tapped({ url: "/ka/listings/7" }));
     expect(router.push).toHaveBeenCalledWith("/listings/7");
-    openNotification(tapped({ url: "/ka/brokers" }));
-    expect(openURL).toHaveBeenCalledWith("https://api.test/ka/brokers");
+    openNotification(tapped({ url: "/ka/account/security" }));
+    expect(openURL).toHaveBeenCalledWith("https://api.test/ka/account/security");
     openNotification(tapped(undefined));
     expect(router.push).toHaveBeenCalledTimes(1);
   });

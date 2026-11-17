@@ -37,19 +37,36 @@ export function whatsappLink(phone: string): string {
   return `https://wa.me/${phone.replace(/\D/g, "")}`;
 }
 
+/** Site paths, after the language, that the app has a screen for: the path, and the screen with `$1` for its id. */
+const screens: [RegExp, string][] = [
+  [/^listings\/(\d+)$/, "/listings/$1"],
+  [/^listings\/(\d+)\/edit$/, "/edit/$1"],
+  [/^my-listings$/, "/my-listings"],
+  [/^messages\/([\w-]+)$/, "/messages/$1"],
+  [/^messages$/, "/messages"],
+  [/^saved$/, "/saved-searches"],
+  [/^brokers$/, "/brokers"],
+  [/^brokers\/([\w-]+)$/, "/brokers/$1"],
+  [/^branches\/([\w-]+)$/, "/branches/$1"],
+  [/^sellers\/([\w-]+)$/, "/sellers/$1"],
+  [/^mortgage$/, "/mortgage"],
+  // The table opens on Tbilisi sales whatever the site's page was showing.
+  [/^prices(\?.*)?$/, "/prices"],
+  [/^account\/profile$/, "/profile"],
+  [/^account\/settings$/, "/settings"],
+];
+
 /**
- * Where a site path from a notification opens: a listing, the user's listings, a chat, the chats or the saved searches as
- * a screen, the notifications or a saved search's filters as a tab; anything else opens the site's page in the browser.
+ * Where a site path from a notification opens: a page the app has (a listing, the user's listings, a chat, a broker…) as
+ * its screen, the notifications or a search's filters as a tab; anything else opens the site's page in the browser.
  */
 export function routeForPath(path: string): { screen: string } | { tab: string } | { web: string } {
-  const listing = /^\/[a-z]{2}\/listings\/(\d+)$/.exec(path);
-  if (listing) return { screen: `/listings/${listing[1]}` };
-  if (/^\/[a-z]{2}\/my-listings$/.test(path)) return { screen: "/my-listings" };
-  if (/^\/[a-z]{2}\/account\/notifications$/.test(path)) return { tab: "/notifications" };
-  const chat = /^\/[a-z]{2}\/messages\/([\w-]+)$/.exec(path);
-  if (chat) return { screen: `/messages/${chat[1]}` };
-  if (/^\/[a-z]{2}\/messages$/.test(path)) return { screen: "/messages" };
-  if (/^\/[a-z]{2}\/saved$/.test(path)) return { screen: "/saved-searches" };
+  const rest = /^\/[a-z]{2}\/(.+)$/.exec(path)?.[1];
+  if (rest !== undefined) {
+    const found = screens.find(([pattern]) => pattern.test(rest));
+    if (found) return { screen: rest.replace(found[0], found[1]) };
+    if (rest === "account/notifications") return { tab: "/notifications" };
+  }
   const search = /^\/[a-z]{2}(\?.*)?$/.exec(path);
   if (search) return { tab: `/${search[1] ?? ""}` };
   return { web: path };

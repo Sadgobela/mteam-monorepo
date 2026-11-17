@@ -11,8 +11,8 @@ import { useSession } from "@/lib/session";
 import { space, useColors } from "@/lib/theme";
 
 /**
- * The account tab: the language for everyone; for a signed-in user also a menu of their listings, chats and saved
- * searches, push on this phone and signing out.
+ * The account tab: for everyone the brokers, the mortgage calculator, prices and the language; for a signed-in user also
+ * a menu of their listings, chats, saved searches, profile and settings, push on this phone and signing out.
  */
 export default function AccountScreen() {
   const c = useColors();
@@ -59,6 +59,8 @@ export default function AccountScreen() {
             <MenuRow icon="list-outline" label={t.my.heading} onPress={() => router.push("/my-listings")} />
             <MenuRow icon="chatbubbles-outline" label={t.mobile.messages} onPress={() => router.push("/messages")} />
             <MenuRow icon="bookmark-outline" label={t.saved.heading} onPress={() => router.push("/saved-searches")} />
+            <MenuRow icon="person-outline" label={t.account.profile} onPress={() => router.push("/profile")} />
+            <MenuRow icon="settings-outline" label={t.account.settings} onPress={() => router.push("/settings")} />
           </Menu>
           <View style={styles.row}>
             <View style={styles.grow}>
@@ -72,6 +74,11 @@ export default function AccountScreen() {
       ) : (
         session.ready && <SignInPrompt nested />
       )}
+      <Menu>
+        <MenuRow icon="people-outline" label={t.nav.brokers} onPress={() => router.push("/brokers")} />
+        <MenuRow icon="calculator-outline" label={t.nav.mortgage} onPress={() => router.push("/mortgage")} />
+        <MenuRow icon="stats-chart-outline" label={t.nav.prices} onPress={() => router.push("/prices")} />
+      </Menu>
       <Note>{t.mobile.appLanguage}</Note>
       <ChipRow options={locales} value={locale} onChange={(next) => next && setLocale(next)} label={(value) => languageNames[value]} />
       {user && <Button quiet busy={busy} label={t.nav.logout} onPress={() => void signOut()} />}

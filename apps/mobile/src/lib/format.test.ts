@@ -26,7 +26,7 @@ describe("format", () => {
     expect(whatsappLink("+995 555 12-34-56")).toBe("https://wa.me/995555123456");
   });
 
-  it("opens listings, my listings and chats as screens, notifications and searches as tabs, anything else on the site", () => {
+  it("opens the pages the app has as screens, notifications and searches as tabs, anything else on the site", () => {
     expect(routeForPath("/en/listings/7")).toEqual({ screen: "/listings/7" });
     expect(routeForPath("/ka/my-listings")).toEqual({ screen: "/my-listings" });
     expect(routeForPath("/ka/account/notifications")).toEqual({ tab: "/notifications" });
@@ -35,7 +35,18 @@ describe("format", () => {
     expect(routeForPath("/ka/messages/c1")).toEqual({ screen: "/messages/c1" });
     expect(routeForPath("/ka/messages")).toEqual({ screen: "/messages" });
     expect(routeForPath("/ka/saved")).toEqual({ screen: "/saved-searches" });
-    expect(routeForPath("/ka/brokers")).toEqual({ web: "/ka/brokers" });
+    expect(routeForPath("/ka/listings/7/edit")).toEqual({ screen: "/edit/7" });
+    expect(routeForPath("/ka/brokers")).toEqual({ screen: "/brokers" });
+    expect(routeForPath("/ka/brokers/b1")).toEqual({ screen: "/brokers/b1" });
+    expect(routeForPath("/ka/branches/vake")).toEqual({ screen: "/branches/vake" });
+    expect(routeForPath("/en/sellers/u-1")).toEqual({ screen: "/sellers/u-1" });
+    expect(routeForPath("/ka/mortgage")).toEqual({ screen: "/mortgage" });
+    expect(routeForPath("/ka/prices")).toEqual({ screen: "/prices" });
+    expect(routeForPath("/ka/prices?city=ბათუმი&deal=rent")).toEqual({ screen: "/prices" });
+    expect(routeForPath("/ka/account/profile")).toEqual({ screen: "/profile" });
+    expect(routeForPath("/ka/account/settings")).toEqual({ screen: "/settings" });
+    expect(routeForPath("/ka/account/security")).toEqual({ web: "/ka/account/security" });
+    expect(routeForPath("/ka/listings/new")).toEqual({ web: "/ka/listings/new" });
   });
 
   it("writes chat times and days in Tbilisi time", () => {
