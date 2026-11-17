@@ -271,6 +271,28 @@ describe("CardPhotos", () => {
     fireEvent.click(container.querySelector(".strip-nav.previous") as Element);
     expect(scrollBy).toHaveBeenLastCalledWith({ left: -300, behavior: "smooth" });
   });
+
+  it("sets aside the arrow at either end of the photos", () => {
+    const { container } = render(<CardPhotos images={["https://cdn/a.jpg", "https://cdn/b.jpg", "https://cdn/c.jpg"]} alt="Flat" />);
+    const strip = container.querySelector(".strip") as HTMLElement;
+    const previous = container.querySelector(".strip-nav.previous") as Element;
+    const next = container.querySelector(".strip-nav.next") as Element;
+    expect(previous).toHaveAttribute("data-off");
+    expect(next).not.toHaveAttribute("data-off");
+    Object.defineProperty(strip, "clientWidth", { value: 300, configurable: true });
+    Object.defineProperty(strip, "scrollLeft", { value: 310, configurable: true });
+    fireEvent.scroll(strip);
+    expect(previous).not.toHaveAttribute("data-off");
+    expect(next).not.toHaveAttribute("data-off");
+    Object.defineProperty(strip, "scrollLeft", { value: 600, configurable: true });
+    fireEvent.scroll(strip);
+    expect(next).toHaveAttribute("data-off");
+    // A strip not laid out yet has no width; it counts as the first photo.
+    Object.defineProperty(strip, "clientWidth", { value: 0, configurable: true });
+    Object.defineProperty(strip, "scrollLeft", { value: 0, configurable: true });
+    fireEvent.scroll(strip);
+    expect(previous).toHaveAttribute("data-off");
+  });
 });
 
 describe("Pager", () => {
@@ -1090,6 +1112,23 @@ describe("ListingCard", () => {
   it("converts at the rate it is given", () => {
     render(<ListingCard gelPerUsd={2.5} listing={fixtureListings[2]} locale="en" t={t} />);
     expect(screen.getByText("$108,000")).toBeInTheDocument();
+  });
+
+  it("keeps the same lines in every card: address, facts, broker and date", () => {
+    const { container } = render(<ListingCard gelPerUsd={2.7} listing={fixtureListings[0]} locale="en" t={t} />);
+    expect(screen.getByText("ჭავჭავაძის გამზ. 37, ვაკე")).toBeInTheDocument();
+    expect([...container.querySelectorAll(".cfacts > span")].map((fact) => fact.textContent)).toEqual(["92 m²", "3 rooms", "7/12 floor"]);
+    expect(container.querySelector(".cfoot .cbroker")).toHaveTextContent("ნინო ბერიძე");
+    expect(container.querySelector(".cfoot time")).toHaveAttribute("dateTime", "2026-11-06");
+  });
+
+  it("falls back to the place for an address and keeps the date in place without a broker", () => {
+    const listing = { ...fixtureListings[1], address: "", district: "", bedrooms: 1 };
+    const { container } = render(<ListingCard gelPerUsd={2.7} listing={listing} locale="en" t={t} />);
+    expect(container.querySelector(".caddr")).toHaveTextContent("Tbilisi");
+    expect(container.querySelector(".cbroker")).toBeNull();
+    expect(container.querySelector(".cfoot time")).toHaveTextContent("Nov 7");
+    expect(container.querySelector(".cfacts")).toHaveTextContent("1 bedrooms");
   });
 
   it("converts a listing priced in another currency", () => {
