@@ -68,7 +68,7 @@ export default function ListingScreen() {
 
   return (
     <ScrollView contentContainerStyle={styles.page}>
-      <Stack.Screen options={{ title: `ID ${listing.id}` }} />
+      <Stack.Screen options={{ title: priceLine(listing, t, gelPerUsd) }} />
       <ScrollView horizontal pagingEnabled showsHorizontalScrollIndicator={false}>
         {listing.images.map((uri, index) => (
           <Image key={uri} source={{ uri }} style={{ width, aspectRatio: 4 / 3 }} contentFit="cover" accessibilityLabel={`${t.card.photo} ${index + 1}`} />

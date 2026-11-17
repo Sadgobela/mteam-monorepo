@@ -1,4 +1,4 @@
-import { ActivityIndicator, Pressable, StyleSheet, Text, TextInput, View, type TextInputProps } from "react-native";
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, TextInput, View, type TextInputProps } from "react-native";
 import { useLocale } from "@/lib/i18n";
 import { radius, space, useColors } from "@/lib/theme";
 
@@ -36,13 +36,27 @@ export function Chip({ label, selected, onPress }: { label: string; selected: bo
 }
 
 /** A row of chips where one or none is chosen; choosing the chosen one again clears it. */
-export function ChipRow<T extends string>({ options, value, onChange, label }: { options: readonly T[]; value: T | undefined; onChange: (value: T | undefined) => void; label: (value: T) => string }) {
-  return (
-    <View style={styles.chips}>
-      {options.map((option) => (
-        <Chip key={option} label={label(option)} selected={value === option} onPress={() => onChange(value === option ? undefined : option)} />
-      ))}
-    </View>
+export function ChipRow<T extends string>({
+  options,
+  value,
+  onChange,
+  label,
+  scroll = false,
+}: {
+  options: readonly T[];
+  value: T | undefined;
+  onChange: (value: T | undefined) => void;
+  label: (value: T) => string;
+  /** One line that scrolls sideways instead of wrapping onto several, to keep a long list short. */
+  scroll?: boolean;
+}) {
+  const chips = options.map((option) => <Chip key={option} label={label(option)} selected={value === option} onPress={() => onChange(value === option ? undefined : option)} />);
+  return scroll ? (
+    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipLine}>
+      {chips}
+    </ScrollView>
+  ) : (
+    <View style={styles.chips}>{chips}</View>
   );
 }
 
@@ -96,6 +110,7 @@ const styles = StyleSheet.create({
   dim: { opacity: 0.7 },
   chip: { borderWidth: 1, borderRadius: radius.pill, paddingHorizontal: space.md, paddingVertical: space.sm, minHeight: 36, justifyContent: "center" },
   chips: { flexDirection: "row", flexWrap: "wrap", gap: space.sm },
+  chipLine: { flexDirection: "row", gap: space.sm },
   field: { gap: space.xs },
   label: { fontSize: 13 },
   input: { borderWidth: 1, borderRadius: radius.md, minHeight: 48, paddingHorizontal: space.md, fontSize: 16 },

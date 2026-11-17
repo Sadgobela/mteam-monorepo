@@ -61,7 +61,7 @@ export default function AccountScreen() {
           {pushNote && <Note tone="danger">{{ blocked: t.mobile.pushBlocked, unavailable: t.mobile.pushUnavailable, failed: t.push.failed }[pushNote]}</Note>}
         </>
       ) : (
-        session.ready && <SignInPrompt />
+        session.ready && <SignInPrompt nested />
       )}
       <Note>{t.mobile.appLanguage}</Note>
       <ChipRow options={locales} value={locale} onChange={(next) => next && setLocale(next)} label={(value) => languageNames[value]} />

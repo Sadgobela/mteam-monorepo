@@ -8,14 +8,15 @@ import { Button, Note } from "./ui";
 export const toSignIn = () => router.push("/login");
 
 /** What a signed-out user sees on a screen that needs an account. */
-export function SignInPrompt() {
+export function SignInPrompt({ nested = false }: { nested?: boolean }) {
   const { t } = useLocale();
   return (
-    <View style={styles.box}>
+    // Nested in a screen that already has padding (the account page), it adds none, so it lines up with the rest.
+    <View style={[styles.box, nested && styles.nested]}>
       <Note>{t.mobile.signInFor}</Note>
       <Button label={t.nav.login} onPress={toSignIn} />
     </View>
   );
 }
 
-const styles = StyleSheet.create({ box: { padding: space.xl, gap: space.lg } });
+const styles = StyleSheet.create({ box: { padding: space.lg, gap: space.lg }, nested: { padding: 0 } });
