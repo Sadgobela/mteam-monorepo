@@ -1,3 +1,5 @@
+import { existsSync } from "node:fs";
+import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
@@ -30,7 +32,7 @@ import { loginPath, safeNext } from "@/lib/login-path";
 import LoginOverlay from "./[locale]/@modal/(.)login/page";
 import NoModal from "./[locale]/@modal/default";
 import OtherNoModal from "./[locale]/@modal/[...rest]/page";
-import HomeNoModal from "./[locale]/@modal/page";
+import HomeNoModal from "./[locale]/@modal/(home)/page";
 import LoginPage from "./[locale]/login/page";
 
 const t = getDictionary("en");
@@ -272,6 +274,13 @@ describe("LoginOverlay", () => {
     expect(NoModal()).toBeNull();
     expect(HomeNoModal()).toBeNull();
     expect(OtherNoModal()).toBeNull();
+  });
+
+  // A page.tsx at the slot's root made Next put the page's search in the Next-Url header after a link click, and the
+  // browser refuses a header with Georgian letters, so links on results filtered by city fell back to full reloads.
+  it("keeps the home page's slot page in a route group, not at the slot's root", () => {
+    expect(existsSync(join(__dirname, "[locale]/@modal/page.tsx"))).toBe(false);
+    expect(existsSync(join(__dirname, "[locale]/@modal/(home)/page.tsx"))).toBe(true);
   });
 });
 

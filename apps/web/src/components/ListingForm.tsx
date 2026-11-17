@@ -231,7 +231,9 @@ export function ListingForm({
       for (const url of urls) data.append("photos", url);
       savedSchema.parse(await send("/api/listings", data));
       // This leaves the form busy on purpose: the page is changing, and a second press would post the listing twice.
-      return router.push(isDraft ? `/${locale}/listings/new?sent=1` : `${here}?saved=1`);
+      // A full page load, not router.push: Next's router now and then got the next page but never showed it, leaving
+      // Save spinning for good (about 1 in 10 end-to-end runs). The sign-in forms work around it the same way.
+      return window.location.assign(isDraft ? `/${locale}/listings/new?sent=1` : `${here}?saved=1`);
     } catch (error) {
       const reason = error instanceof Refused ? error.reason : "save";
       // Nothing was posted, and sign-in opens over this form, which must work again once it is closed.

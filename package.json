@@ -8,6 +8,7 @@
     "lint": "turbo run lint",
     "typecheck": "turbo run typecheck",
     "test": "turbo run test",
+    "e2e": "pnpm --filter @mteam/web build && pnpm --filter @mteam/e2e e2e",
     "prepare": "husky"
   },
   "devDependencies": {

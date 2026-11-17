@@ -657,9 +657,8 @@ describe("SearchBar", () => {
   describe("phone filter sheet", () => {
     const row = (filters = {}) => render(<SearchBar gelPerUsd={2.7} locale="en" t={t} filters={filters} display={display} results />);
     const sheet = () => within(document.querySelector(".filter-sheet .ant-drawer-section") as HTMLElement);
+    // The search icon is part of the button's name, so it is matched at its end.
     const openSheet = () => fireEvent.click(screen.getByRole("button", { name: /Filters$/ }));
-    // The search icon is part of the button's name, so names are matched at their end.
-    const named = (text: string) => ({ name: new RegExp(`${text}$`) });
 
     it("is only on results, counting every filter it holds", () => {
       bar();
