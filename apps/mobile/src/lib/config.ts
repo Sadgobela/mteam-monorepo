@@ -12,3 +12,12 @@ export function apiUrl(): string {
 export function easProjectId(): string | undefined {
   return (Constants.expoConfig?.extra?.eas?.projectId as string | undefined) ?? Constants.easConfig?.projectId;
 }
+
+/**
+ * Vercel's "Protection Bypass for Automation" key, while the site is open only to the team (Vercel Authentication).
+ * Set EXPO_PUBLIC_VERCEL_BYPASS in apps/mobile/.env.local (gitignored), never in app.json or git: it is built into
+ * the app, so only team builds may carry it. Remove it once the site is public.
+ */
+export function protectionBypass(): string | undefined {
+  return process.env.EXPO_PUBLIC_VERCEL_BYPASS || undefined;
+}

@@ -28,6 +28,13 @@ describe("api", () => {
     expect(lastCall()).toEqual({ url: "https://api.test/api/v1/listings?deal=sale", method: "GET", headers: { accept: "application/json" }, body: undefined });
   });
 
+  it("sends the protection bypass key when the build has one", async () => {
+    process.env.EXPO_PUBLIC_VERCEL_BYPASS = "test-key";
+    await api.search({});
+    delete process.env.EXPO_PUBLIC_VERCEL_BYPASS;
+    expect(lastCall().headers).toEqual({ accept: "application/json", "x-vercel-protection-bypass": "test-key" });
+  });
+
   it("sends the session token and JSON bodies", async () => {
     setApiToken("tok");
     await api.verifyCode("555123456", "123456");

@@ -1,5 +1,5 @@
 import type { PublicListing } from "@mteam/shared";
-import { apiUrl } from "./config";
+import { apiUrl, protectionBypass } from "./config";
 
 /** A failed call: the API's own error code, or "network" when the server could not be reached. */
 export class ApiError extends Error {
@@ -58,6 +58,8 @@ export function toSearch(query: Query): string {
 async function call<T>(path: string, init: { method?: string; json?: unknown; form?: FormData; fields?: URLSearchParams } = {}): Promise<T> {
   const headers: Record<string, string> = { accept: "application/json" };
   if (sessionToken) headers.authorization = `Bearer ${sessionToken}`;
+  const bypass = protectionBypass();
+  if (bypass) headers["x-vercel-protection-bypass"] = bypass;
   let body: string | FormData | undefined;
   if (init.form) body = init.form;
   else if (init.fields) {
