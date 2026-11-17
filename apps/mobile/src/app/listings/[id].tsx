@@ -8,13 +8,14 @@ import { ListingCard } from "@/components/ListingCard";
 import { toSignIn } from "@/components/SignInPrompt";
 import { useBarSpace } from "@/components/TabBar";
 import { Button, dimWhenPressed, Heading, Note, ScreenState } from "@/components/ui";
+import { WriteToSeller } from "@/components/WriteToSeller";
 import { api, type ListingPage } from "@/lib/api";
 import { cardTitle, factList, priceLine, whatsappLink } from "@/lib/format";
 import { useLocale } from "@/lib/i18n";
 import { useSession } from "@/lib/session";
 import { radius, space, useColors } from "@/lib/theme";
 
-/** One listing: photos to swipe through, price and facts, the description, and call or WhatsApp. */
+/** One listing: photos to swipe through, price and facts, the description, and call, WhatsApp or write. */
 export default function ListingScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const c = useColors();
@@ -55,6 +56,7 @@ export default function ListingScreen() {
 
   const { listing, similar, gelPerUsd } = page;
   const favorite = session.favoriteIds.has(listing.id);
+  const own = session.user !== null && (session.user.id === listing.sellerId || (listing.agent !== undefined && session.user.agentId === listing.agent.id));
   const contact = async (open: (phone: string) => string) => {
     setPhoneBusy(true);
     try {
@@ -74,7 +76,7 @@ export default function ListingScreen() {
   const showPhoto = (event: NativeSyntheticEvent<NativeScrollEvent>) => setPhoto(Math.round(event.nativeEvent.contentOffset.x / width));
 
   return (
-    <ScrollView contentContainerStyle={{ paddingBottom: barSpace }}>
+    <ScrollView automaticallyAdjustKeyboardInsets keyboardShouldPersistTaps="handled" contentContainerStyle={{ paddingBottom: barSpace }}>
       <Stack.Screen options={{ title: priceLine(listing, t, gelPerUsd) }} />
       <View>
         <ScrollView testID="gallery" horizontal pagingEnabled showsHorizontalScrollIndicator={false} onMomentumScrollEnd={showPhoto}>
@@ -136,6 +138,8 @@ export default function ListingScreen() {
             </View>
           </View>
         )}
+        {/* An owner who hid the number is reached through chat only; nobody writes about their own or their agency's listing. */}
+        {!own && <WriteToSeller listingId={listing.id} />}
         <Text style={[styles.description, { color: c.fg }]}>{listingDescription(listing, locale)}</Text>
         {similar.length > 0 && (
           <View style={styles.similar}>

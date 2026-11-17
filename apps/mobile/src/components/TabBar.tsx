@@ -29,6 +29,8 @@ const TABS: { name: TabName; href: string; icon: IconName; iconOn: IconName }[] 
 
 /** Screens without the menu: sign-in and the first-visit questions, which have their own way out. */
 const WITHOUT_MENU = new Set(["/login", "/onboarding"]);
+/** A chat keeps its own box to write in at the foot of the screen, where the menu would be. */
+const hidesMenu = (path: string) => WITHOUT_MENU.has(path) || path.startsWith("/messages/");
 
 /** Room a scrolling screen leaves at its end, so its last row can scroll clear of the floating menu. */
 export function useBarSpace(): number {
@@ -65,7 +67,7 @@ export function TabBar({ blurTarget }: { blurTarget?: RefObject<ComponentRef<typ
     };
   }, []);
 
-  if (typing || WITHOUT_MENU.has(path)) return null;
+  if (typing || hidesMenu(path)) return null;
   return (
     <View accessibilityRole="tablist" accessibilityLabel={t.mobile.tabsLabel} pointerEvents="box-none" style={[styles.wrap, { bottom: insets.bottom + BAR_LIFT }]}>
       <View style={[styles.glass, { borderColor: c.glassLine }, Platform.select({ ios: styles.shadow })]}>

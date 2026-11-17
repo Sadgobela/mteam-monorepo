@@ -120,7 +120,7 @@ describe("ListingCard", () => {
   it("fills the heart for a favourite of a signed-in user", async () => {
     const SecureStore = jest.requireMock("expo-secure-store");
     SecureStore.getItemAsync.mockResolvedValueOnce("tok");
-    fetchMock.mockResolvedValueOnce(answer({ id: "u1", name: "N", phone: null, role: "USER", onboarded: true, favoriteIds: [7] }));
+    fetchMock.mockResolvedValueOnce(answer({ id: "u1", name: "N", phone: null, role: "USER", agentId: null, onboarded: true, favoriteIds: [7] }));
     const signIn = jest.fn();
     await renderApp(<ListingCard listing={flat} gelPerUsd={2.7} onSignIn={signIn} />);
     const heart = await screen.findByRole("button", { name: "რჩეულებიდან ამოღება" });

@@ -19,7 +19,7 @@ The app signs in with a phone code and keeps the session token in the phone's se
 | `POST /api/v1/auth/code` `{ phone }` | Sends the SMS code, with the site's limits. 400 `invalidPhone`, 429 `tooSoon`. |
 | `POST /api/v1/auth/verify` `{ phone, code }` | `{ token, onboarded }`, or 401 `wrongCode`. |
 | `POST /api/v1/auth/logout` | Ends the session. |
-| `GET /api/v1/me` | `{ id, name, phone, role, onboarded, favoriteIds, unread }`; `unread` is the number of unread notifications, for the badge in the app's menu. |
+| `GET /api/v1/me` | `{ id, name, phone, role, agentId, onboarded, favoriteIds, unread }`; `unread` is the number of unread notifications, for the badge in the app's menu, and `agentId` the broker the user is, or null. |
 | `POST /api/v1/onboarding` `{ name, intent, terms: true }` | The first-visit answers, which posting needs. |
 | `GET /api/v1/favorites`, `PUT /api/v1/favorites/<id>` `{ favorite }` | The hearts. |
 | `GET /api/v1/my-listings` | The user's listings, each with its `status`. |
@@ -28,6 +28,14 @@ The app signs in with a phone code and keeps the session token in the phone's se
 | `GET /api/v1/notifications?locale=<ka\|en\|ru>` | `{ notifications: [{ id, read, at, title, body }], unread }`, newest first, written as on the site's notifications page. |
 | `POST /api/v1/notifications/<id>` `{ locale }` | Marks one read and answers `{ path }`, the site path it leads to (a saved search is opened, as on the site). 404 `notFound` for someone else's. |
 | `POST /api/v1/notifications` | Marks them all read. |
+| `GET /api/v1/conversations` | `{ conversations: [{ id, listingId, listingTitle, otherName, lastBody, lastAt, unread }] }`, the latest first. |
+| `POST /api/v1/conversations` `{ listingId, body }` | Writes to a listing's seller, in the chat they already have or a new one, and answers `{ id }`. 400 `invalid`, 422 `failed` (their own listing, one no longer published, or too many messages lately). |
+| `GET /api/v1/conversations/<id>` | `{ id, listingId, listingTitle, otherName, messages: [{ id, body, mine, at }] }`, oldest first; reading it marks it read. 404 `notFound` unless the user is in it. The app asks again every 10 seconds while a chat is open. |
+| `POST /api/v1/conversations/<id>` `{ body }` | Sends a message. 400 `invalid`, 422 `failed`. |
+| `GET /api/v1/saved-searches?locale=<ka\|en\|ru>` | `{ searches: [{ id, query, name, others, newCount }] }`: the filters as a query string, a name from deal, type and city, how many other filters it has, and listings new since it was last opened. |
+| `POST /api/v1/saved-searches` `{ query }` | Saves the filters of a search, kept in the site's form, and answers `{ query }`. 400 `invalid`, 409 `limit` when the user has as many as allowed. |
+| `POST /api/v1/saved-searches/<id>/open` | Counts its listings as seen and answers `{ query }`, which the app opens on the search tab. 404 `notFound`. |
+| `DELETE /api/v1/saved-searches/<id>` | Removes one. |
 
 Every signed-out call answers 401 `signedOut`.
 

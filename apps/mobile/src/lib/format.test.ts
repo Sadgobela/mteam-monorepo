@@ -1,6 +1,6 @@
 import { getDictionary, type PublicListing } from "@mteam/shared";
 import { listing } from "@/test/render";
-import { cardTitle, factList, factsLine, priceLine, routeForPath, whatsappLink } from "./format";
+import { cardTitle, chatDay, chatTime, factList, factsLine, initials, priceLine, routeForPath, whatsappLink } from "./format";
 
 const flat = listing as unknown as PublicListing;
 const en = getDictionary("en");
@@ -32,7 +32,22 @@ describe("format", () => {
     expect(routeForPath("/ka/account/notifications")).toEqual({ screen: "/notifications" });
     expect(routeForPath("/ka?deal=rent&city=თბილისი")).toEqual({ screen: "/?deal=rent&city=თბილისი" });
     expect(routeForPath("/en")).toEqual({ screen: "/" });
-    expect(routeForPath("/ka/saved")).toEqual({ web: "/ka/saved" });
-    expect(routeForPath("/ka/messages/c1")).toEqual({ web: "/ka/messages/c1" });
+    expect(routeForPath("/ka/messages/c1")).toEqual({ screen: "/messages/c1" });
+    expect(routeForPath("/ka/messages")).toEqual({ screen: "/messages" });
+    expect(routeForPath("/ka/saved")).toEqual({ screen: "/saved-searches" });
+    expect(routeForPath("/ka/brokers")).toEqual({ web: "/ka/brokers" });
+  });
+
+  it("writes chat times and days in Tbilisi time", () => {
+    expect(chatTime("2026-11-15T10:05:00Z", "ka")).toBe("14:05");
+    // 22:05 in UTC is already the next day in Tbilisi.
+    expect(chatDay("2026-11-15T22:05:00Z", "ka")).toBe("16 ნოემბერი");
+    expect(chatDay("2026-11-15T10:05:00Z", "en")).toBe("November 15");
+  });
+
+  it("takes up to two initials, leaving Georgian letters as they are", () => {
+    expect(initials("nino beridze")).toBe("NB");
+    expect(initials("  გიორგი  მაისურაძე ბერი ")).toBe("გმ");
+    expect(initials("")).toBe("");
   });
 });

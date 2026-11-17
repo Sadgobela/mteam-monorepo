@@ -38,15 +38,46 @@ export function whatsappLink(phone: string): string {
 }
 
 /**
- * The screen a site path from a notification opens: a listing, the user's listings, the notifications, or the search tab
- * with a saved search's filters; anything else (messages) opens the site's page in the browser until the app has it.
+ * The screen a site path from a notification opens: a listing, the user's listings, the notifications, a chat, the saved
+ * searches, or the search tab with a saved search's filters; anything else opens the site's page in the browser.
  */
 export function routeForPath(path: string): { screen: string } | { web: string } {
   const listing = /^\/[a-z]{2}\/listings\/(\d+)$/.exec(path);
   if (listing) return { screen: `/listings/${listing[1]}` };
   if (/^\/[a-z]{2}\/my-listings$/.test(path)) return { screen: "/my-listings" };
   if (/^\/[a-z]{2}\/account\/notifications$/.test(path)) return { screen: "/notifications" };
+  const chat = /^\/[a-z]{2}\/messages\/([\w-]+)$/.exec(path);
+  if (chat) return { screen: `/messages/${chat[1]}` };
+  if (/^\/[a-z]{2}\/messages$/.test(path)) return { screen: "/messages" };
+  if (/^\/[a-z]{2}\/saved$/.test(path)) return { screen: "/saved-searches" };
   const search = /^\/[a-z]{2}(\?.*)?$/.exec(path);
   if (search) return { screen: `/${search[1] ?? ""}` };
   return { web: path };
+}
+
+/** Georgia only, so chat times read the same for everyone, as on the site. */
+const TBILISI = "Asia/Tbilisi";
+
+/** A chat message's time of day, such as "14:05". */
+export function chatTime(at: string, locale: Locale): string {
+  return new Intl.DateTimeFormat(locale, { hour: "2-digit", minute: "2-digit", hourCycle: "h23", timeZone: TBILISI }).format(new Date(at));
+}
+
+/** The day a chat message was sent, such as "17 November", for the line above the first message of each day. */
+export function chatDay(at: string, locale: Locale): string {
+  return new Intl.DateTimeFormat(locale, { day: "numeric", month: "long", timeZone: TBILISI }).format(new Date(at));
+}
+
+/**
+ * The initials of a name, for an avatar, as on the site: up to two, from the first two words. Georgian letters stay as
+ * they are, since Georgian has no capitals in everyday writing and its uppercase forms would look wrong.
+ */
+export function initials(name: string): string {
+  return name
+    .trim()
+    .split(/\s+/)
+    .slice(0, 2)
+    .map((word) => Array.from(word)[0] ?? "")
+    .join("")
+    .replace(/[^ა-ჿ]/g, (letter) => letter.toUpperCase());
 }

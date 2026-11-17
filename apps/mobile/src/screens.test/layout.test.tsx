@@ -1,5 +1,5 @@
 import { Linking } from "react-native";
-import { render, screen, waitFor } from "@testing-library/react-native";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react-native";
 import type { NotificationResponse } from "expo-notifications";
 import { answer, serve, signedIn } from "@/test/render";
 import TabsLayout from "@/app/(tabs)/_layout";
@@ -15,8 +15,8 @@ describe("openNotification", () => {
   it("opens the app's screen for a listing, the site for anything else, and nothing without an address", () => {
     openNotification(tapped({ url: "/ka/listings/7" }));
     expect(router.push).toHaveBeenCalledWith("/listings/7");
-    openNotification(tapped({ url: "/ka/messages/c1" }));
-    expect(openURL).toHaveBeenCalledWith("https://api.test/ka/messages/c1");
+    openNotification(tapped({ url: "/ka/brokers" }));
+    expect(openURL).toHaveBeenCalledWith("https://api.test/ka/brokers");
     openNotification(tapped(undefined));
     expect(router.push).toHaveBeenCalledTimes(1);
   });
@@ -69,7 +69,7 @@ describe("RootLayout", () => {
 });
 
 describe("TabsLayout", () => {
-  it("hides the tabs' own bar for the glass menu, and puts the logo over search", async () => {
+  it("hides the tabs' own bar for the glass menu, and puts the logo and the chats over search", async () => {
     const Tabs = expoRouter.Tabs;
     const screens = jest.fn(() => null);
     const navigator = jest.fn(({ children }) => children);
@@ -79,8 +79,12 @@ describe("TabsLayout", () => {
     expect(navigator.mock.calls[0][0].tabBar()).toBeNull();
     const names = (screens.mock.calls as unknown as [{ name: string }][]).map(([props]) => props.name);
     expect(names).toEqual(["index", "favorites", "post", "notifications", "account"]);
-    const [[search]] = screens.mock.calls as unknown as [[{ options: { headerTitle: () => React.ReactElement } }]];
+    const [[search]] = screens.mock.calls as unknown as [[{ options: { headerTitle: () => React.ReactElement; headerRight: () => React.ReactElement } }]];
     await render(search.options.headerTitle());
     expect(screen.getByLabelText("MTeam")).toBeOnTheScreen();
+    // The chats are a tap away from search.
+    await render(search.options.headerRight());
+    await fireEvent.press(screen.getByRole("button", { name: "მიმოწერა" }));
+    expect(router.push).toHaveBeenCalledWith("/messages");
   });
 });

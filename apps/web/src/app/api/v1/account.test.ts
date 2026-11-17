@@ -104,12 +104,12 @@ describe("signed-out requests", () => {
 });
 
 describe("GET /api/v1/me", () => {
-  it("returns the user, their favourites and the unread notifications", async () => {
+  it("returns the user, the broker they are, their favourites and the unread notifications", async () => {
     db.getFavoriteIds.mockResolvedValue([3, 4]);
     db.countUnreadNotifications.mockResolvedValue(2);
-    expect(await read(me())).toEqual([200, { id: "u1", name: "Nino", phone: "+995555123456", role: "USER", onboarded: true, favoriteIds: [3, 4], unread: 2 }]);
-    session.currentUser.mockResolvedValue({ ...user, onboardedAt: null });
-    expect((await read(me()))[1]).toMatchObject({ onboarded: false });
+    expect(await read(me())).toEqual([200, { id: "u1", name: "Nino", phone: "+995555123456", role: "USER", onboarded: true, agentId: null, favoriteIds: [3, 4], unread: 2 }]);
+    session.currentUser.mockResolvedValue({ ...user, onboardedAt: null, agent: { id: "a1" } });
+    expect((await read(me()))[1]).toMatchObject({ onboarded: false, agentId: "a1" });
   });
 });
 

@@ -27,6 +27,10 @@ describe("AccountScreen", () => {
     expect(await screen.findByText("გამარჯობა, Nino")).toBeOnTheScreen();
     await fireEvent.press(screen.getByRole("button", { name: "ჩემი განცხადებები" }));
     expect(router.push).toHaveBeenCalledWith("/my-listings");
+    await fireEvent.press(screen.getByRole("button", { name: "მიმოწერა" }));
+    expect(router.push).toHaveBeenCalledWith("/messages");
+    await fireEvent.press(screen.getByRole("button", { name: "შენახული ძიებები" }));
+    expect(router.push).toHaveBeenCalledWith("/saved-searches");
 
     const toggle = screen.getByLabelText("შეტყობინებები ამ ტელეფონზე");
     await fireEvent(toggle, "valueChange", true);
