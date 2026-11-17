@@ -1,6 +1,6 @@
 import Constants from "expo-constants";
 
-const DEFAULT_API_URL = "https://mteam.vercel.app";
+const DEFAULT_API_URL = "https://mteam-phi.vercel.app";
 
 /** The site the app talks to: EXPO_PUBLIC_API_URL for a local server, else app.json's extra.apiUrl. */
 export function apiUrl(): string {

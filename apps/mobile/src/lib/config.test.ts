@@ -18,7 +18,7 @@ describe("config", () => {
     expect(apiUrl()).toBe("http://192.168.1.5:3000");
     delete process.env.EXPO_PUBLIC_API_URL;
     config.expoConfig = null;
-    expect(apiUrl()).toBe("https://mteam.vercel.app");
+    expect(apiUrl()).toBe("https://mteam-phi.vercel.app");
   });
 
   it("has a protection bypass key only when one is set", () => {

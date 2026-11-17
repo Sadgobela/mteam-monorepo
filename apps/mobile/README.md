@@ -18,7 +18,7 @@ pnpm install
 pnpm --filter @mteam/mobile start      # then open it in Expo Go or a development build
 ```
 
-By default the app talks to `extra.apiUrl` in `app.json` (the Vercel preview). To use a local site, start `apps/web` and set its address, reachable from the phone:
+By default the app talks to `extra.apiUrl` in `app.json` (production, `https://mteam-phi.vercel.app`). To use a local site, start `apps/web` and set its address, reachable from the phone:
 
 ```bash
 EXPO_PUBLIC_API_URL=http://192.168.1.5:3000 pnpm --filter @mteam/mobile start

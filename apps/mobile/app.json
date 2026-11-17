@@ -33,7 +33,7 @@
       "typedRoutes": true
     },
     "extra": {
-      "apiUrl": "https://mteam.vercel.app"
+      "apiUrl": "https://mteam-phi.vercel.app"
     }
   }
 }
